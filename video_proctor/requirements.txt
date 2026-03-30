@@ -1,0 +1,14 @@
+ultralytics
+mediapipe
+reportlab
+numpy
+scikit-learn
+SpeechRecognition
+PyAudio
+fastapi
+uvicorn
+jinja2
+pymongo
+cloudinary
+python-multipart
+python-dotenv

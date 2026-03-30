@@ -1,0 +1,76 @@
+{
+    "code_agents_risk_score": {
+        "suspicion_score": 0,
+        "code_agents_risk_score": 0,
+        "max_score": 20,
+        "risk_level": "NO RISK",
+        "flagged": false,
+        "terminated": false,
+        "tab_switches": 0,
+        "violations": {}
+    },
+    "code_agents_trust_score": 20,
+    "question_count": 2,
+    "questions": [
+        {
+            "timestamp": "2026-03-30T11:06:12.555902",
+            "language": "Python",
+            "plagiarism": {
+                "plagiarism_score": 0,
+                "is_plagiarized": false
+            },
+            "ai_detection": {
+                "ai_score": 0.126,
+                "is_ai_generated": false,
+                "confidence": "unlikely",
+                "feature_scores": {
+                    "docstring_quality": 0.0,
+                    "naming_conventions": 0.0,
+                    "structural_patterns": 0.0,
+                    "comment_style": 0.0,
+                    "complexity_entropy": 0.55,
+                    "code_style": 0.1,
+                    "terse_ai_patterns": 0.25
+                },
+                "human_signals_found": [],
+                "parse_error": null
+            },
+            "risk": {
+                "suspicion_score": 0,
+                "code_agents_risk_score": 0,
+                "max_score": 20,
+                "risk_level": "NO RISK",
+                "flagged": false,
+                "terminated": false,
+                "tab_switches": 0,
+                "violations": {}
+            }
+        },
+        {
+            "timestamp": "2026-03-30T11:07:13.174648",
+            "language": "Python",
+            "plagiarism": {
+                "plagiarism_score": 0.278,
+                "is_plagiarized": false
+            },
+            "ai_detection": {
+                "ai_score": 0.0,
+                "is_ai_generated": false,
+                "confidence": "insufficient_data",
+                "feature_scores": {},
+                "human_signals_found": [],
+                "parse_error": null
+            },
+            "risk": {
+                "suspicion_score": 0,
+                "code_agents_risk_score": 0,
+                "max_score": 20,
+                "risk_level": "NO RISK",
+                "flagged": false,
+                "terminated": false,
+                "tab_switches": 0,
+                "violations": {}
+            }
+        }
+    ]
+}

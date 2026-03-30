@@ -1,0 +1,14 @@
+{
+    "video": {
+        "risk_score": 50,
+        "trust_score": 0,
+        "violation_score": 49
+    },
+    "code": {
+        "risk_score": 0,
+        "trust_score": 20,
+        "violation_score": 0
+    },
+    "assessment_id": "757f1edc-9567-4b0e-a5bd-223ada319bcc",
+    "email_id": "jrsairam5686@gmail.com"
+}
