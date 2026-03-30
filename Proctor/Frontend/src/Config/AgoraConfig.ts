@@ -1,0 +1,10 @@
+/**
+ * Agora SDK Configuration
+ * - appId: Unique Agora project App ID used for both RTC (video) and RTM (messaging) services.
+ * - tokenUrl: Backend endpoint to fetch temporary RTC tokens for secure channel access.
+ *   Also used to derive the RTM token URL by replacing '/token' with '/rtm-token'.
+ */
+export const AGORA_CONFIG = {
+  appId: "1ad817e7ca6f4755b7904294cf1d856a",
+  tokenUrl: "http://localhost:8000/agora/token"
+};
