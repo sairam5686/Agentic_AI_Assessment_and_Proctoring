@@ -1,0 +1,237 @@
+/* PipePuzzle.css */
+.pipe-puzzle-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+  padding: 40px;
+  background-color: #f8f9fa;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+}
+
+.simulation-badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background-color: #1a1a2e;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 10px;
+  font-weight: bold;
+  letter-spacing: 1px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+/* Grid Styling */
+.game-grid-wrapper {
+  position: relative;
+  padding: 40px;
+  background: white;
+  border-radius: 24px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+  border: 1px solid #eee;
+}
+
+.game-grid {
+  display: grid;
+  gap: 4px;
+  background-color: #e0e0e0;
+  padding: 4px;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.grid-tile {
+  width: 80px;
+  height: 80px;
+  background-color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.grid-tile.selected {
+  outline: 3px solid #ff8c00;
+  z-index: 10;
+  box-shadow: 0 0 15px rgba(255, 140, 0, 0.3);
+}
+
+.grid-tile:hover:not(.selected) {
+  background-color: #fff9f0;
+}
+
+/* Pipe Visuals */
+.pipe-element {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pipe-svg {
+  width: 100%;
+  height: 100%;
+}
+
+.pipe-path {
+  fill: none;
+  stroke: #1a1a2e;
+  stroke-width: 12;
+  stroke-linecap: round;
+}
+
+.arrow-head {
+  fill: #1a1a2e;
+}
+
+/* Start/End Icons */
+.start-icon, .end-icon {
+  position: absolute;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  z-index: 5;
+}
+
+/* Controls */
+.controls-panel {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+  background: #1a1a2e;
+  padding: 20px 40px;
+  border-radius: 20px;
+  color: white;
+  box-shadow: 0 10px 25px rgba(26, 26, 46, 0.2);
+}
+
+.timer-circle {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  border: 4px solid #ff8c00;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.timer-value {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.timer-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.control-buttons {
+  display: flex;
+  gap: 15px;
+}
+
+.btn-game {
+  width: 50px;
+  height: 50px;
+  border-radius: 12px;
+  border: none;
+  background: rgba(255,255,255,0.1);
+  color: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+}
+
+.btn-game:hover:not(:disabled) {
+  background: rgba(255,255,255,0.2);
+  transform: translateY(-2px);
+}
+
+.btn-game:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.btn-submit {
+  background: #ff8c00;
+  width: auto;
+  padding: 0 30px;
+  font-weight: bold;
+  font-size: 16px;
+  gap: 8px;
+}
+
+.btn-submit:hover:not(:disabled) {
+  background: #ffa500;
+}
+
+/* Tutorial */
+.tutorial-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.8);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tutorial-card {
+  background: white;
+  width: 500px;
+  border-radius: 24px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+}
+
+.tutorial-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 30px;
+  background: #f8f9fa;
+  border-bottom: 1px solid #eee;
+}
+
+.tutorial-content {
+  padding: 30px;
+  text-align: center;
+}
+
+.tutorial-visual {
+  height: 250px;
+  background: #eee;
+  border-radius: 16px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.rocket-anim {
+  position: absolute;
+  z-index: 100;
+  transition: all 0.5s linear;
+  font-size: 32px;
+}
