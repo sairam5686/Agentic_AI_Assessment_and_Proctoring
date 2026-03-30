@@ -1,0 +1,399 @@
+{
+  "camera": "mobile",
+  "duration_seconds": 81.03,
+  "suspicion_score": 30,
+  "mobile_cam_risk_score": 30,
+  "trust_score": 0,
+  "risk_level": "HIGH RISK",
+  "violation_count": 14,
+  "violations": [
+    {
+      "assessment_id": "92e4dde4-2616-4fe5-9e63-7673c804bea1",
+      "email": "ssridharan599@gmail.com",
+      "camera": "mobile",
+      "time": "14_46_22_168",
+      "type": "multiple_people",
+      "detail": "",
+      "link_path": "https://res.cloudinary.com/dmpuhpff9/image/upload/v1774602984/proctoring_evidences/multiple_people_14_46_22_168.jpg",
+      "timestamp": 1774602982.1682496,
+      "_id": "69c64ae9390156dce00b7985"
+    },
+    {
+      "assessment_id": "92e4dde4-2616-4fe5-9e63-7673c804bea1",
+      "email": "ssridharan599@gmail.com",
+      "camera": "mobile",
+      "time": "14_46_28_484",
+      "type": "multiple_people",
+      "detail": "",
+      "link_path": "https://res.cloudinary.com/dmpuhpff9/image/upload/v1774602988/proctoring_evidences/multiple_people_14_46_28_484.jpg",
+      "timestamp": 1774602988.4849253,
+      "_id": "69c64aed390156dce00b7986"
+    },
+    {
+      "assessment_id": "92e4dde4-2616-4fe5-9e63-7673c804bea1",
+      "email": "ssridharan599@gmail.com",
+      "camera": "mobile",
+      "time": "14_46_34_157",
+      "type": "multiple_people",
+      "detail": "",
+      "link_path": "https://res.cloudinary.com/dmpuhpff9/image/upload/v1774602993/proctoring_evidences/multiple_people_14_46_34_157.jpg",
+      "timestamp": 1774602994.1574051,
+      "_id": "69c64af3390156dce00b7987"
+    },
+    {
+      "assessment_id": "92e4dde4-2616-4fe5-9e63-7673c804bea1",
+      "email": "ssridharan599@gmail.com",
+      "camera": "mobile",
+      "time": "14_46_39_812",
+      "type": "multiple_people",
+      "detail": "",
+      "link_path": "https://res.cloudinary.com/dmpuhpff9/image/upload/v1774602999/proctoring_evidences/multiple_people_14_46_39_812.jpg",
+      "timestamp": 1774602999.8126233,
+      "_id": "69c64af8390156dce00b7988"
+    },
+    {
+      "assessment_id": "92e4dde4-2616-4fe5-9e63-7673c804bea1",
+      "email": "ssridharan599@gmail.com",
+      "camera": "mobile",
+      "time": "14_46_45_512",
+      "type": "multiple_people",
+      "detail": "",
+      "link_path": "https://res.cloudinary.com/dmpuhpff9/image/upload/v1774603004/proctoring_evidences/multiple_people_14_46_45_512.jpg",
+      "timestamp": 1774603005.5122387,
+      "_id": "69c64afe390156dce00b7989"
+    },
+    {
+      "assessment_id": "92e4dde4-2616-4fe5-9e63-7673c804bea1",
+      "email": "ssridharan599@gmail.com",
+      "camera": "mobile",
+      "time": "14_46_50_632",
+      "type": "multiple_people",
+      "detail": "",
+      "link_path": "https://res.cloudinary.com/dmpuhpff9/image/upload/v1774603010/proctoring_evidences/multiple_people_14_46_50_632.jpg",
+      "timestamp": 1774603010.6325355,
+      "_id": "69c64b03390156dce00b798a"
+    },
+    {
+      "assessment_id": "92e4dde4-2616-4fe5-9e63-7673c804bea1",
+      "email": "ssridharan599@gmail.com",
+      "camera": "mobile",
+      "time": "14_46_55_777",
+      "type": "multiple_people",
+      "detail": "",
+      "link_path": "https://res.cloudinary.com/dmpuhpff9/image/upload/v1774603015/proctoring_evidences/multiple_people_14_46_55_777.jpg",
+      "timestamp": 1774603015.7771149,
+      "_id": "69c64b08390156dce00b798b"
+    },
+    {
+      "assessment_id": "92e4dde4-2616-4fe5-9e63-7673c804bea1",
+      "email": "ssridharan599@gmail.com",
+      "camera": "mobile",
+      "time": "14_47_00_866",
+      "type": "multiple_people",
+      "detail": "",
+      "link_path": "https://res.cloudinary.com/dmpuhpff9/image/upload/v1774603020/proctoring_evidences/multiple_people_14_47_00_866.jpg",
+      "timestamp": 1774603020.8667152,
+      "_id": "69c64b0d390156dce00b798c"
+    },
+    {
+      "assessment_id": "92e4dde4-2616-4fe5-9e63-7673c804bea1",
+      "email": "ssridharan599@gmail.com",
+      "camera": "mobile",
+      "time": "14_47_06_992",
+      "type": "multiple_people",
+      "detail": "",
+      "link_path": "https://res.cloudinary.com/dmpuhpff9/image/upload/v1774603026/proctoring_evidences/multiple_people_14_47_06_992.jpg",
+      "timestamp": 1774603026.99279,
+      "_id": "69c64b14390156dce00b798d"
+    },
+    {
+      "assessment_id": "92e4dde4-2616-4fe5-9e63-7673c804bea1",
+      "email": "ssridharan599@gmail.com",
+      "camera": "mobile",
+      "time": "14_47_13_025",
+      "type": "multiple_people",
+      "detail": "",
+      "link_path": "https://res.cloudinary.com/dmpuhpff9/image/upload/v1774603032/proctoring_evidences/multiple_people_14_47_13_025.jpg",
+      "timestamp": 1774603033.025162,
+      "_id": "69c64b1a390156dce00b798e"
+    },
+    {
+      "assessment_id": "92e4dde4-2616-4fe5-9e63-7673c804bea1",
+      "email": "ssridharan599@gmail.com",
+      "camera": "mobile",
+      "time": "14_47_19_027",
+      "type": "multiple_people",
+      "detail": "",
+      "link_path": "https://res.cloudinary.com/dmpuhpff9/image/upload/v1774603038/proctoring_evidences/multiple_people_14_47_19_027.jpg",
+      "timestamp": 1774603039.0271318,
+      "_id": "69c64b1f390156dce00b798f"
+    },
+    {
+      "assessment_id": "92e4dde4-2616-4fe5-9e63-7673c804bea1",
+      "email": "ssridharan599@gmail.com",
+      "camera": "mobile",
+      "time": "14_47_24_811",
+      "type": "multiple_people",
+      "detail": "",
+      "link_path": "https://res.cloudinary.com/dmpuhpff9/image/upload/v1774603044/proctoring_evidences/multiple_people_14_47_24_811.jpg",
+      "timestamp": 1774603044.811339,
+      "_id": "69c64b25390156dce00b7990"
+    },
+    {
+      "assessment_id": "92e4dde4-2616-4fe5-9e63-7673c804bea1",
+      "email": "ssridharan599@gmail.com",
+      "camera": "mobile",
+      "time": "14_47_30_767",
+      "type": "multiple_people",
+      "detail": "",
+      "link_path": "https://res.cloudinary.com/dmpuhpff9/image/upload/v1774603050/proctoring_evidences/multiple_people_14_47_30_767.jpg",
+      "timestamp": 1774603050.767341,
+      "_id": "69c64b2b390156dce00b7991"
+    },
+    {
+      "assessment_id": "92e4dde4-2616-4fe5-9e63-7673c804bea1",
+      "email": "ssridharan599@gmail.com",
+      "camera": "mobile",
+      "time": "14_47_36_722",
+      "type": "multiple_people",
+      "detail": "",
+      "link_path": "https://res.cloudinary.com/dmpuhpff9/image/upload/v1774603056/proctoring_evidences/multiple_people_14_47_36_722.jpg",
+      "timestamp": 1774603056.7221398,
+      "_id": "69c64b31390156dce00b7992"
+    }
+  ],
+  "timeline": [
+    {
+      "event": "multiple_people",
+      "score": 8,
+      "time": "14:46:25",
+      "repeat": 1,
+      "penalty": 8,
+      "multiplier": 1.0
+    },
+    {
+      "event": "multiple_people",
+      "score": 20,
+      "time": "14:46:31",
+      "repeat": 2,
+      "penalty": 12,
+      "multiplier": 1.5
+    },
+    {
+      "event": "multiple_people",
+      "score": 30,
+      "time": "14:46:36",
+      "repeat": 3,
+      "penalty": 16,
+      "multiplier": 2.0
+    },
+    {
+      "event": "multiple_people",
+      "score": 30,
+      "time": "14:46:42",
+      "repeat": 4,
+      "penalty": 20,
+      "multiplier": 2.5
+    },
+    {
+      "event": "multiple_people",
+      "score": 30,
+      "time": "14:46:47",
+      "repeat": 5,
+      "penalty": 20,
+      "multiplier": 2.5
+    },
+    {
+      "event": "multiple_people",
+      "score": 30,
+      "time": "14:46:52",
+      "repeat": 6,
+      "penalty": 20,
+      "multiplier": 2.5
+    },
+    {
+      "event": "multiple_people",
+      "score": 30,
+      "time": "14:46:58",
+      "repeat": 7,
+      "penalty": 20,
+      "multiplier": 2.5
+    },
+    {
+      "event": "multiple_people",
+      "score": 30,
+      "time": "14:47:03",
+      "repeat": 8,
+      "penalty": 20,
+      "multiplier": 2.5
+    },
+    {
+      "event": "multiple_people",
+      "score": 30,
+      "time": "14:47:09",
+      "repeat": 9,
+      "penalty": 20,
+      "multiplier": 2.5
+    },
+    {
+      "event": "multiple_people",
+      "score": 30,
+      "time": "14:47:15",
+      "repeat": 10,
+      "penalty": 20,
+      "multiplier": 2.5
+    },
+    {
+      "event": "multiple_people",
+      "score": 30,
+      "time": "14:47:21",
+      "repeat": 11,
+      "penalty": 20,
+      "multiplier": 2.5
+    },
+    {
+      "event": "multiple_people",
+      "score": 30,
+      "time": "14:47:27",
+      "repeat": 12,
+      "penalty": 20,
+      "multiplier": 2.5
+    },
+    {
+      "event": "multiple_people",
+      "score": 30,
+      "time": "14:47:32",
+      "repeat": 13,
+      "penalty": 20,
+      "multiplier": 2.5
+    },
+    {
+      "event": "multiple_people",
+      "score": 30,
+      "time": "14:47:38",
+      "repeat": 14,
+      "penalty": 20,
+      "multiplier": 2.5
+    }
+  ],
+  "warning_history": [
+    {
+      "title": "Multiple People Detected",
+      "message": "Only the candidate should be visible.",
+      "event": "multiple_people",
+      "repeat": 1,
+      "penalty": 8,
+      "time": "14:46:25"
+    },
+    {
+      "title": "Multiple People Detected",
+      "message": "Only the candidate should be visible. (2nd occurrence)",
+      "event": "multiple_people",
+      "repeat": 2,
+      "penalty": 12,
+      "time": "14:46:31"
+    },
+    {
+      "title": "Multiple People Detected",
+      "message": "Only the candidate should be visible. (3rd occurrence \u2014 HIGH suspicion)",
+      "event": "multiple_people",
+      "repeat": 3,
+      "penalty": 16,
+      "time": "14:46:36"
+    },
+    {
+      "title": "Multiple People Detected",
+      "message": "Only the candidate should be visible. (\u00d74 \u2014 CRITICAL)",
+      "event": "multiple_people",
+      "repeat": 4,
+      "penalty": 20,
+      "time": "14:46:42"
+    },
+    {
+      "title": "Multiple People Detected",
+      "message": "Only the candidate should be visible. (\u00d75 \u2014 CRITICAL)",
+      "event": "multiple_people",
+      "repeat": 5,
+      "penalty": 20,
+      "time": "14:46:47"
+    },
+    {
+      "title": "Multiple People Detected",
+      "message": "Only the candidate should be visible. (\u00d76 \u2014 CRITICAL)",
+      "event": "multiple_people",
+      "repeat": 6,
+      "penalty": 20,
+      "time": "14:46:52"
+    },
+    {
+      "title": "Multiple People Detected",
+      "message": "Only the candidate should be visible. (\u00d77 \u2014 CRITICAL)",
+      "event": "multiple_people",
+      "repeat": 7,
+      "penalty": 20,
+      "time": "14:46:58"
+    },
+    {
+      "title": "Multiple People Detected",
+      "message": "Only the candidate should be visible. (\u00d78 \u2014 CRITICAL)",
+      "event": "multiple_people",
+      "repeat": 8,
+      "penalty": 20,
+      "time": "14:47:03"
+    },
+    {
+      "title": "Multiple People Detected",
+      "message": "Only the candidate should be visible. (\u00d79 \u2014 CRITICAL)",
+      "event": "multiple_people",
+      "repeat": 9,
+      "penalty": 20,
+      "time": "14:47:09"
+    },
+    {
+      "title": "Multiple People Detected",
+      "message": "Only the candidate should be visible. (\u00d710 \u2014 CRITICAL)",
+      "event": "multiple_people",
+      "repeat": 10,
+      "penalty": 20,
+      "time": "14:47:15"
+    },
+    {
+      "title": "Multiple People Detected",
+      "message": "Only the candidate should be visible. (\u00d711 \u2014 CRITICAL)",
+      "event": "multiple_people",
+      "repeat": 11,
+      "penalty": 20,
+      "time": "14:47:21"
+    },
+    {
+      "title": "Multiple People Detected",
+      "message": "Only the candidate should be visible. (\u00d712 \u2014 CRITICAL)",
+      "event": "multiple_people",
+      "repeat": 12,
+      "penalty": 20,
+      "time": "14:47:27"
+    },
+    {
+      "title": "Multiple People Detected",
+      "message": "Only the candidate should be visible. (\u00d713 \u2014 CRITICAL)",
+      "event": "multiple_people",
+      "repeat": 13,
+      "penalty": 20,
+      "time": "14:47:32"
+    },
+    {
+      "title": "Multiple People Detected",
+      "message": "Only the candidate should be visible. (\u00d714 \u2014 CRITICAL)",
+      "event": "multiple_people",
+      "repeat": 14,
+      "penalty": 20,
+      "time": "14:47:38"
+    }
+  ],
+  "pattern_summary": {
+    "multiple_people": {
+      "count": 14,
+      "multiplier": 2.5
+    }
+  }
+}

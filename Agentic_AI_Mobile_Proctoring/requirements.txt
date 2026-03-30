@@ -1,0 +1,10 @@
+ultralytics
+opencv-python
+mediapipe
+reportlab
+numpy
+cloudinary
+pymongo
+fastapi
+uvicorn
+python-multipart
