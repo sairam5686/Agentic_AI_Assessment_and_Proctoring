@@ -6,10 +6,10 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Use URIs from existing project or environment variables
-MONGO_URI_ASSESSMENT = os.getenv("MONGO_URI_ASSESSMENT", "mongodb+srv://vimalrajproff_db_user:AAAPS@aaaps.q8uuhtj.mongodb.net/?appName=AAAPS")
+MONGO_URI_ASSESSMENT = os.getenv("MONGO_URI_ASSESSMENT", "YOUR_MONGODB_URI")
 print(f"DEBUG: database.py - using MONGO_URI_ASSESSMENT: {MONGO_URI_ASSESSMENT}")
-MONGO_URI_PROCTORING = os.getenv("MONGO_URI_PROCTORING", "mongodb+srv://vishravi135_db_user:Virtusa_Hackathon@ai.6axnjyd.mongodb.net/?appName=AI")
-MONGO_URI_CANDIDATE = os.getenv("MONGO_URI_CANDIDATE", "mongodb+srv://vimalrajproff_db_user:AAAPS@aaaps.q8uuhtj.mongodb.net/?appName=AAAPS")
+MONGO_URI_PROCTORING = os.getenv("MONGO_URI_PROCTORING", "YOUR_MONGODB_URI")
+MONGO_URI_CANDIDATE = os.getenv("MONGO_URI_CANDIDATE", "YOUR_MONGODB_URI")
 
 client_assessment = AsyncIOMotorClient(MONGO_URI_ASSESSMENT)
 client_proctoring = AsyncIOMotorClient(MONGO_URI_PROCTORING)
