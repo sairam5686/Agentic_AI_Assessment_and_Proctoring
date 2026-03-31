@@ -1,5 +1,5 @@
 export const AGORA_CONFIG = {
-  appId: "1ad817e7ca6f4755b7904294cf1d856a",
+  appId: import.meta.env.VITE_AGORA_APP_ID || "YOUR_AGORA_APP_ID",
   token: null, // Tokens will now be fetched dynamically
   tokenUrl: "http://localhost:8000/agora/token"
 };

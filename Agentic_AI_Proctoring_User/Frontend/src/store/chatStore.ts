@@ -86,7 +86,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         set({ rtmStatus: 'connecting', rtmError: null });
 
         try {
-            const appId = "1ad817e7ca6f4755b7904294cf1d856a";
+            const appId = import.meta.env.VITE_AGORA_APP_ID || "YOUR_AGORA_APP_ID";
             const client = new AgoraRTM.RTM(appId, loginEmail);
             console.log("[RTM] Candidate initializing with UserAccount:", loginEmail);
 

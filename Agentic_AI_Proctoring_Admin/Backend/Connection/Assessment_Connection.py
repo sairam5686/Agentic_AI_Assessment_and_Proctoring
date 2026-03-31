@@ -1,6 +1,9 @@
-from pymongo import MongoClient
+import os
+from dotenv import load_dotenv
 
-MONGO_URI = "mongodb+srv://vimalrajproff_db_user:AAAPS@aaaps.q8uuhtj.mongodb.net/?appName=AAAPS"  
+load_dotenv()
+
+MONGO_URI = os.getenv("MONGODB_URI", "YOUR_MONGODB_URI")  
 
 try:
     client = MongoClient(MONGO_URI)

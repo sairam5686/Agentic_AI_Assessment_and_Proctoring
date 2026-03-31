@@ -19,10 +19,15 @@ from Backend.Connection.Evdiences_log import Coding_collection, violation_logs_c
 from Backend.Connection.Assessment_Connection import MCQ_Results_DB, Coding_results_DB, SQL_Results_DB, Piped_Puzzle_DB
 from Backend.Connection.Evdiences_log import Risk_Score_DB , Mobile_Risk_Score
 
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
 # Agora Credentials
-AGORA_APP_ID = "1ad817e7ca6f4755b7904294cf1d856a"
+AGORA_APP_ID = os.getenv("AGORA_APP_ID", "YOUR_AGORA_APP_ID")
 # IMPORTANT: Replace with your actual App Certificate from Agora Console
-AGORA_APP_CERTIFICATE = "a8f7fdf41cd048aa840d40e9cf47bc1d" 
+AGORA_APP_CERTIFICATE = os.getenv("AGORA_APP_CERTIFICATE", "YOUR_AGORA_APP_CERTIFICATE") 
 
 
 
