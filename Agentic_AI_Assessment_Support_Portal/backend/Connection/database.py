@@ -1,0 +1,186 @@
+import os
+import re
+from motor.motor_asyncio import AsyncIOMotorClient
+from dotenv import load_dotenv
+
+load_dotenv()
+
+# Use URIs from existing project or environment variables
+MONGO_URI_ASSESSMENT = os.getenv("MONGO_URI_ASSESSMENT", "mongodb+srv://vimalrajproff_db_user:AAAPS@aaaps.q8uuhtj.mongodb.net/?appName=AAAPS")
+print(f"DEBUG: database.py - using MONGO_URI_ASSESSMENT: {MONGO_URI_ASSESSMENT}")
+MONGO_URI_PROCTORING = os.getenv("MONGO_URI_PROCTORING", "mongodb+srv://vishravi135_db_user:Virtusa_Hackathon@ai.6axnjyd.mongodb.net/?appName=AI")
+MONGO_URI_CANDIDATE = os.getenv("MONGO_URI_CANDIDATE", "mongodb+srv://vimalrajproff_db_user:AAAPS@aaaps.q8uuhtj.mongodb.net/?appName=AAAPS")
+
+client_assessment = AsyncIOMotorClient(MONGO_URI_ASSESSMENT)
+client_proctoring = AsyncIOMotorClient(MONGO_URI_PROCTORING)
+client_candidate = AsyncIOMotorClient(MONGO_URI_CANDIDATE)
+
+# Assessment DB
+db_assessment = client_assessment["AssessmentDB"]
+enrollment_col = db_assessment["Enrollment_DB"]
+
+# Proctoring DB
+db_proctoring = client_proctoring["proctoring"]
+violation_logs_col = db_proctoring["violation_logs"]
+mobile_violation_logs_col = db_proctoring["Mobile_violation_logs"]
+code_detection_col = db_proctoring["Code_Detection_DB"]
+
+# Candidate DB
+db_candidate = client_candidate["CandidateDB"]
+mcq_results_col = db_candidate["MCQ_Results"]
+coding_results_col = db_candidate["Coding_Results"]
+sql_results_col = db_candidate["SQL_Results"]
+pipe_puzzle_results_col = db_candidate["Pipe_Puzzle_Results"]
+
+# Support Portal DB (Local/New)
+# Storing candidate queries
+support_db = client_proctoring["SupportPortalDB"]  # Reuse proctoring client or assessment
+queries_col = support_db["candidate_queries"]
+
+async def verify_candidate(email: str, assessment_id: str):
+    """
+    Checks if the candidate is enrolled and has completed the assessment (Robust & Case-insensitive).
+    Handles nested structures and potential whitespace in IDs.
+    """
+    email_clean = email.strip().lower()
+    id_clean = assessment_id.strip().lower()
+
+    # 1. Check Enrollment
+    # Search primarily by assessment_id (case-insensitive and resilient to whitespace)
+    query_id = {"assessment_id": {"$regex": f".*{re.escape(id_clean)}.*", "$options": "i"}}
+    
+    enrolled_record = None
+    async for r in enrollment_col.find(query_id):
+        # a. Check if ID truly matches (case-insensitive, stripped)
+        if str(r.get('assessment_id', '')).strip().lower() != id_clean:
+            continue
+            
+        # b. Check top-level email field
+        if str(r.get('email', '')).strip().lower() == email_clean:
+            enrolled_record = r
+            break
+            
+        # c. Check nested candidates array if it exists
+        candidates = r.get('candidates')
+        if isinstance(candidates, list):
+            found_in_list = False
+            for cand in candidates:
+                if str(cand.get('email', '')).strip().lower() == email_clean:
+                    found_in_list = True
+                    break
+            if found_in_list:
+                enrolled_record = r
+                break
+    
+    if not enrolled_record:
+        # Fallback: search by email at top-level just in case
+        query_email = {"email": {"$regex": f"^{re.escape(email_clean)}$", "$options": "i"}}
+        async for r in enrollment_col.find(query_email):
+            if str(r.get('assessment_id', '')).strip().lower() == id_clean:
+                enrolled_record = r
+                break
+
+    if not enrolled_record:
+        return False, "Candidate is not enrolled in this assessment."
+
+    # 2. Check Results (Completion)
+    # Check if results exist in any of the results collections using robust matching
+    res_query = {
+        "email": {"$regex": f"^{re.escape(email_clean)}$", "$options": "i"},
+        "assessment_id": {"$regex": f"^{re.escape(id_clean)}$", "$options": "i"}
+    }
+    
+    mcq_done = await mcq_results_col.find_one(res_query)
+    coding_done = await coding_results_col.find_one(res_query)
+    sql_done = await sql_results_col.find_one(res_query)
+    pipe_done = await pipe_puzzle_results_col.find_one(res_query)
+
+    if not (mcq_done or coding_done or sql_done or pipe_done):
+        return False, "Assessment results not found. Candidate must finish the assessment before raising a query."
+    
+    return True, "Verified"
+
+async def get_violation_summary(email: str, assessment_id: str):
+    """
+    Fetches violation logs from all relevant collections (Case-insensitive).
+    """
+    clean_email = email.strip().lower()
+    clean_id = assessment_id.strip().lower()
+    
+    query = {
+        "email": {"$regex": f"^{re.escape(clean_email)}$", "$options": "i"},
+        "assessment_id": {"$regex": f"^{re.escape(clean_id)}$", "$options": "i"}
+    }
+    
+    # Also handle possible whitespace in violation logs if needed
+    # but usually these are generated by the system and consistent
+    
+    webcam_logs = await violation_logs_col.find(query).to_list(100)
+    mobile_logs = await mobile_violation_logs_col.find(query).to_list(100)
+    plagiarism_logs = await code_detection_col.find(query).to_list(100)
+    
+    return {
+        "webcam": webcam_logs,
+        "mobile": mobile_logs,
+        "plagiarism": plagiarism_logs
+    }
+
+async def get_candidate_info(email: str, assessment_id: str) -> dict:
+    """
+    Fetches the candidate's name from Enrollment_DB -> candidates array,
+    and the assessment name from the enrollment record.
+    Returns dict with 'candidate_name' and 'assessment_name'.
+    """
+    email_clean = email.strip().lower()
+    id_clean = assessment_id.strip().lower()
+
+    query = {"assessment_id": {"$regex": f".*{re.escape(id_clean)}.*", "$options": "i"}}
+
+    async for record in enrollment_col.find(query):
+        if str(record.get('assessment_id', '')).strip().lower() != id_clean:
+            continue
+
+        # Get assessment name from the top-level record
+        assessment_name = (
+            record.get('assessment_name') or
+            record.get('assessmentName') or
+            record.get('name') or
+            record.get('title') or
+            assessment_id
+        )
+
+        # Get candidate name from candidates array
+        candidate_name = None
+        candidates = record.get('candidates')
+        if isinstance(candidates, list):
+            for cand in candidates:
+                if str(cand.get('email', '')).strip().lower() == email_clean:
+                    candidate_name = cand.get('name', '').strip()
+                    break
+
+        if not candidate_name:
+            candidate_name = email.split('@')[0].replace('.', ' ').replace('_', ' ').title()
+
+        return {
+            "candidate_name": candidate_name,
+            "assessment_name": str(assessment_name).strip()
+        }
+
+    # Fallback if no record found
+    return {
+        "candidate_name": email.split('@')[0].replace('.', ' ').replace('_', ' ').title(),
+        "assessment_name": assessment_id
+    }
+
+
+async def save_query_data(email: str, assessment_id: str, query: str):
+    """
+    Stores the candidate's query in the database.
+    """
+    record = {
+        "email": email,
+        "assessment_id": assessment_id,
+        "query": query,
+        "status": "pending"
+    }
+    await queries_col.insert_one(record)

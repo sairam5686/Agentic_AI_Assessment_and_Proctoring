@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+motor
+pydantic
+python-dotenv
+google-generativeai
+langchain-google-genai
+langchain-core
+fpdf2
+fastapi-mail
+cloudinary
