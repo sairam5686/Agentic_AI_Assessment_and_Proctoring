@@ -4,7 +4,7 @@ from pymongo import MongoClient
 
 load_dotenv()
 
-MONGO_URL = os.getenv("MONGODB_URI", "YOUR_MONGODB_URI")
+MONGO_URL = os.getenv("MONGODB_URI", "mongodb+srv://vishravi135_db_user:Virtusa_Hackathon@ai.6axnjyd.mongodb.net/?appName=AI")
 try:
     client = MongoClient(MONGO_URL)
     db = client['proctoring']

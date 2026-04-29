@@ -43,7 +43,7 @@ class _ThirdEyeAppState extends State<ThirdEyeApp> with WidgetsBindingObserver {
   String? _serverIp;
   bool _isAssessmentStarted = false;
 
-  final String appId = "YOUR_AGORA_APP_ID"; 
+  final String appId = "1ad817e7ca6f4755b7904294cf1d856a"; 
   static const Color virtusaOrange = Color(0xFFFF5A09);
   static const Color virtusaBlack = Color(0xFF000000);
 

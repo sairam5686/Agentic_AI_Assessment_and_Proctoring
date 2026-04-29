@@ -91,9 +91,9 @@ python -m uvicorn main:app --reload --host 0.0.0.0 --port 8002
 **Purpose:** Manage assessments, view candidate reports, and analytics.
 *   **Run Backend:**
     ```bash
-    cd Agentic_AI_Proctoring_Admin/Backend
+    cd Agentic_AI_Proctoring_Admin
     pip install -r requirements.txt
-    python -m uvicorn  main:app --reload
+    python3.12 -m uvicorn main:app --reload
     ```
 *   **Run Frontend:**
     ```bash
@@ -106,7 +106,8 @@ python -m uvicorn main:app --reload --host 0.0.0.0 --port 8002
 **Purpose:** The environment where candidates take the test (Monaco Editor).
 *   **Run Backend:**
     ```bash
-    cd Agentic_AI_Proctoring_User/Backend
+    cd Agentic_AI_Proctoring_User
+    pip install -r requirements.txt
     python -m uvicorn main:sio_app --host 0.0.0.0 --port 8000 --reload
     ```
 *   **Run Frontend:**
@@ -139,8 +140,8 @@ python -m uvicorn main:app --reload --host 0.0.0.0 --port 8002
 ### **6. Live Proctor Monitoring Interface**
 **Purpose:** Real-time dashboard for proctors to monitor candidates.
 ```bash
-cd Proctor_interface
-npm install
+cd Proctor_interface/Frontend
+npm install --legacy-peer-deps
 npm run dev
 ```
 

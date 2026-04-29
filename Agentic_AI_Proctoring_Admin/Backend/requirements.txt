@@ -1,0 +1,11 @@
+fastapi
+uvicorn
+python-multipart
+openpyxl
+pymongo
+agora-token-builder
+python-socketio
+python-dotenv
+httpx
+pandas
+google-generativeai
