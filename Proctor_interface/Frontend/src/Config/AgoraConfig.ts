@@ -5,6 +5,6 @@
  *   Also used to derive the RTM token URL by replacing '/token' with '/rtm-token'.
  */
 export const AGORA_CONFIG = {
-  appId: import.meta.env.VITE_AGORA_APP_ID || "1ad817e7ca6f4755b7904294cf1d856a",
+  appId: import.meta.env.VITE_AGORA_APP_ID,
   tokenUrl: "http://localhost:8000/agora/token"
 };

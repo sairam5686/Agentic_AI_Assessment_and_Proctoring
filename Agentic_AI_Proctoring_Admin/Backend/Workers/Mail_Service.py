@@ -8,8 +8,8 @@ load_dotenv()
 
 SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
 SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
-SMTP_USER = os.getenv("SMTP_USER", "humanproctor@gmail.com")
-SMTP_PASS = os.getenv("SMTP_PASS", "podsvsgzcdxluiuu")
+SMTP_USER = os.getenv("SMTP_USER")
+SMTP_PASS = os.getenv("SMTP_PASS")
 FROM_NAME = os.getenv("FROM_NAME", "TEAM_TITANS")
 
 

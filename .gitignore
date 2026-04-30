@@ -1,3 +1,12 @@
+# Environment Variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+*.env
+**/.env
+
 # Python
 __pycache__/
 *.py[cod]
@@ -62,6 +71,3 @@ video_proctor/sessions/
 video_proctor/outputs/
 Agentic_AI_Mobile_Proctoring/sessions/
 Agentic_AI_Mobile_Proctoring/outputs/
-
-# Environment Variables (Keep the .env file with placeholders if desired, but typically ignored)
-# .env

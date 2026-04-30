@@ -25,9 +25,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Agora Credentials
-AGORA_APP_ID = os.getenv("AGORA_APP_ID", "1ad817e7ca6f4755b7904294cf1d856a")
+AGORA_APP_ID = os.getenv("AGORA_APP_ID", "")
 # IMPORTANT: Replace with your actual App Certificate from Agora Console
-AGORA_APP_CERTIFICATE = os.getenv("AGORA_APP_CERTIFICATE", "a8f7fdf41cd048aa840d40e9cf47bc1d") 
+AGORA_APP_CERTIFICATE = os.getenv("AGORA_APP_CERTIFICATE", "") 
 
 
 
