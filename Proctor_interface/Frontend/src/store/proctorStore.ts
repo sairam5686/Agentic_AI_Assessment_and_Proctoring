@@ -17,7 +17,9 @@ import AgoraRTM, { RTMClient } from 'agora-rtm';
 import AgoraRTC, { IAgoraRTCClient, ILocalVideoTrack } from 'agora-rtc-sdk-ng';
 import { AGORA_CONFIG } from '../Config/AgoraConfig';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:8000' 
+    : `http://${window.location.hostname}:8000`;
 
 /** A single violation/flag event recorded for a candidate during the exam. */
 export interface CandidateFlag {
@@ -352,7 +354,19 @@ export const useProctorStore = create<ProctorState>((set, get) => ({
     initRTM: async () => {
         const { proctorEmail, assessmentId, rtmClient, rtmStatus } = get();
 
-        if (!proctorEmail || !assessmentId || rtmClient || rtmStatus === 'connecting' || rtmStatus === 'connected') {
+        // CLEANUP: If there's an existing client (even if it's in an error state), log it out and clear it
+        const currentClient = get().rtmClient;
+        if (currentClient) {
+            console.log("[RTM] Cleaning up existing client before fresh init...");
+            try {
+                await currentClient.logout();
+            } catch (e) {
+                // Ignore logout errors if already disconnected
+            }
+            set({ rtmClient: null, rtmStatus: 'idle' });
+        }
+
+        if (!proctorEmail || !assessmentId) {
             return;
         }
 
@@ -370,14 +384,24 @@ export const useProctorStore = create<ProctorState>((set, get) => ({
                 throw new Error("Proctor email is empty after cleaning");
             }
 
-            const client = new AgoraRTM.RTM(appId, loginEmail);
+            const client = new AgoraRTM.RTM(appId, loginEmail, {
+                presenceTimeout: 300
+            });
+            console.log("[RTM] Initializing for user:", loginEmail);
 
             // API: GET /agora/rtm-token?userAccount=... — fetches RTM authentication token
-            const rtmTokenUrl = AGORA_CONFIG.tokenUrl.replace('/token', '/rtm-token');
+            const rtmTokenUrl = `${API_BASE_URL}/agora/rtm-token`;
+            console.log("[RTM] Fetching token from:", rtmTokenUrl);
+            
             const response = await axios.get(rtmTokenUrl, {
                 params: { userAccount: loginEmail }
             });
             const { token } = response.data;
+            console.log("[RTM] Token received:", token ? "YES (Success)" : "NO (Empty)");
+
+            if (!token) {
+                throw new Error("Backend returned an empty RTM token");
+            }
 
             await client.login({ token });
 

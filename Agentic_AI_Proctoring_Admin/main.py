@@ -51,10 +51,7 @@ def serialize_mongo(data):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -372,19 +369,26 @@ async def get_agora_token(channelName: str):
     
 @app.get("/agora/rtm-token")
 async def get_agora_rtm_token(userAccount: str):
-    expiration_time_in_seconds = 3600
-    current_timestamp = int(time.time())
-    privilege_expired_ts = current_timestamp + expiration_time_in_seconds
-    role = 1  # 1 for RtmRole.Rtm_User
-    
-    token = RtmTokenBuilder.buildToken(
-        AGORA_APP_ID, 
-        AGORA_APP_CERTIFICATE, 
-        userAccount, 
-        role, 
-        privilege_expired_ts
-    )
-    return {"token": token}
+    try:
+        # Debug: Check if credentials are loaded
+        print(f"DEBUG: App ID starts with: {AGORA_APP_ID[:4]}...")
+        
+        expiration_time_in_seconds = 3600
+        current_timestamp = int(time.time())
+        privilege_expired_ts = current_timestamp + expiration_time_in_seconds
+        
+        # Use the standard RtmTokenBuilder for maximum compatibility
+        token = RtmTokenBuilder.buildToken(
+            AGORA_APP_ID, 
+            AGORA_APP_CERTIFICATE, 
+            userAccount, 
+            1, # Role Rtm_User
+            privilege_expired_ts
+        )
+        return {"token": token}
+    except Exception as e:
+        print(f"CRITICAL ERROR in RTM Token Generation: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Token Generation Failed: {str(e)}")
 
 @app.delete("/delete-test/{assessment_id}")
 async def delete_test(assessment_id: str):
