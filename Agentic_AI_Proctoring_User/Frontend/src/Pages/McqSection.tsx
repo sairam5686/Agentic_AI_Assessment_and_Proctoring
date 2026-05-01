@@ -1,20 +1,39 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocalPersist } from '../hooks/useLocalPersist'
 
 const McqSection = () => {
   const Locator = useLocation()
   const navigate = useNavigate()
   const state = Locator.state || {}
 
+  // Handle state persistence and recovery
+  const [assessmentState, setAssessmentState] = useState<any>(state)
+  const assessment_id = assessmentState?.assessment_id || localStorage.getItem("assessment_id") || "default"
+
+  useEffect(() => {
+    // If state is present in Locator, save it for recovery
+    if (Locator.state && Object.keys(Locator.state).length > 0) {
+      localStorage.setItem(`assessment_data_${assessment_id}`, JSON.stringify(Locator.state))
+      setAssessmentState(Locator.state)
+    } else {
+      // If state is missing (refresh), try to recover from localStorage
+      const savedState = localStorage.getItem(`assessment_data_${assessment_id}`)
+      if (savedState) {
+        setAssessmentState(JSON.parse(savedState))
+      }
+    }
+  }, [Locator.state, assessment_id])
+
   // Handle both full assessment object and standalone MCQ questions array
-  const McqQuestion = state.MCQ_Questions || state
+  const McqQuestion = assessmentState.MCQ_Questions || assessmentState
   const assessment = Array.isArray(McqQuestion) ? McqQuestion[0] : McqQuestion
 
   const sections = assessment?.sections || []
   const totalDurationSeconds = parseInt(assessment?.mcq_duration || '0') * 60
 
   const [activeSectionIdx, setActiveSectionIdx] = useState(0)
-  const [answers, setAnswers] = useState<Record<number, string>>({})
+  const [answers, setAnswers, clearAnswers] = useLocalPersist<Record<number, string>>(`mcq_answers_${assessment_id}`, {})
   const [timeLeft, setTimeLeft] = useState(totalDurationSeconds)
   const [submitted, setSubmitted] = useState(false)
   const [lastSaved, setLastSaved] = useState<number>(Date.now())
@@ -82,7 +101,6 @@ const McqSection = () => {
     try {
       const email = localStorage.getItem("candidate_email") || "";
       const user_name = localStorage.getItem("candidate_name") || "";
-      const assessment_id = assessment?.assessment_id || localStorage.getItem("assessment_id") || "";
 
       const mcq_results = allQuestions.map((q: any) => {
         const userAnswer = answers[q.question_id] || "";
@@ -118,6 +136,10 @@ const McqSection = () => {
       if (!response.ok) {
         throw new Error("Failed to save MCQ results");
       }
+
+      // Cleanup local persistence on success
+      clearAnswers();
+      localStorage.removeItem(`assessment_data_${assessment_id}`);
 
       localStorage.setItem("mcq_completed", "true");
       setSubmitted(true);

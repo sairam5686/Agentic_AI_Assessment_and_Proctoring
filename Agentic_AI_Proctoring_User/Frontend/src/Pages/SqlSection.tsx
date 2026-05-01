@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import Editor from '@monaco-editor/react'
+import { useLocalPersist } from '../hooks/useLocalPersist'
 
 const SQL_TEMPLATE = `-- Write your SQL query below\n`
 
@@ -58,19 +59,33 @@ const OutputTable = ({ data, label }: { data: any[][], label: string }) => {
 const SqlSection = () => {
     const Locator = useLocation()
     const navigate = useNavigate()
-    const state = Locator.state || {}
-    const SqlQuestions = state.SQL_Questions || state
+    const [assessmentState, setAssessmentState] = useState<any>(Locator.state || {})
+    const assessment_id = assessmentState?.assessment_id || localStorage.getItem("assessment_id") || "default"
+
+    useEffect(() => {
+        if (Locator.state && Object.keys(Locator.state).length > 0) {
+            localStorage.setItem(`assessment_data_${assessment_id}`, JSON.stringify(Locator.state))
+            setAssessmentState(Locator.state)
+        } else {
+            const savedState = localStorage.getItem(`assessment_data_${assessment_id}`)
+            if (savedState) {
+                setAssessmentState(JSON.parse(savedState))
+            }
+        }
+    }, [Locator.state, assessment_id])
+
+    const SqlQuestions = assessmentState.SQL_Questions || assessmentState
 
     const assessment = Array.isArray(SqlQuestions) ? SqlQuestions[0] : SqlQuestions
     const questions = assessment?.questions || []
     const totalDurationSeconds = parseInt(assessment?.sql_duration || '0') * 60
 
     const [activeQIdx, setActiveQIdx] = useState(0)
-    const [code, setCode] = useState<Record<string, string>>({})
+    const [code, setCode, clearCode] = useLocalPersist<Record<string, string>>(`sql_code_${assessment_id}`, {})
     const [activeTab, setActiveTab] = useState<'problem' | 'testcases'>('problem')
     const [timeLeft, setTimeLeft] = useState(totalDurationSeconds)
     const [submitted, setSubmitted] = useState(false)
-    const [runApiResponse, setRunApiResponse] = useState<Record<string, RunApiResponse | null>>({})
+    const [runApiResponse, setRunApiResponse, clearRunApiResponse] = useLocalPersist<Record<string, RunApiResponse | null>>(`sql_results_${assessment_id}`, {})
     const [runErrors, setRunErrors] = useState<Record<string, string | null>>({})
     const [isRunning, setIsRunning] = useState(false)
     const [lastSaved, setLastSaved] = useState<number>(Date.now())
@@ -133,6 +148,8 @@ const SqlSection = () => {
 
     const handleCodeChange = (val: string | undefined) => {
         setCode((prev) => ({ ...prev, [qId]: val || '' }))
+        setLastSaved(Date.now())
+        setTimeAgo("just now")
     }
 
     const handleRun = async () => {
@@ -202,7 +219,6 @@ const SqlSection = () => {
     const handleSqlSubmit = async () => {
         const email = localStorage.getItem("candidate_email") || "";
         const user_name = localStorage.getItem("candidate_name") || "";
-        const assessment_id = assessment.assessment_id;
 
         const results_payload = questions.map((q: any) => {
             const qCode = code[q.question_id] || "";
@@ -259,6 +275,11 @@ const SqlSection = () => {
                 throw new Error("Failed to save SQL results");
             }
             
+            // Cleanup local persistence on success
+            clearCode();
+            clearRunApiResponse();
+            localStorage.removeItem(`assessment_data_${assessment_id}`);
+
             // Per-question logic
             setSubmittedQuestions(prev => [...prev, qId]);
 
@@ -793,7 +814,6 @@ const SqlSection = () => {
                                 onClick={async () => {
                                     const email = localStorage.getItem("candidate_email") || "";
                                     const user_name = localStorage.getItem("candidate_name") || "";
-                                    const assessment_id = assessment.assessment_id;
 
                                     const results_payload = questions.map((q: any) => {
                                         const qCode = code[q.question_id] || "";
@@ -857,6 +877,11 @@ const SqlSection = () => {
                                         alert("Network error while saving SQL results. Please try again.");
                                         return;
                                     }
+
+                                    // Cleanup local persistence
+                                    clearCode();
+                                    clearRunApiResponse();
+                                    localStorage.removeItem(`assessment_data_${assessment_id}`);
 
                                     setSubmitted(true);
                                     navigate('/submission');

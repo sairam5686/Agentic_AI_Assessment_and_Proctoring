@@ -1,36 +1,38 @@
 {
     "code_agents_risk_score": {
-        "suspicion_score": 0,
-        "code_agents_risk_score": 0,
+        "suspicion_score": 20,
+        "code_agents_risk_score": 20,
         "max_score": 20,
-        "risk_level": "NO RISK",
-        "flagged": false,
+        "risk_level": "FLAGGED",
+        "flagged": true,
         "terminated": false,
         "tab_switches": 0,
-        "violations": {}
+        "violations": {
+            "plagiarism": 4
+        }
     },
-    "code_agents_trust_score": 20,
-    "question_count": 2,
+    "code_agents_trust_score": 0,
+    "question_count": 6,
     "questions": [
         {
-            "timestamp": "2026-03-30T11:06:12.555902",
+            "timestamp": "2026-05-01T18:13:23.280805",
             "language": "Python",
             "plagiarism": {
                 "plagiarism_score": 0,
                 "is_plagiarized": false
             },
             "ai_detection": {
-                "ai_score": 0.126,
+                "ai_score": 0.227,
                 "is_ai_generated": false,
                 "confidence": "unlikely",
                 "feature_scores": {
                     "docstring_quality": 0.0,
                     "naming_conventions": 0.0,
                     "structural_patterns": 0.0,
-                    "comment_style": 0.0,
+                    "comment_style": 0.3,
                     "complexity_entropy": 0.55,
-                    "code_style": 0.1,
-                    "terse_ai_patterns": 0.25
+                    "code_style": 0.25,
+                    "terse_ai_patterns": 0.5
                 },
                 "human_signals_found": [],
                 "parse_error": null
@@ -47,10 +49,46 @@
             }
         },
         {
-            "timestamp": "2026-03-30T11:07:13.174648",
+            "timestamp": "2026-05-01T18:13:58.162381",
             "language": "Python",
             "plagiarism": {
-                "plagiarism_score": 0.278,
+                "plagiarism_score": 1.0,
+                "is_plagiarized": true
+            },
+            "ai_detection": {
+                "ai_score": 0.227,
+                "is_ai_generated": false,
+                "confidence": "unlikely",
+                "feature_scores": {
+                    "docstring_quality": 0.0,
+                    "naming_conventions": 0.0,
+                    "structural_patterns": 0.0,
+                    "comment_style": 0.3,
+                    "complexity_entropy": 0.55,
+                    "code_style": 0.25,
+                    "terse_ai_patterns": 0.5
+                },
+                "human_signals_found": [],
+                "parse_error": null
+            },
+            "risk": {
+                "suspicion_score": 5,
+                "code_agents_risk_score": 5,
+                "max_score": 20,
+                "risk_level": "LOW RISK",
+                "flagged": false,
+                "terminated": false,
+                "tab_switches": 0,
+                "violations": {
+                    "plagiarism": 1
+                }
+            }
+        },
+        {
+            "timestamp": "2026-05-01T18:14:36.792866",
+            "language": "MySQL",
+            "plagiarism": {
+                "plagiarism_score": 0.026,
                 "is_plagiarized": false
             },
             "ai_detection": {
@@ -62,14 +100,100 @@
                 "parse_error": null
             },
             "risk": {
-                "suspicion_score": 0,
-                "code_agents_risk_score": 0,
+                "suspicion_score": 5,
+                "code_agents_risk_score": 5,
                 "max_score": 20,
-                "risk_level": "NO RISK",
+                "risk_level": "LOW RISK",
                 "flagged": false,
                 "terminated": false,
                 "tab_switches": 0,
-                "violations": {}
+                "violations": {
+                    "plagiarism": 1
+                }
+            }
+        },
+        {
+            "timestamp": "2026-05-01T18:14:44.969825",
+            "language": "MySQL",
+            "plagiarism": {
+                "plagiarism_score": 1.0,
+                "is_plagiarized": true
+            },
+            "ai_detection": {
+                "ai_score": 0.0,
+                "is_ai_generated": false,
+                "confidence": "insufficient_data",
+                "feature_scores": {},
+                "human_signals_found": [],
+                "parse_error": null
+            },
+            "risk": {
+                "suspicion_score": 10,
+                "code_agents_risk_score": 10,
+                "max_score": 20,
+                "risk_level": "MEDIUM RISK",
+                "flagged": false,
+                "terminated": false,
+                "tab_switches": 0,
+                "violations": {
+                    "plagiarism": 2
+                }
+            }
+        },
+        {
+            "timestamp": "2026-05-01T18:14:59.560472",
+            "language": "MySQL",
+            "plagiarism": {
+                "plagiarism_score": 1.0,
+                "is_plagiarized": true
+            },
+            "ai_detection": {
+                "ai_score": 0.0,
+                "is_ai_generated": false,
+                "confidence": "insufficient_data",
+                "feature_scores": {},
+                "human_signals_found": [],
+                "parse_error": null
+            },
+            "risk": {
+                "suspicion_score": 15,
+                "code_agents_risk_score": 15,
+                "max_score": 20,
+                "risk_level": "HIGH RISK",
+                "flagged": false,
+                "terminated": false,
+                "tab_switches": 0,
+                "violations": {
+                    "plagiarism": 3
+                }
+            }
+        },
+        {
+            "timestamp": "2026-05-01T18:15:22.516394",
+            "language": "MySQL",
+            "plagiarism": {
+                "plagiarism_score": 1.0,
+                "is_plagiarized": true
+            },
+            "ai_detection": {
+                "ai_score": 0.0,
+                "is_ai_generated": false,
+                "confidence": "insufficient_data",
+                "feature_scores": {},
+                "human_signals_found": [],
+                "parse_error": null
+            },
+            "risk": {
+                "suspicion_score": 20,
+                "code_agents_risk_score": 20,
+                "max_score": 20,
+                "risk_level": "FLAGGED",
+                "flagged": true,
+                "terminated": false,
+                "tab_switches": 0,
+                "violations": {
+                    "plagiarism": 4
+                }
             }
         }
     ]

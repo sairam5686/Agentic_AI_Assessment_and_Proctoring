@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import Editor from '@monaco-editor/react'
+import { useLocalPersist } from '../hooks/useLocalPersist'
 
 const LANGUAGE_TEMPLATES: Record<string, string> = {
   Python: `# Write your solution here\ndef solution():\n    pass\n`,
@@ -52,15 +53,31 @@ const CodingSection = () => {
   const state = Locator.state || {}
   
 
+  // Handle state persistence and recovery
+  const [assessmentState, setAssessmentState] = useState<any>(Locator.state || {})
+  const assessment_id = assessmentState?.assessment_id || localStorage.getItem("assessment_id") || "default"
+
+  useEffect(() => {
+    if (Locator.state && Object.keys(Locator.state).length > 0) {
+      localStorage.setItem(`assessment_data_${assessment_id}`, JSON.stringify(Locator.state))
+      setAssessmentState(Locator.state)
+    } else {
+      const savedState = localStorage.getItem(`assessment_data_${assessment_id}`)
+      if (savedState) {
+        setAssessmentState(JSON.parse(savedState))
+      }
+    }
+  }, [Locator.state, assessment_id])
+
   // Handle both full assessment object and standalone Coding questions array
-  const CodingQuestions = state.Coding_Questions || state
+  const CodingQuestions = assessmentState.Coding_Questions || assessmentState
   const assessment = Array.isArray(CodingQuestions) ? CodingQuestions[0] : CodingQuestions
   const questions = assessment?.questions || []
   const totalDurationSeconds = parseInt(assessment?.coding_duration || '0') * 60
 
   const [activeQIdx, setActiveQIdx] = useState(0)
-  const [selectedLang, setSelectedLang] = useState<Record<string, string>>({})
-  const [code, setCode] = useState<Record<string, string>>({})
+  const [selectedLang, setSelectedLang, clearLang] = useLocalPersist<Record<string, string>>(`coding_lang_${assessment_id}`, {})
+  const [code, setCode, clearCode] = useLocalPersist<Record<string, string>>(`coding_code_${assessment_id}`, {})
   const [activeTab, setActiveTab] = useState<'problem' | 'testcases'>('problem')
   const [timeLeft, setTimeLeft] = useState(totalDurationSeconds)
   const [submitted, setSubmitted] = useState(false)
@@ -72,7 +89,7 @@ const CodingSection = () => {
   const [submittedQuestions, setSubmittedQuestions] = useState<string[]>([])
 
   // Per-question run results keyed by question_id
-  const [runResults, setRunResults] = useState<Record<string, RunResult | null>>({})
+  const [runResults, setRunResults, clearRunResults] = useLocalPersist<Record<string, RunResult | null>>(`coding_results_${assessment_id}`, {})
   const [isRunning, setIsRunning] = useState(false)
   const [runError, setRunError] = useState<string | null>(null)
 
@@ -204,6 +221,8 @@ const CodingSection = () => {
 
   const handleCodeChange = (val: string | undefined) => {
     setCode((prev) => ({ ...prev, [`${qId}-${lang}`]: val || '' }))
+    setLastSaved(Date.now())
+    setTimeAgo("just now")
   }
 
   const handleLangChange = (newLang: string) => {
@@ -227,7 +246,6 @@ const CodingSection = () => {
   const handleCodingSubmit = async () => {
     const email = localStorage.getItem("candidate_email") || "";
     const user_name = localStorage.getItem("candidate_name") || "";
-    const assessment_id = assessment.assessment_id;
 
     const results_payload = questions.map((q: any) => {
       const qLang = selectedLang[q.question_id] || q.languages[0];
@@ -286,6 +304,12 @@ const CodingSection = () => {
       if (!resp.ok) {
         throw new Error("Failed to save Coding results");
       }
+
+      // Cleanup local persistence on success
+      clearCode();
+      clearLang();
+      clearRunResults();
+      localStorage.removeItem(`assessment_data_${assessment_id}`);
 
       // Per-question logic
       setSubmittedQuestions(prev => [...prev, qId]);
@@ -789,7 +813,6 @@ const CodingSection = () => {
                 onClick={async () => {
                   const email = localStorage.getItem("candidate_email") || "";
                   const user_name = localStorage.getItem("candidate_name") || "";
-                  const assessment_id = assessment.assessment_id;
 
                   const results_payload = questions.map((q: any) => {
                     const qLang = selectedLang[q.question_id] || q.languages[0];
@@ -858,6 +881,12 @@ const CodingSection = () => {
                     alert("Network error while saving coding results. Please try again.");
                     return;
                   }
+
+                  // Cleanup local persistence
+                  clearCode();
+                  clearLang();
+                  clearRunResults();
+                  localStorage.removeItem(`assessment_data_${assessment_id}`);
 
                   localStorage.setItem("coding_completed", "true");
                   localStorage.setItem("sql_completed", "true");
