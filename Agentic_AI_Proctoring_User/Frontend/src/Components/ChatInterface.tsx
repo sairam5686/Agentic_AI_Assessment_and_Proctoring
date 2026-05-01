@@ -21,10 +21,9 @@ const ChatInterface: React.FC = () => {
 
     useEffect(() => {
         initRTM();
-        return () => {
-            logoutRTM();
-        };
-    }, [initRTM, logoutRTM]);
+        // Intentionally not logging out on unmount to prevent React 18 strict mode race conditions.
+        // The RTM connection should persist as long as the store is active.
+    }, [initRTM]);
 
     useEffect(() => {
         if (scrollRef.current) {
