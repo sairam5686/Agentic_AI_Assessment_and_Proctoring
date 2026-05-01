@@ -2,13 +2,13 @@
     "video": {
         "risk_score": 50,
         "trust_score": 0,
-        "violation_score": 49
+        "violation_score": 19
     },
     "code": {
         "risk_score": 0,
         "trust_score": 20,
         "violation_score": 0
     },
-    "assessment_id": "757f1edc-9567-4b0e-a5bd-223ada319bcc",
-    "email_id": "jrsairam5686@gmail.com"
+    "assessment_id": "6030fdc5-50b8-4b10-b338-51f0880b8f7b",
+    "email_id": "ssridharan599@gmail.com"
 }

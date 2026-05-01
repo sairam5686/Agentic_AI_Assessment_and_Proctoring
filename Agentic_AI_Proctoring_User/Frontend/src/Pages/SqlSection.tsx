@@ -142,13 +142,26 @@ const SqlSection = () => {
         setRunErrors((prev) => ({ ...prev, [qId]: null }))
 
         try {
+            const email = localStorage.getItem("candidate_email");
+            fetch("http://127.0.0.1:8001/Code/Checker", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    assessment_id: assessment.assessment_id,
+                    email: email,
+                    question_id: qId,
+                    language: 'MySQL',
+                    code: currentCode,
+                }),
+            }).catch(e => console.log(e));
+
             const data: any = {
                 assessment_id: assessment.assessment_id,
                 question_id: qId,
                 code: currentCode,
             }
 
-            const response = await fetch('http://127.0.0.1:8001/Code/Checker', {
+            const response = await fetch('http://127.0.0.1:8000/run-sql', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data),
