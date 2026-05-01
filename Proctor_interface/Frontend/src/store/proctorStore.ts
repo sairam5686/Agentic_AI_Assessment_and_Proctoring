@@ -405,15 +405,17 @@ export const useProctorStore = create<ProctorState>((set, get) => ({
             await client.login({ token });
 
             // Subscribe to assessment-wide broadcast channel
+            console.log("[RTM] Subscribing to broadcast:", subAssessmentId);
             await client.subscribe(subAssessmentId);
             
+            // Small delay to prevent rate-limiting/timeouts
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // NEW: Subscribe to private channel (proctor's sanitized email) to receive direct replies
+            console.log("[RTM] Subscribing to private:", loginEmail);
             await client.subscribe(loginEmail);
-            console.log("[RTM] Subscribed to broadcast:", subAssessmentId, "and private:", loginEmail);
-            console.log("[RTM] Expected Candidate IDs:", get().candidates.map(c => ({
-                name: c.name,
-                email: c.email,
-                sanitized: c.email.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
-            })));
+            
+            console.log("[RTM] Subscription SUCCESS.");
 
             // Listen for incoming messages from candidates
             client.addEventListener('message', (event: any) => {
@@ -436,10 +438,12 @@ export const useProctorStore = create<ProctorState>((set, get) => ({
 
                 const candidateId = candidate ? candidate.id : publisher;
 
+                const messageText = typeof event.message === 'string' ? event.message : (event.message?.data || event.message?.text || event.message?.toString() || "");
+
                 const msg: ChatMessage = {
                     id: Math.random().toString(36).substring(7),
                     sender: 'candidate',
-                    text: event.message.toString(),
+                    text: messageText,
                     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                     // If it's a broadcast, we leave candidateId undefined so it shows in the "All" view
                     candidateId: isBroadcast ? undefined : candidateId
@@ -450,10 +454,22 @@ export const useProctorStore = create<ProctorState>((set, get) => ({
 
             // Track RTM connection status changes
             client.addEventListener('status', (event: any) => {
+                console.log("[RTM] Connection status change:", event.state, event.reason || "");
+                
                 if (event.state === 'CONNECTED') {
                     set({ rtmStatus: 'connected', rtmError: null });
                 } else if (event.state === 'DISCONNECTED' || event.state === 'FAILED') {
-                    set({ rtmStatus: 'error', rtmError: event.reason || 'Connection failed' });
+                    set({ rtmStatus: 'error', rtmError: event.reason || 'Connection lost' });
+                    
+                    // AUTO-RECONNECT: If we aren't deliberately logging out, try to reconnect in 5s
+                    if (get().rtmStatus !== 'disconnected') {
+                        console.log("[RTM] Connection lost. Attempting auto-reconnect in 5 seconds...");
+                        setTimeout(() => {
+                            if (get().rtmStatus !== 'connected') {
+                                get().initRTM();
+                            }
+                        }, 5000);
+                    }
                 }
             });
 

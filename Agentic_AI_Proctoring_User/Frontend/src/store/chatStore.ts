@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import axios from 'axios';
 import AgoraRTM, { RTMClient } from 'agora-rtm';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = 'http://192.168.0.102:8000';
 
 export interface ChatMessage {
     id: string;
@@ -40,7 +40,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const { rtmClient, rtmStatus } = get();
         const rawEmail = localStorage.getItem('candidate_email') || '';
         const rawAId = localStorage.getItem('assessment_id') || '';
-        
+
         const candidateEmail = rawEmail.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
         const assessmentId = rawAId.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -60,9 +60,17 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
         if (rtmClient && rtmStatus === 'connected') {
             try {
-                // Broadcast to assessment channel so proctor receives it
-                console.log(`[RTM] Candidate publishing to channel: [${assessmentId}]`);
-                await rtmClient.publish(assessmentId, text);
+                // If we have a proctor email, send to their private channel
+                const rawProctor = localStorage.getItem('proctor_email');
+                if (rawProctor) {
+                    const target = rawProctor.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+                    console.log(`[RTM] Candidate sending PRIVATE message to proctor: [${target}]`);
+                    await rtmClient.publish(target, text);
+                } else {
+                    // Fallback to broadcast if proctor not found (unlikely)
+                    console.log(`[RTM] Candidate broadcasting to channel: [${assessmentId}]`);
+                    await rtmClient.publish(assessmentId, text);
+                }
             } catch (err) {
                 console.error("[RTM] Failed to send RTM message:", err);
             }
@@ -96,30 +104,48 @@ export const useChatStore = create<ChatState>((set, get) => ({
             const { token } = response.data;
 
             await client.login({ token });
+
+            // Subscribe sequentially with delay to prevent timeouts
             await client.subscribe(subAssessmentId);
+            await new Promise(resolve => setTimeout(resolve, 500));
             await client.subscribe(loginEmail);
 
             client.addEventListener('message', (event: any) => {
                 const publisher = event.publisher;
                 if (publisher.toLowerCase() === loginEmail.toLowerCase()) return;
 
+                // Smart Message Reader (handles strings and objects)
+                const messageText = typeof event.message === 'string' ? event.message : (event.message?.data || event.message?.text || event.message?.toString() || "");
+
                 const msg: ChatMessage = {
                     id: Math.random().toString(36).substring(7),
                     sender: 'proctor',
-                    text: event.message.toString(),
+                    text: messageText,
                     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 };
-                
-                set((state) => ({ 
+
+                set((state) => ({
                     messages: [...state.messages, msg],
                     unreadCount: get().isChatOpen ? 0 : get().unreadCount + 1
                 }));
             });
 
             client.addEventListener('status', (event: any) => {
-                if (event.state === 'CONNECTED') set({ rtmStatus: 'connected' });
-                else if (event.state === 'DISCONNECTED' || event.state === 'FAILED') {
-                    set({ rtmStatus: 'error', rtmError: event.reason || 'Connection failed' });
+                console.log("[RTM] Candidate connection status change:", event.state, event.reason || "");
+                if (event.state === 'CONNECTED') {
+                    set({ rtmStatus: 'connected' });
+                } else if (event.state === 'DISCONNECTED' || event.state === 'FAILED') {
+                    set({ rtmStatus: 'error', rtmError: event.reason || 'Connection lost' });
+
+                    // AUTO-RECONNECT
+                    if (get().rtmStatus !== 'disconnected') {
+                        console.log("[RTM] Candidate connection lost. Reconnecting in 5s...");
+                        setTimeout(() => {
+                            if (get().rtmStatus !== 'connected') {
+                                get().initRTM();
+                            }
+                        }, 5000);
+                    }
                 }
             });
 

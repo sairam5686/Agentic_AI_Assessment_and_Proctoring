@@ -655,3 +655,54 @@ async def get_risk_score(assessment_id , email):
 async def get_risk_score_mobile(assessment_id ,email ):
     data   = Mobile_Risk_Score.find_one({"assessment_id":assessment_id , "email":email })
     return serialize_mongo(data)
+# --- Candidate Portal Support Endpoints ---
+
+@app.post("/candidate/login")
+async def candidate_login(request: Request):
+    body = await request.json()
+    email = body.get("email")
+    assessment_id = body.get("assessment_id")
+    
+    if not email or not assessment_id:
+        raise HTTPException(status_code=400, detail="Email and Assessment ID are required")
+    
+    # Verify candidate enrollment
+    record = Enrollment_DB.find_one({
+        "assessment_id": assessment_id,
+        "candidates.email": email
+    })
+    
+    if not record:
+        raise HTTPException(status_code=401, detail="Invalid email or assessment ID")
+    
+    # Check if assessment is terminated
+    assessment_meta = Admin_Assessments_DB.find_one({"test_id": assessment_id})
+    if assessment_meta and assessment_meta.get("status") == "terminated":
+        raise HTTPException(status_code=403, detail="This assessment has been terminated.")
+    
+    candidate = next((c for c in record.get("candidates", []) if c.get("email") == email), None)
+    if not candidate:
+        raise HTTPException(status_code=401, detail="Candidate not found")
+    
+    # Get assigned proctor info
+    proctor_email = assessment_meta.get("proctor_email") if assessment_meta else None
+    
+    candidate_data = {
+        "user_name": candidate.get("name"),
+        "roll_number": candidate.get("reg_no"),  
+        "candidate_id": candidate.get("candidate_id"),
+        "college": candidate.get("college"),
+        "department": candidate.get("Department") or candidate.get("department"),
+        "email": email,
+        "assessment_id": assessment_id,
+        "proctor_email": proctor_email,
+        "status": "success"
+    }
+    
+    # Update status to Joined
+    Enrollment_DB.update_one(
+        {"assessment_id": assessment_id, "candidates.email": email},
+        {"": {"candidates.$.status": "Joined"}}
+    )
+    
+    return serialize_mongo(candidate_data)

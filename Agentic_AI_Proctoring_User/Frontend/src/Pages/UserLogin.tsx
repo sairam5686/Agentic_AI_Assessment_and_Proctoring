@@ -36,6 +36,7 @@ const UserLogin = () => {
         localStorage.setItem('roll_number', data.roll_number);
         localStorage.setItem('candidate_id', data.candidate_id);
         localStorage.setItem('department', data.department);
+        localStorage.setItem('proctor_email', data.proctor_email || '');
 
         // Redirect to environment validation (SystemCheck)
         navigate('/system-check');
@@ -53,7 +54,7 @@ const UserLogin = () => {
     <div className="min-h-screen bg-[#f8fafc to-[#01F965] ] flex flex-col items-center justify-center p-6 font-['Inter']">
       {/* Logo */}
       <div className="mb-8">
-        <img src="https://pbs.twimg.com/profile_images/1973372506271584256/Sb4wfgD0_400x400.jpg"  alt="Virtusa" className="h-10 rounded-xl" />
+        <img src="https://pbs.twimg.com/profile_images/1973372506271584256/Sb4wfgD0_400x400.jpg" alt="Virtusa" className="h-10 rounded-xl" />
       </div>
 
       {/* Login Card */}
@@ -118,7 +119,7 @@ const UserLogin = () => {
       </div>
 
       {/* Footer */}
-    
+
       <style>{`
                 @keyframes shake {
                     0%, 100% { transform: translateX(0); }
