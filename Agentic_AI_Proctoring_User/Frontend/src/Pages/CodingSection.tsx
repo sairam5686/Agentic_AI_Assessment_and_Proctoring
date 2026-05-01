@@ -58,7 +58,7 @@ const CodingSection = () => {
   const assessment_id = assessmentState?.assessment_id || localStorage.getItem("assessment_id") || "default"
 
   useEffect(() => {
-    if (Locator.state && Object.keys(Locator.state).length > 0) {
+    if (Locator.state && Object.keys(Locator.state as any).length > 0) {
       localStorage.setItem(`assessment_data_${assessment_id}`, JSON.stringify(Locator.state))
       setAssessmentState(Locator.state)
     } else {
@@ -79,7 +79,6 @@ const CodingSection = () => {
   const [selectedLang, setSelectedLang, clearLang] = useLocalPersist<Record<string, string>>(`coding_lang_${assessment_id}`, {})
   const [code, setCode, clearCode] = useLocalPersist<Record<string, string>>(`coding_code_${assessment_id}`, {})
   const [activeTab, setActiveTab] = useState<'problem' | 'testcases'>('problem')
-  const [timeLeft, setTimeLeft] = useState(totalDurationSeconds)
   const [submitted, setSubmitted] = useState(false)
   const [lastSaved, setLastSaved] = useState<number>(Date.now())
   const [timeAgo, setTimeAgo] = useState("just now")
@@ -87,6 +86,27 @@ const CodingSection = () => {
   const [showGlobalFinishConfirm, setShowGlobalFinishConfirm] = useState(false)
   const [showUserInfo, setShowUserInfo] = useState(false)
   const [submittedQuestions, setSubmittedQuestions] = useState<string[]>([])
+
+  const [timeLeft, setTimeLeft] = useState<number>(() => {
+    const saved = localStorage.getItem(`coding_time_${assessment_id}`)
+    if (saved) return parseInt(saved)
+    return totalDurationSeconds > 0 ? totalDurationSeconds : 3600 // Default 60m if not yet loaded
+  })
+
+  // Sync timeLeft with localStorage
+  useEffect(() => {
+    if (timeLeft > 0 && !submitted) {
+      localStorage.setItem(`coding_time_${assessment_id}`, timeLeft.toString())
+    }
+  }, [timeLeft, assessment_id, submitted])
+
+  // If totalDurationSeconds becomes available and we haven't started yet
+  useEffect(() => {
+    const saved = localStorage.getItem(`coding_time_${assessment_id}`)
+    if (!saved && totalDurationSeconds > 0) {
+      setTimeLeft(totalDurationSeconds)
+    }
+  }, [totalDurationSeconds, assessment_id])
 
   // Per-question run results keyed by question_id
   const [runResults, setRunResults, clearRunResults] = useLocalPersist<Record<string, RunResult | null>>(`coding_results_${assessment_id}`, {})
@@ -107,7 +127,7 @@ const CodingSection = () => {
     
    const email =   localStorage.getItem("candidate_email")
     const data = {
-      assessment_id: assessment.assessment_id,
+      assessment_id,
       email : email,
       question_id: qId,
       language: lang,
@@ -305,17 +325,18 @@ const CodingSection = () => {
         throw new Error("Failed to save Coding results");
       }
 
-      // Cleanup local persistence on success
-      clearCode();
-      clearLang();
-      clearRunResults();
-      localStorage.removeItem(`assessment_data_${assessment_id}`);
-
       // Per-question logic
       setSubmittedQuestions(prev => [...prev, qId]);
       
       const isLastQuestion = activeQIdx === questions.length - 1;
       if (isLastQuestion) {
+        // Cleanup local persistence ONLY on final section completion
+        clearCode();
+        clearLang();
+        clearRunResults();
+        localStorage.removeItem(`coding_time_${assessment_id}`);
+        localStorage.removeItem(`assessment_data_${assessment_id}`);
+
         localStorage.setItem("coding_completed", "true");
         setSubmitted(true);
       } else {
@@ -886,6 +907,7 @@ const CodingSection = () => {
                   clearCode();
                   clearLang();
                   clearRunResults();
+                  localStorage.removeItem(`coding_time_${assessment_id}`);
                   localStorage.removeItem(`assessment_data_${assessment_id}`);
 
                   localStorage.setItem("coding_completed", "true");

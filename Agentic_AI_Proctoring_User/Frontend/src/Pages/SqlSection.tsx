@@ -63,7 +63,7 @@ const SqlSection = () => {
     const assessment_id = assessmentState?.assessment_id || localStorage.getItem("assessment_id") || "default"
 
     useEffect(() => {
-        if (Locator.state && Object.keys(Locator.state).length > 0) {
+        if (Locator.state && Object.keys(Locator.state as any).length > 0) {
             localStorage.setItem(`assessment_data_${assessment_id}`, JSON.stringify(Locator.state))
             setAssessmentState(Locator.state)
         } else {
@@ -83,17 +83,37 @@ const SqlSection = () => {
     const [activeQIdx, setActiveQIdx] = useState(0)
     const [code, setCode, clearCode] = useLocalPersist<Record<string, string>>(`sql_code_${assessment_id}`, {})
     const [activeTab, setActiveTab] = useState<'problem' | 'testcases'>('problem')
-    const [timeLeft, setTimeLeft] = useState(totalDurationSeconds)
     const [submitted, setSubmitted] = useState(false)
-    const [runApiResponse, setRunApiResponse, clearRunApiResponse] = useLocalPersist<Record<string, RunApiResponse | null>>(`sql_results_${assessment_id}`, {})
-    const [runErrors, setRunErrors] = useState<Record<string, string | null>>({})
-    const [isRunning, setIsRunning] = useState(false)
     const [lastSaved, setLastSaved] = useState<number>(Date.now())
     const [timeAgo, setTimeAgo] = useState("just now")
     const [isFullscreen, setIsFullscreen] = useState(false)
     const [showGlobalFinishConfirm, setShowGlobalFinishConfirm] = useState(false)
     const [showUserInfo, setShowUserInfo] = useState(false)
     const [submittedQuestions, setSubmittedQuestions] = useState<string[]>([])
+    const [runApiResponse, setRunApiResponse, clearRunApiResponse] = useLocalPersist<Record<string, RunApiResponse | null>>(`sql_results_${assessment_id}`, {})
+    const [runErrors, setRunErrors] = useState<Record<string, string | null>>({})
+    const [isRunning, setIsRunning] = useState(false)
+    
+    const [timeLeft, setTimeLeft] = useState<number>(() => {
+        const saved = localStorage.getItem(`sql_time_${assessment_id}`)
+        if (saved) return parseInt(saved)
+        return totalDurationSeconds > 0 ? totalDurationSeconds : 3600 // Default 60m if not yet loaded
+    })
+
+    // Sync timeLeft with localStorage
+    useEffect(() => {
+        if (timeLeft > 0 && !submitted) {
+            localStorage.setItem(`sql_time_${assessment_id}`, timeLeft.toString())
+        }
+    }, [timeLeft, assessment_id, submitted])
+
+    // If totalDurationSeconds becomes available and we haven't started yet
+    useEffect(() => {
+        const saved = localStorage.getItem(`sql_time_${assessment_id}`)
+        if (!saved && totalDurationSeconds > 0) {
+            setTimeLeft(totalDurationSeconds)
+        }
+    }, [totalDurationSeconds, assessment_id])
 
     const activeQ = questions[activeQIdx]
     const qId = activeQ?.question_id
@@ -164,7 +184,7 @@ const SqlSection = () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    assessment_id: assessment.assessment_id,
+                    assessment_id,
                     email: email,
                     question_id: qId,
                     language: 'MySQL',
@@ -173,7 +193,7 @@ const SqlSection = () => {
             }).catch(e => console.log(e));
 
             const data: any = {
-                assessment_id: assessment.assessment_id,
+                assessment_id,
                 question_id: qId,
                 code: currentCode,
             }
@@ -275,16 +295,14 @@ const SqlSection = () => {
                 throw new Error("Failed to save SQL results");
             }
             
-            // Cleanup local persistence on success
-            clearCode();
-            clearRunApiResponse();
-            localStorage.removeItem(`assessment_data_${assessment_id}`);
-
-            // Per-question logic
-            setSubmittedQuestions(prev => [...prev, qId]);
-
             const isLastQuestion = activeQIdx === questions.length - 1;
             if (isLastQuestion) {
+                // Cleanup local persistence ONLY on final section completion
+                clearCode();
+                clearRunApiResponse();
+                localStorage.removeItem(`sql_time_${assessment_id}`);
+                localStorage.removeItem(`assessment_data_${assessment_id}`);
+                
                 localStorage.setItem('sql_completed', 'true');
                 setSubmitted(true);
             } else {
@@ -881,6 +899,7 @@ const SqlSection = () => {
                                     // Cleanup local persistence
                                     clearCode();
                                     clearRunApiResponse();
+                                    localStorage.removeItem(`sql_time_${assessment_id}`);
                                     localStorage.removeItem(`assessment_data_${assessment_id}`);
 
                                     setSubmitted(true);

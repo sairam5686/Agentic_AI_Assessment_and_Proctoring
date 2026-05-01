@@ -13,7 +13,7 @@ const McqSection = () => {
 
   useEffect(() => {
     // If state is present in Locator, save it for recovery
-    if (Locator.state && Object.keys(Locator.state).length > 0) {
+    if (Locator.state && Object.keys(Locator.state as any).length > 0) {
       localStorage.setItem(`assessment_data_${assessment_id}`, JSON.stringify(Locator.state))
       setAssessmentState(Locator.state)
     } else {
@@ -34,13 +34,34 @@ const McqSection = () => {
 
   const [activeSectionIdx, setActiveSectionIdx] = useState(0)
   const [answers, setAnswers, clearAnswers] = useLocalPersist<Record<number, string>>(`mcq_answers_${assessment_id}`, {})
-  const [timeLeft, setTimeLeft] = useState(totalDurationSeconds)
+  
   const [submitted, setSubmitted] = useState(false)
   const [lastSaved, setLastSaved] = useState<number>(Date.now())
   const [timeAgo, setTimeAgo] = useState("just now")
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showGlobalFinishConfirm, setShowGlobalFinishConfirm] = useState(false)
   const [showUserInfo, setShowUserInfo] = useState(false)
+  
+  const [timeLeft, setTimeLeft] = useState<number>(() => {
+    const saved = localStorage.getItem(`mcq_time_${assessment_id}`)
+    if (saved) return parseInt(saved)
+    return totalDurationSeconds > 0 ? totalDurationSeconds : 1800 // Default 30m if not yet loaded
+  })
+
+  // Sync timeLeft with localStorage
+  useEffect(() => {
+    if (timeLeft > 0 && !submitted) {
+      localStorage.setItem(`mcq_time_${assessment_id}`, timeLeft.toString())
+    }
+  }, [timeLeft, assessment_id, submitted])
+
+  // If totalDurationSeconds becomes available and we haven't started yet
+  useEffect(() => {
+    const saved = localStorage.getItem(`mcq_time_${assessment_id}`)
+    if (!saved && totalDurationSeconds > 0) {
+      setTimeLeft(totalDurationSeconds)
+    }
+  }, [totalDurationSeconds, assessment_id])
 
   const activeSection = sections[activeSectionIdx]
   const allQuestions = sections.flatMap((s: any) => s.questions)
@@ -139,6 +160,7 @@ const McqSection = () => {
 
       // Cleanup local persistence on success
       clearAnswers();
+      localStorage.removeItem(`mcq_time_${assessment_id}`);
       localStorage.removeItem(`assessment_data_${assessment_id}`);
 
       localStorage.setItem("mcq_completed", "true");
