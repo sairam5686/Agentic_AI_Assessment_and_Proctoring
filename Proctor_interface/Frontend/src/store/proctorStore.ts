@@ -303,6 +303,7 @@ export const useProctorStore = create<ProctorState>((set, get) => ({
      * @param candidateId — Target candidate ID (omit for broadcast)
      */
     sendMessage: async (text, candidateId) => {
+        console.log("[CHAT] sendMessage triggered. Text:", text, "To:", candidateId);
         const { rtmClient, rtmStatus } = get();
 
         const newMessage: ChatMessage = {
@@ -320,14 +321,12 @@ export const useProctorStore = create<ProctorState>((set, get) => ({
         if (rtmClient && rtmStatus === 'connected') {
             try {
                 if (candidateId) {
-                    // Direct message: publish to candidate's sanitized email channel
-                    const candidate = get().candidates.find(c => c.id === candidateId);
-                    const rawTarget = (candidate?.email || candidateId);
-                    const target = rawTarget.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+                    console.log("[RTM] Publishing PRIVATE message to:", target, "Text:", text);
                     await rtmClient.publish(target, text);
                 } else {
                     // Broadcast: publish to assessment-wide channel
                     const broadcastChannel = get().assessmentId.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
+                    console.log("[RTM] Publishing BROADCAST message to:", broadcastChannel, "Text:", text);
                     await rtmClient.publish(broadcastChannel, text);
                 }
             } catch (err) {
@@ -407,14 +406,27 @@ export const useProctorStore = create<ProctorState>((set, get) => ({
 
             // Subscribe to assessment-wide broadcast channel
             await client.subscribe(subAssessmentId);
+            
+            await client.subscribe(loginEmail);
+            console.log("[RTM] Subscribed to broadcast:", subAssessmentId, "and private:", loginEmail);
+            console.log("[RTM] Expected Candidate IDs:", get().candidates.map(c => ({
+                name: c.name,
+                email: c.email,
+                sanitized: c.email.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
+            })));
 
             // Listen for incoming messages from candidates
             client.addEventListener('message', (event: any) => {
+                console.log("[RTM] Raw message received event:", event);
                 const publisher = event.publisher;
+                
                 // Skip our own echoed messages (RTM v2 echoes channel messages)
                 if (publisher.toLowerCase() === loginEmail.toLowerCase()) {
                     return;
                 }
+
+                // Check if this is a broadcast message (from the assessment channel)
+                const isBroadcast = event.channelName === subAssessmentId;
 
                 // Match publisher to a known candidate by sanitized email or ID
                 const candidate = get().candidates.find(c =>
@@ -429,7 +441,8 @@ export const useProctorStore = create<ProctorState>((set, get) => ({
                     sender: 'candidate',
                     text: event.message.toString(),
                     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-                    candidateId: candidateId
+                    // If it's a broadcast, we leave candidateId undefined so it shows in the "All" view
+                    candidateId: isBroadcast ? undefined : candidateId
                 };
 
                 set((state) => ({ messages: [...state.messages, msg] }));

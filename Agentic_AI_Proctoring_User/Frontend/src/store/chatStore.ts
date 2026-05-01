@@ -1,3 +1,4 @@
+// # FILE: chatStore.ts - Zustand store for Agora RTM chat state management.
 import { create } from 'zustand';
 import axios from 'axios';
 import AgoraRTM, { RTMClient } from 'agora-rtm';
@@ -59,9 +60,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
         if (rtmClient && rtmStatus === 'connected') {
             try {
+                // Broadcast to assessment channel so proctor receives it
                 console.log(`[RTM] Candidate publishing to channel: [${assessmentId}]`);
-                const result = await rtmClient.publish(assessmentId, text);
-                console.log("[RTM] Publish result:", result);
+                await rtmClient.publish(assessmentId, text);
             } catch (err) {
                 console.error("[RTM] Failed to send RTM message:", err);
             }
@@ -78,47 +79,30 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const loginEmail = rawEmail.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
         const subAssessmentId = rawAId.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 
-        console.log(`[RTM] Candidate Raw Email: [${rawEmail}], Cleaned: [${loginEmail}]`);
-        console.log(`[RTM] Candidate Raw AssessmentId: [${rawAId}], Cleaned: [${subAssessmentId}]`);
-
         if (!loginEmail || !subAssessmentId || rtmClient) return;
 
         set({ rtmStatus: 'connecting', rtmError: null });
 
         try {
-            const appId = import.meta.env.VITE_AGORA_APP_ID || "YOUR_AGORA_APP_ID";
-            const client = new AgoraRTM.RTM(appId, loginEmail);
-            console.log("[RTM] Candidate initializing with UserAccount:", loginEmail);
+            // Use sanitized App ID from .env
+            const appId = (import.meta.env.VITE_AGORA_APP_ID || "").replace(/"/g, '').trim();
+            const client = new AgoraRTM.RTM(appId, loginEmail, {
+                presenceTimeout: 300
+            });
 
-            // Fetch RTM token
             const response = await axios.get(`${API_BASE_URL}/agora/rtm-token`, {
                 params: { userAccount: loginEmail }
             });
             const { token } = response.data;
 
             await client.login({ token });
-            console.log("[RTM] Candidate login successful");
-            
-            // Subscribe to the assessment channel and self channel
             await client.subscribe(subAssessmentId);
             await client.subscribe(loginEmail);
-            console.log(`[RTM] Candidate subscribed to ${subAssessmentId} and ${loginEmail}`);
 
-            // Message listener
             client.addEventListener('message', (event: any) => {
                 const publisher = event.publisher;
-                // Avoid adding our own echoed messages (RTM v2 echoes channel messages)
-                if (publisher.toLowerCase() === loginEmail.toLowerCase()) {
-                    return;
-                }
+                if (publisher.toLowerCase() === loginEmail.toLowerCase()) return;
 
-                console.log("[RTM] Candidate received message event:", {
-                    channelName: event.channelName,
-                    channelType: event.channelType,
-                    publisher: publisher,
-                    message: event.message
-                });
-                
                 const msg: ChatMessage = {
                     id: Math.random().toString(36).substring(7),
                     sender: 'proctor',
@@ -126,7 +110,6 @@ export const useChatStore = create<ChatState>((set, get) => ({
                     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 };
                 
-                console.log("[RTM] Adding message to candidate store:", msg);
                 set((state) => ({ 
                     messages: [...state.messages, msg],
                     unreadCount: get().isChatOpen ? 0 : get().unreadCount + 1
@@ -134,10 +117,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
             });
 
             client.addEventListener('status', (event: any) => {
-                console.log("[RTM] Candidate connection status change:", event);
-                if (event.state === 'CONNECTED') {
-                    set({ rtmStatus: 'connected' });
-                } else if (event.state === 'DISCONNECTED' || event.state === 'FAILED') {
+                if (event.state === 'CONNECTED') set({ rtmStatus: 'connected' });
+                else if (event.state === 'DISCONNECTED' || event.state === 'FAILED') {
                     set({ rtmStatus: 'error', rtmError: event.reason || 'Connection failed' });
                 }
             });
@@ -153,7 +134,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const { rtmClient } = get();
         if (rtmClient) {
             await rtmClient.logout();
-            set({ rtmClient: null });
+            set({ rtmClient: null, rtmStatus: 'disconnected' });
         }
     }
 }));
