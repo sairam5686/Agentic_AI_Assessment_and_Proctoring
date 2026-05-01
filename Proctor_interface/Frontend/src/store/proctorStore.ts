@@ -321,6 +321,10 @@ export const useProctorStore = create<ProctorState>((set, get) => ({
         if (rtmClient && rtmStatus === 'connected') {
             try {
                 if (candidateId) {
+                    // Direct message: publish to candidate's sanitized email channel
+                    const candidate = get().candidates.find(c => c.id === candidateId);
+                    const rawTarget = (candidate?.email || candidateId);
+                    const target = rawTarget.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
                     console.log("[RTM] Publishing PRIVATE message to:", target, "Text:", text);
                     await rtmClient.publish(target, text);
                 } else {
