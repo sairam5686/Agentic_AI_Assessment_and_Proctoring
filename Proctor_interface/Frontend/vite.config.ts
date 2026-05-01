@@ -8,4 +8,6 @@ export default defineConfig({
         react(),
         tailwindcss(),
     ],
+    envDir: '../../',
+    envPrefix: ['VITE_', 'AGORA_'],
 })

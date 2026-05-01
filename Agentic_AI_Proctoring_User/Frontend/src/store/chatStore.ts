@@ -60,8 +60,8 @@ export const useChatStore = create<ChatState>((set, get) => ({
         if (rtmClient && rtmStatus === 'connected') {
             try {
                 // Publish to assessment channel — proctor is subscribed to this channel
-                console.log(`[RTM] Candidate publishing to channel: [${assessmentId}]`);
-                const result = await rtmClient.publish(assessmentId, text);
+                console.log(`[RTM] Candidate publishing to channel: [proctor_${assessmentId}]`);
+                const result = await rtmClient.publish(`proctor_${assessmentId}`, text);
                 console.log("[RTM] Publish result:", result);
             } catch (err) {
                 console.error("[RTM] Failed to send RTM message:", err);
@@ -87,7 +87,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         set({ rtmStatus: 'connecting', rtmError: null });
 
         try {
-            const appId = (import.meta.env.VITE_AGORA_APP_ID || '').replace(/"/g, '').trim();
+            const appId = (import.meta.env.AGORA_APP_ID || '').replace(/"/g, '').trim();
             const client = new AgoraRTM.RTM(appId, loginEmail);
             console.log("[RTM] Candidate initializing with UserAccount:", loginEmail);
 

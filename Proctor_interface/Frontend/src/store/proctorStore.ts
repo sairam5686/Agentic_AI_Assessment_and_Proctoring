@@ -412,12 +412,13 @@ export const useProctorStore = create<ProctorState>((set, get) => ({
             console.log("[RTM] Subscribing to broadcast:", subAssessmentId);
             await client.subscribe(subAssessmentId);
             
-            // Small delay to prevent rate-limiting/timeouts
-            await new Promise(resolve => setTimeout(resolve, 500));
-            
             // NEW: Subscribe to private channel (proctor's sanitized email) to receive direct replies
             console.log("[RTM] Subscribing to private:", loginEmail);
             await client.subscribe(loginEmail);
+
+            // NEW: Subscribe to candidate-to-proctor channel
+            console.log("[RTM] Subscribing to candidate-to-proctor channel:", `proctor_${subAssessmentId}`);
+            await client.subscribe(`proctor_${subAssessmentId}`);
             
             console.log("[RTM] Subscription SUCCESS.");
 
