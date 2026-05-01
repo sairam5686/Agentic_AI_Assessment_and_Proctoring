@@ -39,7 +39,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const { rtmClient, rtmStatus } = get();
         const rawEmail = localStorage.getItem('candidate_email') || '';
         const rawAId = localStorage.getItem('assessment_id') || '';
-        
+
         const candidateEmail = rawEmail.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
         const assessmentId = rawAId.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -87,7 +87,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         set({ rtmStatus: 'connecting', rtmError: null });
 
         try {
-            const appId = (import.meta.env.AGORA_APP_ID || '').replace(/"/g, '').trim();
+            const appId = (import.meta.env.VITE_AGORA_APP_ID || '').replace(/"/g, '').trim();
             const client = new AgoraRTM.RTM(appId, loginEmail);
             console.log("[RTM] Candidate initializing with UserAccount:", loginEmail);
 
@@ -99,7 +99,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
             await client.login({ token });
             console.log("[RTM] Candidate login successful");
-            
+
             // Subscribe to the assessment channel (to receive proctor broadcasts)
             // and own channel (to receive private messages from proctor)
             await client.subscribe(subAssessmentId);
@@ -119,15 +119,15 @@ export const useChatStore = create<ChatState>((set, get) => ({
                     publisher: publisher,
                     message: event.message
                 });
-                
+
                 const msg: ChatMessage = {
                     id: Math.random().toString(36).substring(7),
                     sender: 'proctor',
                     text: typeof event.message === 'string' ? event.message : (event.message?.toString() || ''),
                     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 };
-                
-                set((state) => ({ 
+
+                set((state) => ({
                     messages: [...state.messages, msg],
                     unreadCount: get().isChatOpen ? 0 : get().unreadCount + 1
                 }));
