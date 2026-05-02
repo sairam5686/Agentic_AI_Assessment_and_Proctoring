@@ -196,10 +196,9 @@ async def get_assessment_questions(assessment_id: str):
 @app.post("/candidate/login")
 async def candidate_login(request: Request):
     body = await request.json()
-    email = body.get("email")
+    identifier = body.get("identifier")
     assessment_id = body.get("assessment_id")
-    reg_no = body.get("reg_no")
-    result = await LoginMaker(email=email, assessment_id=assessment_id, reg_no=reg_no)
+    result = await LoginMaker(identifier=identifier, assessment_id=assessment_id)
     return result
 
 class IDVerifyRequest(BaseModel):

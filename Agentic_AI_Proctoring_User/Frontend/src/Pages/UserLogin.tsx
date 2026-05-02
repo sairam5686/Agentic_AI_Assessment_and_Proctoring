@@ -2,17 +2,11 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
 
 const UserLogin = () => {
-  const [email, setEmail] = useState('');
-  const [regNo, setRegNo] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [assessmentId, setAssessmentId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isUniversity, setIsUniversity] = useState(false);
   const navigate = useNavigate();
-
-  const loginTypeLabel = isUniversity ? 'University Exam' : 'Hiring Assessment';
-  const identifierLabel = isUniversity ? 'Registration Number' : 'Email Address';
-  const identifierPlaceholder = isUniversity ? 'e.g. 21CS001' : 'e.g. candidate@example.com';
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -24,9 +18,7 @@ const UserLogin = () => {
     sessionStorage.removeItem('system_check_passed');
 
     try {
-      const payload = isUniversity 
-        ? { reg_no: regNo, assessment_id: assessmentId }
-        : { email, assessment_id: assessmentId };
+      const payload = { identifier, assessment_id: assessmentId };
 
       const response = await fetch('http://127.0.0.1:8000/candidate/login', {
         method: 'POST',
@@ -36,21 +28,20 @@ const UserLogin = () => {
 
       const data = await response.json();
 
-      if (response.ok) {
+      if (response.ok && data.status === "success") {
         // Store all candidate details in localStorage
         localStorage.setItem('candidate_name', data.user_name);
         localStorage.setItem('candidate_email', data.email);
         localStorage.setItem('assessment_id', data.assessment_id);
-        localStorage.setItem('roll_number', data.roll_number);
-        localStorage.setItem('candidate_id', data.candidate_id);
-        localStorage.setItem('department', data.department);
-        localStorage.setItem('proctor_email', data.proctor_email || '');
-        localStorage.setItem('login_mode', isUniversity ? 'University' : 'Hiring');
+        localStorage.setItem('roll_number', data.roll_number || '');
+        localStorage.setItem('candidate_id', data.candidate_id || '');
+        localStorage.setItem('department', data.department || '');
+        localStorage.setItem('login_mode', data.login_mode || 'Hiring');
 
         // Redirect to environment validation (SystemCheck)
         navigate('/system-check');
       } else {
-        setError(data.detail || `Login failed. Please check your ${isUniversity ? 'registration number' : 'email'} and password.`);
+        setError(data.detail || data.message || "Login failed. Please check your credentials.");
       }
     } catch (err) {
       setError('Connection error. Please ensure the backend is running.');
@@ -69,52 +60,25 @@ const UserLogin = () => {
       {/* Login Card */}
       <div className="w-full max-w-md bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-10">
         
-        {/* Mode Toggle */}
-        <div className="flex bg-gray-100 p-1 rounded-2xl mb-8">
-          <button 
-            onClick={() => setIsUniversity(false)}
-            className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all ${!isUniversity ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-          >
-            Hiring
-          </button>
-          <button 
-            onClick={() => setIsUniversity(true)}
-            className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all ${isUniversity ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-          >
-            University
-          </button>
-        </div>
-
         <div className="text-center mb-10">
           <div className="inline-block px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-widest rounded-full mb-4">
-            {loginTypeLabel}
+            Unified Candidate Portal
           </div>
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight mb-3">Candidate Login</h1>
-          <p className="text-gray-500 text-sm">Enter your credentials to start the {isUniversity ? 'exam' : 'assessment'}</p>
+          <p className="text-gray-500 text-sm italic">Enter your Email and Assessment ID to begin.</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-700 ml-1">{identifierLabel}</label>
-            {isUniversity ? (
-              <input
-                type="text"
-                required
-                placeholder={identifierPlaceholder}
-                className="w-full px-5 py-4 bg-gray-50 border border-transparent focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 rounded-2xl outline-none transition-all duration-200 text-gray-800"
-                value={regNo}
-                onChange={(e) => setRegNo(e.target.value)}
-              />
-            ) : (
-              <input
-                type="email"
-                required
-                placeholder={identifierPlaceholder}
-                className="w-full px-5 py-4 bg-gray-50 border border-transparent focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 rounded-2xl outline-none transition-all duration-200 text-gray-800"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-              />
-            )}
+            <label className="text-sm font-semibold text-gray-700 ml-1">Email Address</label>
+            <input
+              type="email"
+              required
+              placeholder="e.g. candidate@mail.com"
+              className="w-full px-5 py-4 bg-gray-50 border border-transparent focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 rounded-2xl outline-none transition-all duration-200 text-gray-800"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+            />
           </div>
 
           <div className="space-y-2">
@@ -152,8 +116,8 @@ const UserLogin = () => {
         </form>
 
         <div className="mt-10 pt-8 border-t border-gray-50 text-center">
-          <p className="text-xs text-gray-400 leading-relaxed max-w-[240px] mx-auto">
-            Secure browser environment will be initialized upon login.
+          <p className="text-xs text-gray-400 leading-relaxed max-w-[240px] mx-auto font-medium italic">
+            "Your progress is automatically saved as you go."
           </p>
         </div>
       </div>

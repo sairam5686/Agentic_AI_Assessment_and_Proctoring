@@ -73,11 +73,11 @@ def send_university_assessment_mail(to_email, candidate_name, registration_numbe
         You have been invited to participate in the University Exam: {assessment_title}.
 
         Your Login Credentials:
-            - Registration Number: {registration_number}
+            - Registered Email: {to_email}
             - Assessment ID / Password: {assessment_id}
 
 
-        Please click the link below to access the assessment portal and use both your Registration Number and the assessment ID provided above to login:
+        Please click the link below to access the assessment portal and use both your registered email and the assessment ID provided above to login:
         {assessment_link}
 
 
