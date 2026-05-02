@@ -141,6 +141,19 @@ const AssessmentDetails = () => {
             });
         }
 
+        // FITB
+        if (fullTestData?.FITB && fullTestData.FITB.total_questions > 0) {
+            const totalMarks = (fullTestData.FITB.sections || []).reduce((acc: number, s: any) => 
+                acc + (s.questions?.reduce((qAcc: number, q: any) => qAcc + (q.marks || 0), 0) || 0), 0
+            );
+            sections.push({
+                name: 'Fill in the Blanks',
+                questions: fullTestData.FITB.total_questions,
+                duration: fullTestData.FITB.fitb_duration || '--',
+                marks: totalMarks || '--'
+            });
+        }
+
         return sections;
     };
 
@@ -228,8 +241,40 @@ const AssessmentDetails = () => {
                                 <div className="space-y-4 animate-pulse">
                                     {[1, 2, 3].map(i => <div key={i} className="h-4 bg-gray-100 rounded w-full" />)}
                                 </div>
-                            ) : sectionsInfo.length > 0 ? (
+                            ) : (sectionsInfo.length > 0 || fullTestData?.metadata) ? (
                                 <div className="space-y-8">
+                                    {fullTestData?.metadata?.category === 'University' && (
+                                        <div className="space-y-4 pb-6 border-b border-gray-100">
+                                            <h3 className="text-[11px] font-black text-orange-500 uppercase tracking-[0.15em]">University Metadata</h3>
+                                            <div className="grid grid-cols-1 gap-3">
+                                                <div className="space-y-1">
+                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Subject</p>
+                                                    <p className="text-sm font-black text-gray-900 leading-tight">{fullTestData.metadata.subject_name}</p>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Code</p>
+                                                        <p className="text-sm font-black text-gray-900">{fullTestData.metadata.subject_code}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Dept</p>
+                                                        <p className="text-sm font-black text-gray-900">{fullTestData.metadata.department}</p>
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div>
+                                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Sem</p>
+                                                        <p className="text-sm font-black text-gray-900">{fullTestData.metadata.semester}</p>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Reg</p>
+                                                        <p className="text-sm font-black text-gray-900">{fullTestData.metadata.regulation}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                    
                                     {sectionsInfo.map((section, idx) => (
                                         <div key={idx} className="space-y-3">
                                             <h3 className="text-[11px] font-black text-indigo-500 uppercase tracking-[0.15em]">{section.name}</h3>

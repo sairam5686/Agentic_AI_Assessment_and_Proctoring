@@ -103,6 +103,31 @@ interface GamingSectionData {
   games: GameConfig[]
 }
 
+// FITB interfaces
+interface FITBQuestion {
+  question_id: number
+  question_text: string
+  blank_count: number
+  blanks: string[][]           // list of lists of accepted answers
+  marks: number
+  partial_marks: boolean
+  difficulty: string
+  type: string
+}
+
+interface FITBSection {
+  section_id: number
+  section_name: string
+  questions: FITBQuestion[]
+}
+
+interface FITBSectionData {
+  test_title: string
+  fitb_duration: string
+  total_questions: number
+  sections: FITBSection[]
+}
+
 interface AssessmentData {
   assessment_id: string
   status: string
@@ -110,6 +135,7 @@ interface AssessmentData {
   MCQ: MCQSectionData | null
   SQL: SQLSectionData | null
   Gaming: GamingSectionData | null
+  FITB: FITBSectionData | null
 }
 
 const difficultyColors: Record<string, string> = {
@@ -153,7 +179,7 @@ const PreviewTest = () => {
   const [data, setData] = useState<AssessmentData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'coding' | 'mcq' | 'sql' | 'gaming'>('gaming')
+  const [activeTab, setActiveTab] = useState<'coding' | 'mcq' | 'sql' | 'gaming' | 'fitb' | null>(null)
   const [expandedQuestion, setExpandedQuestion] = useState<string | number | null>(null)
   const [showStopModal, setShowStopModal] = useState(false)
 
@@ -166,7 +192,7 @@ const PreviewTest = () => {
       console.log('API response:', json)
 
       // Accept data even if sections are null — just not all missing entirely
-      if (!json?.Coding && !json?.MCQ && !json?.SQL && !json?.Gaming) {
+      if (!json?.Coding && !json?.MCQ && !json?.SQL && !json?.Gaming && !json?.FITB) {
         setError(`Unexpected data shape: ${JSON.stringify(Object.keys(json))}`)
         return
       }
@@ -174,10 +200,12 @@ const PreviewTest = () => {
       setData(json)
 
       // Auto-select a tab that actually has data
-      if (json.Gaming) setActiveTab('gaming')
-      else if (json.Coding) setActiveTab('coding')
-      else if (json.MCQ) setActiveTab('mcq')
-      else if (json.SQL) setActiveTab('sql')
+      const hasGaming = json.Gaming && json.Gaming.games?.[0]?.enabled
+      if (hasGaming) setActiveTab('gaming')
+      else if (json.MCQ && json.MCQ.total_questions > 0) setActiveTab('mcq')
+      else if (json.Coding && json.Coding.total_questions > 0) setActiveTab('coding')
+      else if (json.SQL && json.SQL.total_questions > 0) setActiveTab('sql')
+      else if (json.FITB && json.FITB.total_questions > 0) setActiveTab('fitb')
     } catch (err) {
       console.error(err)
       setError('Failed to load assessment data.')
@@ -232,6 +260,8 @@ const PreviewTest = () => {
   const hasCoding = !!(data?.Coding?.questions?.length)
   const hasMCQ = !!(data?.MCQ?.sections?.length)
   const hasSQL = !!(data?.SQL?.questions?.length)
+  const hasFITB = !!(data?.FITB?.sections?.length)
+  const hasGaming = !!(data?.Gaming && data?.Gaming?.games?.[0]?.enabled)
 
   // ── Render guards ──────────────────────────────────────────────────────────
 
@@ -271,7 +301,7 @@ const PreviewTest = () => {
               </svg> Back
             </button>
             <h1 className="text-xl font-bold text-gray-900">
-              {data.Gaming?.test_title ?? data.Coding?.test_title ?? data.MCQ?.test_title ?? 'Assessment Preview'}
+              {data.Gaming?.test_title ?? data.Coding?.test_title ?? data.MCQ?.test_title ?? data.FITB?.test_title ?? 'Assessment Preview'}
             </h1>
             <p className="text-xs text-gray-400 mt-0.5">ID: {data.assessment_id}</p>
           </div>
@@ -299,20 +329,6 @@ const PreviewTest = () => {
               )}
             </div>
 
-            {data.status === 'active' && (
-              <button
-                onClick={() => setShowStopModal(true)}
-                className="px-4 py-2 bg-red-50 text-red-600 border border-red-100 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-red-600 hover:text-white transition-all shadow-sm active:scale-95 flex items-center gap-2"
-              >
-                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse group-hover:bg-white" />
-                Stop Assessment
-              </button>
-            )}
-            {data.status === 'terminated' && (
-              <span className="px-4 py-2 bg-gray-100 text-gray-500 border border-gray-200 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2">
-                Terminated
-              </span>
-            )}
           </div>
         </div>
       </div>
@@ -344,6 +360,12 @@ const PreviewTest = () => {
               value: data.SQL?.total_questions ?? 0,
               color: 'teal',
               show: !!(data.SQL?.total_questions)
+            },
+            {
+              label: 'Fill in Blanks',
+              value: data.FITB?.total_questions ?? 0,
+              color: 'amber',
+              show: !!(data.FITB?.total_questions)
             },
           ].filter(card => card.show).map(({ label, value, color }) => (
             <div key={label} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
@@ -397,6 +419,17 @@ const PreviewTest = () => {
                 }`}
             >
               SQL
+            </button>
+          )}
+          {data.FITB && data.FITB.total_questions > 0 && (
+            <button
+              onClick={() => setActiveTab('fitb')}
+              className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'fitb'
+                ? 'bg-amber-500 text-white shadow'
+                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                }`}
+            >
+              ✏️ Fill in the Blanks
             </button>
           )}
         </div>
@@ -773,9 +806,143 @@ const PreviewTest = () => {
             )}
           </>
         )}
+
+        {/* ── FITB Tab ── */}
+        {activeTab === 'fitb' && (
+          <>
+            {!hasFITB ? (
+              <EmptyState icon="✏️" message="No Fill in the Blanks questions have been added to this assessment yet." />
+            ) : (
+              <div className="space-y-6">
+                {data.FITB!.sections.map((section) => (
+                  <div
+                    key={section.section_id}
+                    className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden"
+                  >
+                    {/* Section Header */}
+                    <div className="px-6 py-4 bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="w-6 h-6 bg-amber-500 text-white text-xs font-bold rounded-md flex items-center justify-center">
+                            {section.section_id}
+                          </span>
+                          <h2 className="font-semibold text-gray-800 text-sm">{section.section_name}</h2>
+                        </div>
+                        <span className="text-xs text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full">
+                          {section.questions?.length ?? 0} questions
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Questions */}
+                    {!section.questions?.length ? (
+                      <div className="px-6 py-6">
+                        <div className="flex items-center gap-2 text-sm text-gray-400 bg-gray-50 rounded-lg px-4 py-3 border border-dashed border-gray-200">
+                          <span>📭</span>
+                          <span>No questions in this section.</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-gray-50">
+                        {section.questions.map((q, idx) => {
+                          const isExpanded = expandedQuestion === `fitb-${q.question_id}`
+                          // Split sentence on #blank# tokens for inline display
+                          const parts = q.question_text.split('#blank#')
+
+                          return (
+                            <div key={q.question_id} className="px-6 py-4">
+                              <button
+                                onClick={() =>
+                                  setExpandedQuestion(isExpanded ? null : `fitb-${q.question_id}`)
+                                }
+                                className="w-full text-left"
+                              >
+                                <div className="flex items-start gap-3">
+                                  <span className="text-xs text-gray-400 font-medium w-6 mt-0.5 shrink-0">
+                                    {idx + 1}.
+                                  </span>
+                                  {/* Inline preview with blank markers */}
+                                  <p className="text-sm text-gray-700 flex-1 leading-relaxed">
+                                    {parts.map((part, i) => (
+                                      <span key={i}>
+                                        {part}
+                                        {i < parts.length - 1 && (
+                                          <span className="inline-block mx-1 px-3 py-0.5 bg-amber-100 border border-amber-300 text-amber-700 rounded text-xs font-mono align-middle">
+                                            _blank_{i + 1}_
+                                          </span>
+                                        )}
+                                      </span>
+                                    ))}
+                                  </p>
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
+                                      difficultyColors[q.difficulty] ?? 'bg-gray-100 text-gray-600'
+                                    }`}>
+                                      {q.difficulty}
+                                    </span>
+                                    <span className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
+                                      {q.marks} marks
+                                    </span>
+                                    <span className="text-gray-400 text-xs ml-1">
+                                      {isExpanded ? '▲' : '▼'}
+                                    </span>
+                                  </div>
+                                </div>
+                              </button>
+
+                              {isExpanded && (
+                                <div className="mt-4 ml-9 space-y-3">
+                                  {/* Partial marks badge */}
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+                                      q.partial_marks
+                                        ? 'bg-green-100 text-green-700'
+                                        : 'bg-gray-100 text-gray-500'
+                                    }`}>
+                                      {q.partial_marks ? '✓ Partial Marks Enabled' : '✗ Full Marks Only'}
+                                    </span>
+                                    <span className="text-xs text-gray-400">
+                                      {q.blank_count} blank{q.blank_count !== 1 ? 's' : ''}
+                                    </span>
+                                  </div>
+
+                                  {/* Accepted answers per blank */}
+                                  <div className="space-y-2">
+                                    <p className="text-xs font-semibold text-gray-600">Accepted Answers:</p>
+                                    {q.blanks.map((accepted, bIdx) => (
+                                      <div key={bIdx} className="flex items-center gap-2">
+                                        <span className="text-xs text-amber-700 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded font-mono whitespace-nowrap">
+                                          Blank {bIdx + 1}
+                                        </span>
+                                        <div className="flex flex-wrap gap-1">
+                                          {accepted.map((ans) => (
+                                            <span
+                                              key={ans}
+                                              className="text-xs bg-green-50 border border-green-200 text-green-700 px-2 py-0.5 rounded font-medium"
+                                            >
+                                              ✓ {ans}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
+        )}
       </div>
 
-      {data.status !== 'active' && data.status !== 'terminated' && (
+      {data.status !== 'terminated' && (
         <button onClick={() => navigator("/start-test", { state: { assessment_id: data.assessment_id } })}
           className="fixed right-6 bottom-6 group flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-5 py-3 rounded-2xl shadow-lg hover:shadow-indigo-300 hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 active:scale-95 active:translate-y-0">
           {/* Pulsing dot */}
@@ -799,47 +966,7 @@ const PreviewTest = () => {
         </button>
       )}
 
-      {/* ── Confirmation Modal ── */}
-      <AnimatePresence>
-        {showStopModal && (
-          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowStopModal(false)}
-              className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"
-            />
-            <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              className="relative w-full max-w-md bg-white rounded-[2rem] shadow-2xl overflow-hidden border border-white"
-            >
-              <div className="p-8 text-center">
-                <h3 className="text-xl font-bold text-slate-900 mb-2">Stop Assessment?</h3>
-                <p className="text-sm text-slate-500 leading-relaxed mb-8">
-                  Are you sure you want to stop this assessment? Candidates will no longer be able to take it, and this action cannot be undone.
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    onClick={() => setShowStopModal(false)}
-                    className="px-6 py-3.5 rounded-xl border border-slate-200 text-slate-600 text-xs font-bold uppercase tracking-widest hover:bg-slate-50 transition-colors"
-                  >
-                    Keep Running
-                  </button>
-                  <button
-                    onClick={handleStopAssessment}
-                    className="px-6 py-3.5 rounded-xl bg-red-600 text-white text-xs font-bold uppercase tracking-widest hover:bg-red-700 shadow-lg shadow-red-200 transition-all active:scale-95"
-                  >
-                    Stop Now
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+
       <div className="fixed top-4 right-4 z-[999]">
         <div className="react-toastify">
           {/* This is a placeholder for context, actual ToastContainer is used */}

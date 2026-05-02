@@ -19,6 +19,7 @@ try:
     Coding_results_DB = Candidate_DB["Coding_Results"]
     SQL_Results_DB = Candidate_DB["SQL_Results"]
     Piped_Puzzle_DB  = Candidate_DB["Pipe_Puzzle_Results"]
+    FITB_Results_DB = Candidate_DB["FITB_Results"]
 
 
     # Fro Admin Assessments DB
@@ -31,6 +32,7 @@ try:
     SQL_TestCases_DB = Database["SQL_TestCases_DB"]
     Gaming_DB = Database["Gaming_DB"]
     Game_Sessions_DB = Database["Game_Sessions_DB"]
+    FITB_DB = Database["FITB_DB"]
     Results_DB = Database["Results_DB"]
     Invigilator_DB = Database["Invigilator_DB"]
     print("\n*** Successfully Connected To MongoDB! ***\n")

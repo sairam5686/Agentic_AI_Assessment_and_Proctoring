@@ -224,6 +224,7 @@ const CandidateAnalytics = () => {
     const [candidateResult, setCandidateResult] = useState<any>(null);
     const [codeAnalytics, setCodeAnalytics]    = useState<any[]>([]);
     const [riskData, setRiskData] = useState<any>(null);
+    const [testInfo, setTestInfo] = useState<any>(null);
     // ── NEW: mobile risk state ──
     const [mobileRiskData, setMobileRiskData] = useState<any>(null);
     
@@ -304,6 +305,7 @@ const CandidateAnalytics = () => {
         const mcqList:  any[] = candidateResult.MCQ         || [];
         const codList:  any[] = candidateResult.Coding       || [];
         const sqlList:  any[] = candidateResult.SQL          || [];
+        const fitbList: any[] = candidateResult.FITB || [];
         const pipeList: any[] = candidateResult.Pipe_Puzzle  || [];
 
         const bestOf = <T extends any>(arr: T[], key: (x: T) => number): T | null =>
@@ -312,19 +314,29 @@ const CandidateAnalytics = () => {
         const bestMCQ = bestOf(mcqList, (x: any) => x.user_total_marks ?? 0);
         const bestCod = bestOf(codList, (x: any) => x.total_marks       ?? 0);
         const bestSQL = bestOf(sqlList, (x: any) => x.total_marks        ?? 0);
+        const bestFITB = bestOf(fitbList, (x: any) => x.user_total_marks ?? 0);
 
         /* scores */
-        const mcqScore  = (bestMCQ as any)?.user_total_marks ?? 0;
-        const mcqMax    = (bestMCQ as any)?.total_marks       ?? 30;
-        const codScore  = (bestCod as any)?.total_marks        ?? 0;
-        const codMax    = 30;
-        const sqlScore  = (bestSQL as any)?.total_marks        ?? 0;
-        const sqlMax    = 10;
-        const pipePass  = pipeList.filter((p: any) => p.scores?.[0]?.success).length;
-        const pipeMax   = pipeList.length;
+        /* marks configuration from testInfo */
+        const hasMCQ    = !!testInfo?.MCQ;
+        const hasCod    = !!testInfo?.Coding;
+        const hasSQL    = !!testInfo?.SQL;
+        const hasFITB   = !!testInfo?.FITB;
+        const hasGaming = !!testInfo?.Gaming?.games?.[0]?.enabled;
 
-        const totalScore = mcqScore + codScore + sqlScore;
-        const totalMax   = mcqMax + codMax + sqlMax;
+        const mcqScore  = (bestMCQ as any)?.user_total_marks ?? 0;
+        const mcqMax    = hasMCQ ? ((bestMCQ as any)?.total_marks ?? 30) : 0;
+        const codScore  = (bestCod as any)?.total_marks        ?? 0;
+        const codMax    = hasCod ? 30 : 0;
+        const sqlScore  = (bestSQL as any)?.total_marks        ?? 0;
+        const sqlMax    = hasSQL ? 10 : 0;
+        const fitbScore = (bestFITB as any)?.user_total_marks ?? 0;
+        const fitbMax   = hasFITB ? ((bestFITB as any)?.total_marks ?? 20) : 0;
+        const pipePass  = pipeList.filter((p: any) => p.scores?.[0]?.success).length;
+        const pipeMax   = hasGaming ? pipeList.length : 0;
+
+        const totalScore = mcqScore + codScore + sqlScore + fitbScore;
+        const totalMax   = mcqMax + codMax + sqlMax + fitbMax;
 
         /* MCQ detail */
         const mcqResults   = (bestMCQ as any)?.MCQ_Result ?? [];
@@ -350,6 +362,12 @@ const CandidateAnalytics = () => {
         const codAccuracy = codAttempted > 0 ? Math.round((codPassed / codAttempted) * 100) : 0;
         const sqlAccuracy = sqlAttempted > 0 ? Math.round((sqlPassed / sqlAttempted) * 100) : 0;
 
+        /* FITB detail */
+        const fitbResults = (bestFITB as any)?.FITB_Result ?? [];
+        const fitbAnswered = fitbResults.filter((q: any) => q.user_answer !== '').length;
+        const fitbCorrect = fitbResults.filter((q: any) => q.Mark > 0).length;
+        const fitbAccuracy = fitbAnswered > 0 ? Math.round((fitbCorrect / fitbAnswered) * 100) : 0;
+
         /* score-over-attempts series */
         const mcqSeries = mcqList.map((a: any) => a.user_total_marks ?? 0);
         const codSeries = codList.map((a: any) => a.total_marks       ?? 0);
@@ -364,24 +382,38 @@ const CandidateAnalytics = () => {
 
         return {
             totalScore, totalMax,
-            mcqScore, mcqMax, codScore, codMax, sqlScore, sqlMax,
+            mcqScore, mcqMax, codScore, codMax, sqlScore, sqlMax, fitbScore, fitbMax,
             pipePass, pipeMax,
+            hasMCQ, hasCod, hasSQL, hasFITB, hasGaming,
             mcqAnswered, mcqSkipped, mcqCorrect, mcqWrong,
             codAttempted, codPassed, codTotalQ,
             sqlAttempted, sqlPassed, sqlTotalQ,
-            mcqAccuracy, codAccuracy, sqlAccuracy,
+            fitbAnswered, fitbCorrect,
+            mcqAccuracy, codAccuracy, sqlAccuracy, fitbAccuracy,
             mcqSeries, codSeries, sqlSeries,
             pipeBestTime, pipeAvgMoves, pipeAvgRot, pipeTimeSeries,
-            bestMCQ, bestCod, bestSQL,
+            bestMCQ, bestCod, bestSQL, bestFITB,
             mcqAttempts: mcqList.length,
             codAttempts: codList.length,
             sqlAttempts: sqlList.length,
+            fitbAttempts: fitbList.length,
             pipeAttempts: pipeList.length,
             summary: candidateResult.summary,
         };
     })();
 
     /* ── effects ── */
+    useEffect(() => {
+        const fetchTestInfo = async () => {
+            if (!testId) return;
+            try {
+                const res = await fetch(`http://localhost:8000/admin/test/${testId}/Preview`);
+                setTestInfo(await res.json());
+            } catch (err) { console.error(err); }
+        };
+        fetchTestInfo();
+    }, [testId]);
+
     useEffect(() => {
         const fetchAnalytics = async () => {
             if (!testId || !candidate?.candidate_id) return;
@@ -489,9 +521,15 @@ const CandidateAnalytics = () => {
                                         <p className="text-sm font-bold text-gray-900 lowercase leading-none">{analytics?.candidate_info?.email || candidate.email}</p>
                                     </div>
                                     <div className="flex items-center gap-1">
-                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">College:</p>
-                                        <p className="text-sm font-bold text-gray-900 uppercase leading-none">{analytics?.candidate_info?.college || candidate.college}</p>
+                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">{analytics?.metadata?.category === 'University' ? 'Department:' : 'College:'}</p>
+                                        <p className="text-sm font-bold text-gray-900 uppercase leading-none">{analytics?.metadata?.category === 'University' ? analytics.metadata.department : (analytics?.candidate_info?.college || candidate.college)}</p>
                                     </div>
+                                    {analytics?.metadata?.category === 'University' && (
+                                        <div className="flex items-center gap-1">
+                                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none">Subject:</p>
+                                            <p className="text-sm font-bold text-gray-900 uppercase leading-none">{analytics.metadata.subject_name} ({analytics.metadata.subject_code})</p>
+                                        </div>
+                                    )}
                                     {showInvigilator && (
                                         <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }}
                                             className="flex items-center gap-1 pt-5 border-t border-dashed border-gray-100">
@@ -505,8 +543,14 @@ const CandidateAnalytics = () => {
                                     <div>
                                         <h3 className="text-[10px] font-black text-gray-900 uppercase tracking-[0.2em] mb-4">Assessment Parameters</h3>
                                         <div className="flex flex-wrap gap-2">
-                                            {['Games', 'Coding', 'SQL', 'MCQ'].map(tag => (
-                                                <span key={tag} className="px-3 py-1.5 bg-indigo-50 text-indigo-600 text-[9px] font-black rounded-lg border border-indigo-100 uppercase tracking-tight leading-none">{tag}</span>
+                                            {[
+                                                { label: 'Games',  show: ds?.hasGaming },
+                                                { label: 'Coding', show: ds?.hasCod },
+                                                { label: 'SQL',    show: ds?.hasSQL },
+                                                { label: 'MCQ',    show: ds?.hasMCQ },
+                                                { label: 'FITB',   show: ds?.hasFITB },
+                                            ].filter(t => t.show).map(tag => (
+                                                <span key={tag.label} className="px-3 py-1.5 bg-indigo-50 text-indigo-600 text-[9px] font-black rounded-lg border border-indigo-100 uppercase tracking-tight leading-none">{tag.label}</span>
                                             ))}
                                         </div>
                                     </div>
@@ -617,13 +661,14 @@ const CandidateAnalytics = () => {
                                         </div>
                                         <div className="space-y-5">
                                             {[
-                                                { name: 'MCQ',        score: ds?.mcqScore ?? 0, max: ds?.mcqMax ?? 30, bar: 'bg-violet-500', delay: 0 },
-                                                { name: 'Coding',     score: ds?.codScore ?? 0, max: ds?.codMax ?? 30, bar: 'bg-blue-500',   delay: 0.1 },
-                                                { name: 'SQL',        score: ds?.sqlScore ?? 0, max: ds?.sqlMax ?? 10, bar: 'bg-emerald-500',delay: 0.2 },
+                                                { name: 'MCQ',        score: ds?.mcqScore ?? 0, max: ds?.mcqMax ?? 30, bar: 'bg-violet-500', delay: 0, show: ds?.hasMCQ },
+                                                { name: 'Coding',     score: ds?.codScore ?? 0, max: ds?.codMax ?? 30, bar: 'bg-blue-500',   delay: 0.1, show: ds?.hasCod },
+                                                { name: 'SQL',        score: ds?.sqlScore ?? 0, max: ds?.sqlMax ?? 10, bar: 'bg-emerald-500',delay: 0.2, show: ds?.hasSQL },
+                                                { name: 'FITB',       score: ds?.fitbScore ?? 0, max: ds?.fitbMax ?? 20, bar: 'bg-amber-500', delay: 0.3, show: ds?.hasFITB },
                                                 { name: 'Pipe Puzzle (solved)',
                                                   score: ds?.pipePass ?? 0, max: Math.max(ds?.pipeMax ?? 1, 1),
-                                                  bar: 'bg-orange-400', delay: 0.3 },
-                                            ].map((s, i) => {
+                                                  bar: 'bg-orange-400', delay: 0.4, show: ds?.hasGaming },
+                                            ].filter(s => s.show).map((s, i) => {
                                                 const pct = s.max > 0 ? Math.round((s.score / s.max) * 100) : 0;
                                                 return (
                                                     <div key={i}>
@@ -660,10 +705,11 @@ const CandidateAnalytics = () => {
                                         </div>
                                         <div className="flex justify-around items-center mb-8">
                                             {[
-                                                { label: 'MCQ',    pct: ds?.mcqAccuracy ?? 0, color: '#8b5cf6' },
-                                                { label: 'Coding', pct: ds?.codAccuracy ?? 0, color: '#3b82f6' },
-                                                { label: 'SQL',    pct: ds?.sqlAccuracy ?? 0, color: '#10b981' },
-                                            ].map((a, i) => (
+                                                { label: 'MCQ',    pct: ds?.mcqAccuracy ?? 0, color: '#8b5cf6', show: ds?.hasMCQ },
+                                                { label: 'Coding', pct: ds?.codAccuracy ?? 0, color: '#3b82f6', show: ds?.hasCod },
+                                                { label: 'SQL',    pct: ds?.sqlAccuracy ?? 0, color: '#10b981', show: ds?.hasSQL },
+                                                { label: 'FITB',   pct: ds?.fitbAccuracy ?? 0, color: '#f59e0b', show: ds?.hasFITB },
+                                            ].filter(a => a.show).map((a, i) => (
                                                 <div key={i} className="flex flex-col items-center gap-2">
                                                     <Ring pct={a.pct} size={86} stroke={8} color={a.color}>
                                                         <span className="text-sm font-black text-gray-800">{a.pct}%</span>
@@ -699,67 +745,99 @@ const CandidateAnalytics = () => {
                                 {/* ── R4: Coding deep-dive + SQL deep-dive ── */}
                                 <div className="grid grid-cols-2 gap-5">
                                     {/* Coding */}
-                                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-7">
-                                        <div className="flex items-center gap-2.5 mb-6">
-                                            <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600"><Code2 size={14} /></div>
-                                            <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight">Coding Deep-Dive</h3>
+                                    {ds?.hasCod && (
+                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-7">
+                                            <div className="flex items-center gap-2.5 mb-6">
+                                                <div className="w-7 h-7 rounded-lg bg-blue-50 flex items-center justify-center text-blue-600"><Code2 size={14} /></div>
+                                                <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight">Coding Deep-Dive</h3>
+                                            </div>
+                                            {ds ? (
+                                                <>
+                                                    <VBarChart bars={[
+                                                        { label: 'Attempted', value: ds.codAttempted,               max: ds.codTotalQ, color: 'bg-blue-200' },
+                                                        { label: 'Passed',    value: ds.codPassed,                  max: ds.codTotalQ, color: 'bg-blue-500' },
+                                                        { label: 'Failed',    value: ds.codAttempted - ds.codPassed, max: ds.codTotalQ, color: 'bg-red-300' },
+                                                        { label: 'Skipped',   value: ds.codTotalQ - ds.codAttempted, max: ds.codTotalQ, color: 'bg-gray-200' },
+                                                    ]} />
+                                                    <div className="mt-5 grid grid-cols-2 gap-3">
+                                                        {[
+                                                            { label: 'Best Score', value: `${ds.codScore}/30` },
+                                                            { label: 'Accuracy',   value: `${ds.codAccuracy}%` },
+                                                            { label: 'Attempts',   value: ds.codAttempts },
+                                                            { label: 'Questions',  value: ds.codTotalQ },
+                                                        ].map((k, i) => (
+                                                            <div key={i} className="bg-blue-50 rounded-xl p-3 border border-blue-100">
+                                                                <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest leading-none">{k.label}</p>
+                                                                <p className="text-base font-black text-blue-800 mt-1">{k.value}</p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            ) : <p className="text-gray-300 text-sm">Loading…</p>}
                                         </div>
-                                        {ds ? (
-                                            <>
-                                                <VBarChart bars={[
-                                                    { label: 'Attempted', value: ds.codAttempted,               max: ds.codTotalQ, color: 'bg-blue-200' },
-                                                    { label: 'Passed',    value: ds.codPassed,                  max: ds.codTotalQ, color: 'bg-blue-500' },
-                                                    { label: 'Failed',    value: ds.codAttempted - ds.codPassed, max: ds.codTotalQ, color: 'bg-red-300' },
-                                                    { label: 'Skipped',   value: ds.codTotalQ - ds.codAttempted, max: ds.codTotalQ, color: 'bg-gray-200' },
-                                                ]} />
-                                                <div className="mt-5 grid grid-cols-2 gap-3">
-                                                    {[
-                                                        { label: 'Best Score', value: `${ds.codScore}/30` },
-                                                        { label: 'Accuracy',   value: `${ds.codAccuracy}%` },
-                                                        { label: 'Attempts',   value: ds.codAttempts },
-                                                        { label: 'Questions',  value: ds.codTotalQ },
-                                                    ].map((k, i) => (
-                                                        <div key={i} className="bg-blue-50 rounded-xl p-3 border border-blue-100">
-                                                            <p className="text-[9px] font-black text-blue-400 uppercase tracking-widest leading-none">{k.label}</p>
-                                                            <p className="text-base font-black text-blue-800 mt-1">{k.value}</p>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </>
-                                        ) : <p className="text-gray-300 text-sm">Loading…</p>}
-                                    </div>
+                                    )}
 
                                     {/* SQL */}
+                                    {ds?.hasSQL && (
+                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-7">
+                                            <div className="flex items-center gap-2.5 mb-6">
+                                                <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600"><Database size={14} /></div>
+                                                <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight">SQL Deep-Dive</h3>
+                                            </div>
+                                            {ds ? (
+                                                <>
+                                                    <VBarChart bars={[
+                                                        { label: 'Attempted', value: ds.sqlAttempted,                max: Math.max(ds.sqlTotalQ, 1), color: 'bg-emerald-200' },
+                                                        { label: 'Passed',    value: ds.sqlPassed,                   max: Math.max(ds.sqlTotalQ, 1), color: 'bg-emerald-500' },
+                                                        { label: 'Failed',    value: ds.sqlAttempted - ds.sqlPassed,  max: Math.max(ds.sqlTotalQ, 1), color: 'bg-red-300' },
+                                                        { label: 'Skipped',   value: (ds.sqlTotalQ || 0) - ds.sqlAttempted, max: Math.max(ds.sqlTotalQ, 1), color: 'bg-gray-200' },
+                                                    ]} />
+                                                    <div className="mt-5 grid grid-cols-2 gap-3">
+                                                        {[
+                                                            { label: 'Best Score', value: `${ds.sqlScore}/10` },
+                                                            { label: 'Accuracy',   value: `${ds.sqlAccuracy}%` },
+                                                            { label: 'Attempts',   value: ds.sqlAttempts },
+                                                            { label: 'Questions',  value: ds.sqlTotalQ },
+                                                        ].map((k, i) => (
+                                                            <div key={i} className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
+                                                                <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest leading-none">{k.label}</p>
+                                                                <p className="text-base font-black text-emerald-800 mt-1">{k.value}</p>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </>
+                                            ) : <p className="text-gray-300 text-sm">Loading…</p>}
+                                        </div>
+                                    )}
+                                </div>
+
+                                {/* ── FITB Deep-Dive ── */}
+                                {ds?.hasFITB && (
                                     <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-7">
                                         <div className="flex items-center gap-2.5 mb-6">
-                                            <div className="w-7 h-7 rounded-lg bg-emerald-50 flex items-center justify-center text-emerald-600"><Database size={14} /></div>
-                                            <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight">SQL Deep-Dive</h3>
+                                            <div className="w-7 h-7 rounded-lg bg-amber-50 flex items-center justify-center text-amber-600"><BookOpen size={14} /></div>
+                                            <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight">Fill in the Blanks Analysis</h3>
                                         </div>
-                                        {ds ? (
-                                            <>
-                                                <VBarChart bars={[
-                                                    { label: 'Attempted', value: ds.sqlAttempted,                max: Math.max(ds.sqlTotalQ, 1), color: 'bg-emerald-200' },
-                                                    { label: 'Passed',    value: ds.sqlPassed,                   max: Math.max(ds.sqlTotalQ, 1), color: 'bg-emerald-500' },
-                                                    { label: 'Failed',    value: ds.sqlAttempted - ds.sqlPassed,  max: Math.max(ds.sqlTotalQ, 1), color: 'bg-red-300' },
-                                                    { label: 'Skipped',   value: (ds.sqlTotalQ || 0) - ds.sqlAttempted, max: Math.max(ds.sqlTotalQ, 1), color: 'bg-gray-200' },
-                                                ]} />
-                                                <div className="mt-5 grid grid-cols-2 gap-3">
-                                                    {[
-                                                        { label: 'Best Score', value: `${ds.sqlScore}/10` },
-                                                        { label: 'Accuracy',   value: `${ds.sqlAccuracy}%` },
-                                                        { label: 'Attempts',   value: ds.sqlAttempts },
-                                                        { label: 'Questions',  value: ds.sqlTotalQ },
-                                                    ].map((k, i) => (
-                                                        <div key={i} className="bg-emerald-50 rounded-xl p-3 border border-emerald-100">
-                                                            <p className="text-[9px] font-black text-emerald-400 uppercase tracking-widest leading-none">{k.label}</p>
-                                                            <p className="text-base font-black text-emerald-800 mt-1">{k.value}</p>
-                                                        </div>
-                                                    ))}
+                                        <VBarChart bars={[
+                                            { label: 'Correct', value: ds.fitbCorrect, max: ds.fitbAnswered || 1, color: 'bg-amber-500' },
+                                            { label: 'Wrong',   value: ds.fitbAnswered - ds.fitbCorrect, max: ds.fitbAnswered || 1, color: 'bg-red-400' },
+                                            { label: 'Skipped', value: (ds.bestFITB?.total_questions || 0) - ds.fitbAnswered, max: ds.bestFITB?.total_questions || 1, color: 'bg-gray-200' },
+                                        ]} />
+                                        <div className="mt-5 grid grid-cols-2 gap-3">
+                                            {[
+                                                { label: 'Total Marks', value: `${ds.fitbScore}/${ds.fitbMax}` },
+                                                { label: 'Accuracy',    value: `${ds.fitbAccuracy}%` },
+                                                { label: 'Attempts',    value: ds.fitbAttempts },
+                                                { label: 'Questions',   value: ds.bestFITB?.total_questions || '--' },
+                                            ].map((k, i) => (
+                                                <div key={i} className="bg-amber-50 rounded-xl p-3 border border-amber-100">
+                                                    <p className="text-[9px] font-black text-amber-400 uppercase tracking-widest leading-none">{k.label}</p>
+                                                    <p className="text-base font-black text-amber-800 mt-1">{k.value}</p>
                                                 </div>
-                                            </>
-                                        ) : <p className="text-gray-300 text-sm">Loading…</p>}
+                                            ))}
+                                        </div>
                                     </div>
-                                </div>
+                                )}
 
                                 {/* ── R5: Pipe Puzzle analytics ── */}
                                 {ds && ds.pipeMax > 0 && (
