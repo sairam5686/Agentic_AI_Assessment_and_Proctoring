@@ -198,7 +198,8 @@ async def candidate_login(request: Request):
     body = await request.json()
     email = body.get("email")
     assessment_id = body.get("assessment_id")
-    result = await LoginMaker(email=email, assessment_id=assessment_id)
+    reg_no = body.get("reg_no")
+    result = await LoginMaker(email=email, assessment_id=assessment_id, reg_no=reg_no)
     return result
 
 class IDVerifyRequest(BaseModel):
