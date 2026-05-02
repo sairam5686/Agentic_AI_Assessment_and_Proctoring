@@ -39,6 +39,8 @@ def send_assessment_mail(to_email, candidate_name, assessment_title, assessment_
         The assessment will be accessible from {valid_from} and must be completed by {valid_to}. 
         Please ensure you start your test within this professional window.
 
+        Important: Please use the same device and browser for the entire assessment. In case of a system crash or restart, you can only resume your progress on the same device.
+        
         Candidate Support:
         If you have any queries regarding the assessment or if you are not satisfied with your results, you can reach out to us through our Candidate Support Portal:
         http://localhost:5174
@@ -56,6 +58,52 @@ def send_assessment_mail(to_email, candidate_name, assessment_title, assessment_
         return True
     except Exception as e:
         print(f"Failed to send email to {to_email}: {e}")
+        return False
+
+def send_university_assessment_mail(to_email, candidate_name, registration_number, assessment_title, assessment_id, assessment_link, valid_from, valid_to):
+    try:
+        msg = MIMEMultipart()
+        msg['From'] = f"{FROM_NAME} <{SMTP_USER}>"
+        msg['To'] = to_email
+        msg['Subject'] = f"Invitation to University Exam: {assessment_title}"
+
+        body = f"""
+        Hi {candidate_name},
+
+        You have been invited to participate in the University Exam: {assessment_title}.
+
+        Your Login Credentials:
+            - Registration Number: {registration_number}
+            - Assessment ID / Password: {assessment_id}
+
+
+        Please click the link below to access the assessment portal and use both your Registration Number and the assessment ID provided above to login:
+        {assessment_link}
+
+
+        Eligibility Window:
+        The assessment will be accessible from {valid_from} and must be completed by {valid_to}. 
+        Please ensure you start your test within this professional window.
+
+        Important: Please use the same device and browser for the entire assessment. In case of a system crash or restart, you can only resume your progress on the same device.
+        
+        Candidate Support:
+        If you have any queries regarding the assessment or if you are not satisfied with your results, you can reach out to us through our Candidate Support Portal:
+        http://localhost:5174
+
+        Best regards,
+        {FROM_NAME} Team
+        """
+        msg.attach(MIMEText(body, 'plain'))
+
+        server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASS)
+        server.send_message(msg)
+        server.quit()
+        return True
+    except Exception as e:
+        print(f"Failed to send university exam email to {to_email}: {e}")
         return False
 
 def send_proctor_mail(to_email, proctor_name, assessment_title, assessment_id, passkey):

@@ -2,7 +2,7 @@ from datetime import datetime
 from urllib import request
 import uuid
 from fastapi import FastAPI ,  HTTPException , Request ,  UploadFile, File, Form
-from Backend.Workers.Mail_Service import send_assessment_mail, send_proctor_mail
+from Backend.Workers.Mail_Service import send_assessment_mail, send_proctor_mail, send_university_assessment_mail
 from Backend.Connection.Assessment_Connection import MCQ_DB, Admin_Assessments_DB, Coding_Questions_DB, Coding_TestCases_DB, Enrollment_DB, SQL_Questions_DB, SQL_TestCases_DB, Gaming_DB, Game_Sessions_DB, Invigilator_DB
 from Backend.Excels_Parsers.MCQ_Parser import mcq_parser
 from Backend.Excels_Parsers.FITB_Parser import fitb_parser
@@ -317,17 +317,36 @@ async def initiate_test(assessment_id: str = Form(...)):
     candidates = enrollment.get("candidates", [])
     sent_count = 0
     
+    # Robust category check
+    raw_category = str(test_info.get("category", "Hiring") if test_info else "Hiring").strip().lower()
+    is_university = "university" in raw_category
+    
     for candidate in candidates:
         link = "http://localhost:5173/"
-        success = send_assessment_mail(
-            candidate["email"], 
-            candidate["name"], 
-            test_title, 
-            assessment_id,
-            link,
-            candidate.get("valid_from", "N/A"),
-            candidate.get("valid_to", "N/A")
-        )
+        
+        if is_university:
+            # UNIVERSITY EXAM EMAIL
+            success = send_university_assessment_mail(
+                candidate["email"],
+                candidate["name"],
+                candidate.get("reg_no", "N/A"),
+                test_title,
+                assessment_id,
+                link,
+                candidate.get("valid_from", "N/A"),
+                candidate.get("valid_to", "N/A")
+            )
+        else:
+            # HIRING ASSESSMENT EMAIL
+            success = send_assessment_mail(
+                candidate["email"], 
+                candidate["name"], 
+                test_title, 
+                assessment_id,
+                link,
+                candidate.get("valid_from", "N/A"),
+                candidate.get("valid_to", "N/A")
+            )
         if success:
             status_text = "invitation sent to candidate"
             sent_count += 1
