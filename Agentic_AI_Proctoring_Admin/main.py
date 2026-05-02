@@ -322,7 +322,7 @@ async def initiate_test(assessment_id: str = Form(...)):
     is_university = "university" in raw_category
     
     for candidate in candidates:
-        link = "http://localhost:5174/" if is_university else "http://localhost:5173/"
+        link = "http://localhost:5173/"
         
         if is_university:
             # UNIVERSITY EXAM EMAIL

@@ -57,11 +57,48 @@ const UserQuestionSections = () => {
 
 
 
+  const isUniversity = QuestionsJson?.Assessment_Info?.category?.toLowerCase().includes('university') || localStorage.getItem('login_mode') === 'University';
+
   const sections = QuestionsJson ? [
-    { key: 'gaming', label: 'Game Assessments', sub: 'Pipe Puzzle · Test your logic and problem solving', tag: 'Games', tagColor: '#f97316', tagBg: '#fff7ed' },
-    { key: 'mcq', label: 'Multiple Choice Questions', sub: `Knowledge Check · ${QuestionsJson.MCQ_Questions?.length ?? 0} items`, tag: 'MCQ', tagColor: '#6366f1', tagBg: '#eef2ff' },
-    { key: 'coding', label: 'Coding Challenges', sub: 'Algorithm & Logic · Implement efficient solutions', tag: 'Programming', tagColor: '#3b82f6', tagBg: '#eff6ff' },
-    { key: 'sql', label: 'SQL Database', sub: 'Queries · Test your database management skills', tag: 'Database', tagColor: '#10b981', tagBg: '#ecfdf5' },
+    // Only show Gaming if it's NOT a university exam and is enabled
+    ...(!isUniversity && QuestionsJson.Gaming_Config?.games?.[0]?.enabled ? [{ 
+      key: 'gaming', 
+      label: 'Game Assessments', 
+      sub: 'Pipe Puzzle · Test your logic and problem solving', 
+      tag: 'Games', tagColor: '#f97316', tagBg: '#fff7ed' 
+    }] : []),
+    
+    // Only show MCQ if there are questions
+    ...(QuestionsJson.MCQ_Questions?.length > 0 ? [{ 
+      key: 'mcq', 
+      label: 'Multiple Choice Questions', 
+      sub: `Knowledge Check · ${QuestionsJson.MCQ_Questions.length} items`, 
+      tag: 'MCQ', tagColor: '#6366f1', tagBg: '#eef2ff' 
+    }] : []),
+    
+    // Only show Coding if there are questions
+    ...(QuestionsJson.Coding_Questions?.length > 0 ? [{ 
+      key: 'coding', 
+      label: 'Coding Challenges', 
+      sub: `Algorithm & Logic · ${QuestionsJson.Coding_Questions.length} challenges`, 
+      tag: 'Programming', tagColor: '#3b82f6', tagBg: '#eff6ff' 
+    }] : []),
+    
+    // Only show SQL if there are questions
+    ...(QuestionsJson.SQL_Questions?.length > 0 ? [{ 
+      key: 'sql', 
+      label: 'SQL Database', 
+      sub: `Queries · ${QuestionsJson.SQL_Questions.length} queries`, 
+      tag: 'Database', tagColor: '#10b981', tagBg: '#ecfdf5' 
+    }] : []),
+
+    // Only show FITB if there are questions
+    ...(QuestionsJson.FITB_Questions?.length > 0 ? [{ 
+      key: 'fitb', 
+      label: 'Fill in the Blanks', 
+      sub: `Concepts · ${QuestionsJson.FITB_Questions.length} items`, 
+      tag: 'Theory', tagColor: '#f59e0b', tagBg: '#fffbeb' 
+    }] : []),
   ] : [];
 
 
@@ -133,9 +170,14 @@ const UserQuestionSections = () => {
               {/* Single Start button */}
               <div className="mt-4">
                 <button
-                  onClick={() => navigator('/section/pipe-puzzle', {
-                    state: { ...QuestionsJson.Assessment_Info, ...QuestionsJson }
-                  })}
+                  onClick={() => {
+                    const firstSection = sections[0];
+                    if (firstSection) {
+                      navigator(`/section/${firstSection.key}`, {
+                        state: { ...QuestionsJson.Assessment_Info, ...QuestionsJson }
+                      });
+                    }
+                  }}
                   className="w-full py-3.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 active:scale-95 transition-all duration-150 cursor-pointer"
                 >
                   Start Assessment →

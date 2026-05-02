@@ -4,7 +4,7 @@ from Backend.Connection.Assessment_Connection_DB import (
     SQL_Questions_DB, SQL_TestCases_DB, Admin_Assessments_DB,
     Pipe_Puzzle_Sessions_DB, Gaming_DB, Enrollment_DB , 
     Candidate_Data_DB, Pipe_Puzzle_Results_DB,
-    Coding_Results, SQL_Results, MCQ_Results
+    Coding_Results, SQL_Results, MCQ_Results, FITB_Results
 )
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -343,6 +343,42 @@ async def pp_get_results() -> list[dict]:
         for r in rows
     ]
 
+
+
+class FITBAnswer(BaseModel):
+    blank_index: int
+    user_answer: str
+    is_correct: bool
+
+class FITBQuestionResult(BaseModel):
+    question_id: int
+    user_answers: list[str]
+    results: list[FITBAnswer]
+    marks_earned: float
+
+class FITBSaveResultsRequest(BaseModel):
+    assessment_id: str
+    user_name: str
+    email: str
+    FITB_Result: list[FITBQuestionResult]
+    user_total_marks: float
+    total_marks: float
+
+@app.post("/api/fitb/results")
+async def fitb_save_results(req: FITBSaveResultsRequest):
+    try:
+        FITB_Results.insert_one({
+            "assessment_id": req.assessment_id,
+            "user_name": req.user_name,
+            "email": req.email,
+            "FITB_Result": [r.model_dump() for r in req.FITB_Result],
+            "user_total_marks": req.user_total_marks,
+            "total_marks": req.total_marks,
+            "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        })
+        return {"status": "success", "message": "FITB results saved successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.post("/api/mcq/results")

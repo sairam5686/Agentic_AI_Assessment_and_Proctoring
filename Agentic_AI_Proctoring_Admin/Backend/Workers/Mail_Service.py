@@ -43,7 +43,7 @@ def send_assessment_mail(to_email, candidate_name, assessment_title, assessment_
         
         Candidate Support:
         If you have any queries regarding the assessment or if you are not satisfied with your results, you can reach out to us through our Candidate Support Portal:
-        http://localhost:5174
+        http://localhost:5173
 
         Best regards,
         {FROM_NAME} Team
@@ -89,7 +89,7 @@ def send_university_assessment_mail(to_email, candidate_name, registration_numbe
         
         Candidate Support:
         If you have any queries regarding the assessment or if you are not satisfied with your results, you can reach out to us through our Candidate Support Portal:
-        http://localhost:5174
+        http://localhost:5173
 
         Best regards,
         {FROM_NAME} Team

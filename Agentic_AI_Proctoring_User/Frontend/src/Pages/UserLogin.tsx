@@ -7,10 +7,9 @@ const UserLogin = () => {
   const [assessmentId, setAssessmentId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isUniversity, setIsUniversity] = useState(false);
   const navigate = useNavigate();
 
-  // Detect mode based on port
-  const isUniversity = window.location.port === '5174';
   const loginTypeLabel = isUniversity ? 'University Exam' : 'Hiring Assessment';
   const identifierLabel = isUniversity ? 'Registration Number' : 'Email Address';
   const identifierPlaceholder = isUniversity ? 'e.g. 21CS001' : 'e.g. candidate@example.com';
@@ -69,6 +68,23 @@ const UserLogin = () => {
 
       {/* Login Card */}
       <div className="w-full max-w-md bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-10">
+        
+        {/* Mode Toggle */}
+        <div className="flex bg-gray-100 p-1 rounded-2xl mb-8">
+          <button 
+            onClick={() => setIsUniversity(false)}
+            className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all ${!isUniversity ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            Hiring
+          </button>
+          <button 
+            onClick={() => setIsUniversity(true)}
+            className={`flex-1 py-2.5 text-xs font-bold rounded-xl transition-all ${isUniversity ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+          >
+            University
+          </button>
+        </div>
+
         <div className="text-center mb-10">
           <div className="inline-block px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-widest rounded-full mb-4">
             {loginTypeLabel}

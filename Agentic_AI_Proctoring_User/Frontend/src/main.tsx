@@ -14,6 +14,8 @@ import Submission from './Pages/Submission.tsx'
 import MobileConnect from './Pages/MobileConnect.tsx'
 import IDVerification from './Pages/IDVerification.tsx'
 import AgoraProctoringLayout from './Components/AgoraProctoringLayout.tsx'
+import FITBSection from './Pages/FitbSection.tsx'
+
 const routes = createBrowserRouter([
   { path: "/Login", element: <UserLogin /> },
   { path: "/", element: <UserLogin /> },
@@ -28,6 +30,7 @@ const routes = createBrowserRouter([
       { path: "/section/mcq", element: <McqSection /> },
       { path: "/section/coding", element: <CodingSection /> },
       { path: "/section/sql", element: <SqlSection /> },
+      { path: "/section/fitb", element: <FITBSection /> },
       { path: "/section/pipe-puzzle", element: <PipePuzzle /> },
       { path: "/dashboard", element: <UserQuestionSections /> },
       { path: "/submission", element: <Submission /> }
