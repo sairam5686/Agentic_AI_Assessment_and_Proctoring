@@ -101,6 +101,18 @@ const UserQuestionSections = () => {
     }] : []),
   ] : [];
 
+  useEffect(() => {
+    if (sections.length > 0) {
+      localStorage.setItem('enabled_sections', JSON.stringify(sections));
+    }
+  }, [sections]);
+
+  const handleSectionClick = (sectionKey: string) => {
+    navigator(`/section/${sectionKey}`, {
+      state: { ...QuestionsJson.Assessment_Info, ...QuestionsJson }
+    });
+  };
+
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -145,27 +157,51 @@ const UserQuestionSections = () => {
             </div>
           )}
 
-          {/* Section Cards — all shown at full detail, no locking */}
+          {/* Section Cards */}
           {QuestionsJson && (
             <div className="flex flex-col gap-4">
-              {sections.map((s, idx) => (
-                <div
-                  key={s.key}
-                  className="bg-white border border-gray-200 rounded-2xl p-7 flex items-center gap-6 transition-all duration-200"
-                >
-                  <div className="w-8 h-8 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-sm font-bold flex-shrink-0">
-                    {idx + 1}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900 mb-1">{s.label}</p>
-                    <p className="text-xs text-gray-400">{s.sub}</p>
-                    <span className="inline-flex items-center gap-1 mt-2 text-xs font-semibold tracking-wide uppercase px-2.5 py-1 rounded-full" style={{ color: s.tagColor, background: s.tagBg }}>
-                      <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: s.tagColor }} />
-                      {s.tag}
-                    </span>
-                  </div>
-                </div>
-              ))}
+              {sections.map((section, idx) => {
+                const isCompleted = localStorage.getItem(`${section.key}_completed`) === 'true';
+                const isPreviousCompleted = idx === 0 || localStorage.getItem(`${sections[idx-1].key}_completed`) === 'true';
+                const isLocked = !isCompleted && !isPreviousCompleted;
+
+                return (
+                  <button
+                    key={section.key}
+                    onClick={() => !isLocked && handleSectionClick(section.key)}
+                    disabled={isLocked}
+                    className={`group relative bg-white border border-gray-200 rounded-2xl p-7 flex items-center gap-6 transition-all duration-200 ${isLocked ? 'opacity-50 grayscale cursor-not-allowed' : 'hover:border-gray-400 cursor-pointer shadow-sm hover:shadow-md'}`}
+                  >
+                    {isCompleted && (
+                      <div className="absolute top-4 right-4 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-sm">
+                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                        </svg>
+                      </div>
+                    )}
+                    
+                    {isLocked && (
+                      <div className="absolute top-4 right-4 text-gray-300">
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                      </div>
+                    )}
+
+                    <div className="w-10 h-10 rounded-full bg-gray-100 text-gray-500 flex items-center justify-center text-sm font-bold flex-shrink-0">
+                      {idx + 1}
+                    </div>
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-gray-900 mb-1">{section.label}</p>
+                      <p className="text-xs text-gray-400">{section.sub}</p>
+                      <span className="inline-flex items-center gap-1 mt-2 text-xs font-semibold tracking-wide uppercase px-2.5 py-1 rounded-full" style={{ color: section.tagColor, background: section.tagBg }}>
+                        <span className="w-1.5 h-1.5 rounded-full inline-block" style={{ background: section.tagColor }} />
+                        {section.tag}
+                      </span>
+                    </div>
+                  </button>
+                )
+              })}
 
               {/* Single Start button */}
               <div className="mt-4">
@@ -173,9 +209,7 @@ const UserQuestionSections = () => {
                   onClick={() => {
                     const firstSection = sections[0];
                     if (firstSection) {
-                      navigator(`/section/${firstSection.key}`, {
-                        state: { ...QuestionsJson.Assessment_Info, ...QuestionsJson }
-                      });
+                      handleSectionClick(firstSection.key);
                     }
                   }}
                   className="w-full py-3.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 active:scale-95 transition-all duration-150 cursor-pointer"

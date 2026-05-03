@@ -337,6 +337,18 @@ const SqlSection = () => {
                         <button
                             onClick={() => {
                                 localStorage.setItem('sql_completed', 'true');
+                                
+                                const enabledSectionsRaw = localStorage.getItem('enabled_sections');
+                                if (enabledSectionsRaw) {
+                                  const enabledSections = JSON.parse(enabledSectionsRaw);
+                                  const currentIdx = enabledSections.findIndex((s: any) => s.key === 'sql');
+                                  
+                                  if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
+                                    const nextSection = enabledSections[currentIdx + 1];
+                                    navigate(`/section/${nextSection.key}`, { state: assessmentState });
+                                    return;
+                                  }
+                                }
                                 navigate('/submission');
                             }}
                             className="w-full py-4 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 active:scale-95 transition-all duration-150 cursor-pointer"
@@ -902,7 +914,20 @@ const SqlSection = () => {
                                     localStorage.removeItem(`sql_time_${assessment_id}`);
                                     localStorage.removeItem(`assessment_data_${assessment_id}`);
 
+                                    localStorage.setItem('sql_completed', 'true');
                                     setSubmitted(true);
+                                    
+                                    const enabledSectionsRaw = localStorage.getItem('enabled_sections');
+                                    if (enabledSectionsRaw) {
+                                      const enabledSections = JSON.parse(enabledSectionsRaw);
+                                      const currentIdx = enabledSections.findIndex((s: any) => s.key === 'sql');
+                                      
+                                      if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
+                                        const nextSection = enabledSections[currentIdx + 1];
+                                        navigate(`/section/${nextSection.key}`, { state: assessmentState });
+                                        return;
+                                      }
+                                    }
                                     navigate('/submission');
                                 }}
                                 className="flex-1 py-3 bg-red-600 text-white text-sm font-bold rounded-xl hover:bg-red-700 active:scale-95 transition-all cursor-pointer uppercase tracking-wide shadow-md"

@@ -173,13 +173,23 @@ const McqSection = () => {
 
   const handleNextFlow = () => {
     localStorage.setItem('mcq_completed', 'true');
-    navigate("/section/coding", { state });
+    
+    const enabledSectionsRaw = localStorage.getItem('enabled_sections');
+    if (enabledSectionsRaw) {
+      const enabledSections = JSON.parse(enabledSectionsRaw);
+      const currentIdx = enabledSections.findIndex((s: any) => s.key === 'mcq');
+      
+      if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
+        const nextSection = enabledSections[currentIdx + 1];
+        navigate(`/section/${nextSection.key}`, { state });
+        return;
+      }
+    }
+    navigate('/submission');
   }
 
   const handleFinishAssessment = async () => {
     await handleSubmit();
-    localStorage.setItem('coding_completed', 'true');
-    localStorage.setItem('sql_completed', 'true');
     navigate('/submission');
   }
 

@@ -175,6 +175,22 @@ const FitbSection = () => {
 
   const handleFinishAssessment = async () => {
     await handleSubmit();
+    
+    // Sequential Navigation Logic
+    const enabledSectionsRaw = localStorage.getItem('enabled_sections');
+    if (enabledSectionsRaw) {
+      const enabledSections = JSON.parse(enabledSectionsRaw);
+      const currentIdx = enabledSections.findIndex((s: any) => s.key === 'fitb');
+      
+      if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
+        // Move to next section
+        const nextSection = enabledSections[currentIdx + 1];
+        navigate(`/section/${nextSection.key}`, { state: assessmentState });
+        return;
+      }
+    }
+    
+    // If last section or not found, go to submission
     navigate('/submission');
   }
 
@@ -310,7 +326,7 @@ const FitbSection = () => {
                 </div>
               </div>
             ))}
-            <button onClick={handleSubmit} className="w-full mt-5 py-3 bg-gray-900 text-white text-[10px] font-bold rounded-xl hover:bg-gray-700 active:scale-95 transition-all cursor-pointer uppercase tracking-widest">Save Progress</button>
+            <button onClick={handleFinishAssessment} className="w-full mt-5 py-3 bg-gray-900 text-white text-[10px] font-bold rounded-xl hover:bg-gray-700 active:scale-95 transition-all cursor-pointer uppercase tracking-widest">Submit</button>
           </div>
         </aside>
       </div>

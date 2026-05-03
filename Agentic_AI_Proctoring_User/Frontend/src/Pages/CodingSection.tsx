@@ -260,7 +260,19 @@ const CodingSection = () => {
 
   const handleNextFlow = () => {
     localStorage.setItem('coding_completed', 'true');
-    navigate("/section/sql", { state });
+    
+    const enabledSectionsRaw = localStorage.getItem('enabled_sections');
+    if (enabledSectionsRaw) {
+      const enabledSections = JSON.parse(enabledSectionsRaw);
+      const currentIdx = enabledSections.findIndex((s: any) => s.key === 'coding');
+      
+      if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
+        const nextSection = enabledSections[currentIdx + 1];
+        navigate(`/section/${nextSection.key}`, { state: assessmentState });
+        return;
+      }
+    }
+    navigate('/submission');
   }
 
   const handleCodingSubmit = async () => {
@@ -911,7 +923,20 @@ const CodingSection = () => {
                   localStorage.removeItem(`assessment_data_${assessment_id}`);
 
                   localStorage.setItem("coding_completed", "true");
-                  localStorage.setItem("sql_completed", "true");
+                  
+                  const enabledSectionsRaw = localStorage.getItem('enabled_sections');
+                  if (enabledSectionsRaw) {
+                    const enabledSections = JSON.parse(enabledSectionsRaw);
+                    const currentIdx = enabledSections.findIndex((s: any) => s.key === 'coding');
+                    
+                    if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
+                      const nextSection = enabledSections[currentIdx + 1];
+                      setSubmitted(true);
+                      navigate(`/section/${nextSection.key}`, { state: assessmentState });
+                      return;
+                    }
+                  }
+                  
                   setSubmitted(true);
                   navigate('/submission');
                 }}
