@@ -1,8 +1,8 @@
 {
     "video": {
-        "risk_score": 50,
-        "trust_score": 0,
-        "violation_score": 19
+        "risk_score": 0,
+        "trust_score": 50,
+        "violation_score": 0
     },
     "code": {
         "risk_score": 0,
