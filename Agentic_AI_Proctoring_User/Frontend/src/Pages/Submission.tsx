@@ -67,7 +67,16 @@ const Submission: React.FC = () => {
         }
     }, []);
 
-    const sections = [
+    const [enabledSections, setEnabledSections] = React.useState<any[]>([]);
+
+    useEffect(() => {
+        const saved = localStorage.getItem('enabled_sections');
+        if (saved) {
+            setEnabledSections(JSON.parse(saved));
+        }
+    }, []);
+
+    const sections = enabledSections.length > 0 ? enabledSections : [
         { label: 'Game Assessments', color: '#f97316' },
         { label: 'Multiple Choice Questions', color: '#6366f1' },
         { label: 'Coding Challenges', color: '#3b82f6' },
@@ -105,9 +114,16 @@ const Submission: React.FC = () => {
                         <div className="space-y-4">
                             {sections.map(s => (
                                 <div key={s.label} className="flex items-center gap-4">
-                                    <div className="w-8 h-8 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center text-xs flex-shrink-0" />
+                                    <div className="w-8 h-8 rounded-lg bg-green-50 border border-green-100 flex items-center justify-center text-xs flex-shrink-0">
+                                        <svg className="w-4 h-4 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                    </div>
                                     <span className="text-sm font-semibold text-gray-700">{s.label}</span>
-                                    <div className="ml-auto w-2 h-2 rounded-full bg-green-500" />
+                                    <div className="ml-auto flex items-center gap-2">
+                                        <span className="text-[10px] font-bold text-green-600 uppercase tracking-wider">Completed</span>
+                                        <div className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]" />
+                                    </div>
                                 </div>
                             ))}
                         </div>

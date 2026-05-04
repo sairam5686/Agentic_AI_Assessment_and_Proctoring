@@ -88,7 +88,7 @@ interface ProctorState {
     closeRTC: () => Promise<void>;
 }
 
-export const useProctorStore = create<ProctorState>((set, get) => ({
+export const useProctorStore = create<ProctorState>((set: any, get: any) => ({
     isAuthenticated: false,
     proctorName: '',
     proctorEmail: '',
@@ -129,7 +129,7 @@ export const useProctorStore = create<ProctorState>((set, get) => ({
      * @param email — Proctor's email (used as RTM user ID)
      * @param aId   — Assessment ID for this session
      */
-    setLoginData: (name, email, aId) => set({
+    setLoginData: (name: string, email: string, aId: string) => set({
         proctorName: name,
         proctorEmail: email,
         assessmentId: aId,
@@ -181,7 +181,7 @@ export const useProctorStore = create<ProctorState>((set, get) => ({
 
             const rawCandidates = response.data;
             const updatedCandidates = await Promise.all(rawCandidates.map(async (c: any) => {
-                const existingCandidate = existingCandidates.find(ec => ec.id === c.candidate_id || ec.email === c.email);
+                const existingCandidate = existingCandidates.find((ec: Candidate) => ec.id === c.candidate_id || ec.email === c.email);
 
                 // Fetch violation flags for each candidate
                 const flags = await get().fetchCandidateFlags(c.email);
@@ -246,9 +246,9 @@ export const useProctorStore = create<ProctorState>((set, get) => ({
      * @param candidateId — Candidate to update
      * @param status      — Partial<Candidate> fields to merge
      */
-    updateCandidateStatus: (candidateId, status) => {
-        set((state) => ({
-            candidates: state.candidates.map((c) =>
+    updateCandidateStatus: (candidateId: string, status: Partial<Candidate>) => {
+        set((state: ProctorState) => ({
+            candidates: state.candidates.map((c: Candidate) =>
                 c.id === candidateId ? { ...c, ...status } : c
             ),
         }));
@@ -280,7 +280,7 @@ export const useProctorStore = create<ProctorState>((set, get) => ({
     },
 
     /** Sets the currently selected candidate for the chat panel. null = broadcast mode. */
-    setSelectedCandidateId: (id) => set({ selectedCandidateId: id }),
+    setSelectedCandidateId: (id: string | null) => set({ selectedCandidateId: id }),
 
     /** Toggles the proctor's own camera. Initializes or closes the Agora RTC connection accordingly. */
     toggleProctorCamera: () => {
@@ -302,7 +302,7 @@ export const useProctorStore = create<ProctorState>((set, get) => ({
      * @param text        — Message content
      * @param candidateId — Target candidate ID (omit for broadcast)
      */
-    sendMessage: async (text, candidateId) => {
+    sendMessage: async (text: string, candidateId?: string) => {
         console.log("[CHAT] sendMessage triggered. Text:", text, "To:", candidateId);
         const { rtmClient, rtmStatus } = get();
 
@@ -315,12 +315,16 @@ export const useProctorStore = create<ProctorState>((set, get) => ({
         };
 
         // Store message locally first
-        set((state) => ({ messages: [...state.messages, newMessage] }));
+        set((state: ProctorState) => ({ messages: [...state.messages, newMessage] }));
 
         // Publish via RTM if connected
         if (rtmClient && rtmStatus === 'connected') {
             try {
                 if (candidateId) {
+                    // Direct message: publish to candidate's sanitized email channel
+                    const candidate = get().candidates.find((c: Candidate) => c.id === candidateId);
+                    const rawTarget = (candidate?.email || candidateId);
+                    const target = rawTarget.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
                     console.log("[RTM] Publishing PRIVATE message to:", target, "Text:", text);
                     await rtmClient.publish(target, text);
                 } else {
@@ -351,7 +355,7 @@ export const useProctorStore = create<ProctorState>((set, get) => ({
      * Incoming messages from candidates are matched to Candidate records by sanitized email/ID.
      */
     initRTM: async () => {
-        const { proctorEmail, assessmentId, rtmClient, rtmStatus } = get();
+        const { proctorEmail, assessmentId } = get();
 
         // CLEANUP: If there's an existing client (even if it's in an error state), log it out and clear it
         const currentClient = get().rtmClient;
@@ -405,15 +409,18 @@ export const useProctorStore = create<ProctorState>((set, get) => ({
             await client.login({ token });
 
             // Subscribe to assessment-wide broadcast channel
+            console.log("[RTM] Subscribing to broadcast:", subAssessmentId);
             await client.subscribe(subAssessmentId);
             
+            // NEW: Subscribe to private channel (proctor's sanitized email) to receive direct replies
+            console.log("[RTM] Subscribing to private:", loginEmail);
             await client.subscribe(loginEmail);
-            console.log("[RTM] Subscribed to broadcast:", subAssessmentId, "and private:", loginEmail);
-            console.log("[RTM] Expected Candidate IDs:", get().candidates.map(c => ({
-                name: c.name,
-                email: c.email,
-                sanitized: c.email.trim().toLowerCase().replace(/[^a-z0-9]/g, '')
-            })));
+
+            // NEW: Subscribe to candidate-to-proctor channel
+            console.log("[RTM] Subscribing to candidate-to-proctor channel:", `proctor_${subAssessmentId}`);
+            await client.subscribe(`proctor_${subAssessmentId}`);
+            
+            console.log("[RTM] Subscription SUCCESS.");
 
             // Listen for incoming messages from candidates
             client.addEventListener('message', (event: any) => {
@@ -429,31 +436,45 @@ export const useProctorStore = create<ProctorState>((set, get) => ({
                 const isBroadcast = event.channelName === subAssessmentId;
 
                 // Match publisher to a known candidate by sanitized email or ID
-                const candidate = get().candidates.find(c =>
+                const candidate = get().candidates.find((c: Candidate) =>
                     c.email.trim().toLowerCase().replace(/[^a-z0-9]/g, '') === publisher.toLowerCase() ||
                     c.id.trim().toLowerCase().replace(/[^a-z0-9]/g, '') === publisher.toLowerCase()
                 );
 
                 const candidateId = candidate ? candidate.id : publisher;
 
+                const messageText = typeof event.message === 'string' ? event.message : (event.message?.data || event.message?.text || event.message?.toString() || "");
+
                 const msg: ChatMessage = {
                     id: Math.random().toString(36).substring(7),
                     sender: 'candidate',
-                    text: event.message.toString(),
+                    text: messageText,
                     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                     // If it's a broadcast, we leave candidateId undefined so it shows in the "All" view
                     candidateId: isBroadcast ? undefined : candidateId
                 };
 
-                set((state) => ({ messages: [...state.messages, msg] }));
+                set((state: ProctorState) => ({ messages: [...state.messages, msg] }));
             });
 
             // Track RTM connection status changes
             client.addEventListener('status', (event: any) => {
+                console.log("[RTM] Connection status change:", event.state, event.reason || "");
+                
                 if (event.state === 'CONNECTED') {
                     set({ rtmStatus: 'connected', rtmError: null });
                 } else if (event.state === 'DISCONNECTED' || event.state === 'FAILED') {
-                    set({ rtmStatus: 'error', rtmError: event.reason || 'Connection failed' });
+                    set({ rtmStatus: 'error', rtmError: event.reason || 'Connection lost' });
+                    
+                    // AUTO-RECONNECT: If we aren't deliberately logging out, try to reconnect in 5s
+                    if (get().rtmStatus !== 'disconnected') {
+                        console.log("[RTM] Connection lost. Attempting auto-reconnect in 5 seconds...");
+                        setTimeout(() => {
+                            if (get().rtmStatus !== 'connected') {
+                                get().initRTM();
+                            }
+                        }, 5000);
+                    }
                 }
             });
 

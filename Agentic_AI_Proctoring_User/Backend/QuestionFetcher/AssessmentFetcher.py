@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from Backend.Connection.Assessment_Connection_DB import MCQ_DB, Admin_Assessments_DB, Coding_Questions_DB, Coding_TestCases_DB, Gaming_DB, SQL_Questions_DB, SQL_TestCases_DB
+from Backend.Connection.Assessment_Connection_DB import MCQ_DB, Admin_Assessments_DB, Coding_Questions_DB, Coding_TestCases_DB, Gaming_DB, SQL_Questions_DB, SQL_TestCases_DB, FITB_DB
 
 
 async def getQuestion(assessment_id: str):
@@ -43,14 +43,17 @@ async def getQuestion(assessment_id: str):
         
         Gaming_Config = Gaming_DB.find_one({"assessment_id": assessment_id}, {"_id": 0})
         
-        print(f"DEBUG: Found {len(MCQ_Questions)} MCQs, {len(Coding_Questions)} Coding, {len(SQL_Questions)} SQL")
+        FITB_Questions = list(FITB_DB.find({"assessment_id": assessment_id}, {"_id": 0}))
+        
+        print(f"DEBUG: Found {len(MCQ_Questions)} MCQs, {len(Coding_Questions)} Coding, {len(SQL_Questions)} SQL, {len(FITB_Questions)} FITB")
 
         return {
             "Assessment_Info": assessment_info,
             "MCQ_Questions": MCQ_Questions,
             "Coding_Questions": Coding_Questions,
             "SQL_Questions": SQL_Questions,
-            "Gaming_Config": Gaming_Config
+            "Gaming_Config": Gaming_Config,
+            "FITB_Questions": FITB_Questions
         }
     except Exception as e:
         print(f"ERROR in get_assessment_questions: {str(e)}")

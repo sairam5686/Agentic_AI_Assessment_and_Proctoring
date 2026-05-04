@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import Editor from '@monaco-editor/react'
+import { useLocalPersist } from '../hooks/useLocalPersist'
 
 const SQL_TEMPLATE = `-- Write your SQL query below\n`
 
@@ -58,27 +59,61 @@ const OutputTable = ({ data, label }: { data: any[][], label: string }) => {
 const SqlSection = () => {
     const Locator = useLocation()
     const navigate = useNavigate()
-    const state = Locator.state || {}
-    const SqlQuestions = state.SQL_Questions || state
+    const [assessmentState, setAssessmentState] = useState<any>(Locator.state || {})
+    const assessment_id = assessmentState?.assessment_id || localStorage.getItem("assessment_id") || "default"
+
+    useEffect(() => {
+        if (Locator.state && Object.keys(Locator.state as any).length > 0) {
+            localStorage.setItem(`assessment_data_${assessment_id}`, JSON.stringify(Locator.state))
+            setAssessmentState(Locator.state)
+        } else {
+            const savedState = localStorage.getItem(`assessment_data_${assessment_id}`)
+            if (savedState) {
+                setAssessmentState(JSON.parse(savedState))
+            }
+        }
+    }, [Locator.state, assessment_id])
+
+    const SqlQuestions = assessmentState.SQL_Questions || assessmentState
 
     const assessment = Array.isArray(SqlQuestions) ? SqlQuestions[0] : SqlQuestions
     const questions = assessment?.questions || []
     const totalDurationSeconds = parseInt(assessment?.sql_duration || '0') * 60
 
     const [activeQIdx, setActiveQIdx] = useState(0)
-    const [code, setCode] = useState<Record<string, string>>({})
+    const [code, setCode, clearCode] = useLocalPersist<Record<string, string>>(`sql_code_${assessment_id}`, {})
     const [activeTab, setActiveTab] = useState<'problem' | 'testcases'>('problem')
-    const [timeLeft, setTimeLeft] = useState(totalDurationSeconds)
     const [submitted, setSubmitted] = useState(false)
-    const [runApiResponse, setRunApiResponse] = useState<Record<string, RunApiResponse | null>>({})
-    const [runErrors, setRunErrors] = useState<Record<string, string | null>>({})
-    const [isRunning, setIsRunning] = useState(false)
     const [lastSaved, setLastSaved] = useState<number>(Date.now())
     const [timeAgo, setTimeAgo] = useState("just now")
     const [isFullscreen, setIsFullscreen] = useState(false)
     const [showGlobalFinishConfirm, setShowGlobalFinishConfirm] = useState(false)
     const [showUserInfo, setShowUserInfo] = useState(false)
     const [submittedQuestions, setSubmittedQuestions] = useState<string[]>([])
+    const [runApiResponse, setRunApiResponse, clearRunApiResponse] = useLocalPersist<Record<string, RunApiResponse | null>>(`sql_results_${assessment_id}`, {})
+    const [runErrors, setRunErrors] = useState<Record<string, string | null>>({})
+    const [isRunning, setIsRunning] = useState(false)
+    
+    const [timeLeft, setTimeLeft] = useState<number>(() => {
+        const saved = localStorage.getItem(`sql_time_${assessment_id}`)
+        if (saved) return parseInt(saved)
+        return totalDurationSeconds > 0 ? totalDurationSeconds : 3600 // Default 60m if not yet loaded
+    })
+
+    // Sync timeLeft with localStorage
+    useEffect(() => {
+        if (timeLeft > 0 && !submitted) {
+            localStorage.setItem(`sql_time_${assessment_id}`, timeLeft.toString())
+        }
+    }, [timeLeft, assessment_id, submitted])
+
+    // If totalDurationSeconds becomes available and we haven't started yet
+    useEffect(() => {
+        const saved = localStorage.getItem(`sql_time_${assessment_id}`)
+        if (!saved && totalDurationSeconds > 0) {
+            setTimeLeft(totalDurationSeconds)
+        }
+    }, [totalDurationSeconds, assessment_id])
 
     const activeQ = questions[activeQIdx]
     const qId = activeQ?.question_id
@@ -133,6 +168,8 @@ const SqlSection = () => {
 
     const handleCodeChange = (val: string | undefined) => {
         setCode((prev) => ({ ...prev, [qId]: val || '' }))
+        setLastSaved(Date.now())
+        setTimeAgo("just now")
     }
 
     const handleRun = async () => {
@@ -147,7 +184,7 @@ const SqlSection = () => {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    assessment_id: assessment.assessment_id,
+                    assessment_id,
                     email: email,
                     question_id: qId,
                     language: 'MySQL',
@@ -156,7 +193,7 @@ const SqlSection = () => {
             }).catch(e => console.log(e));
 
             const data: any = {
-                assessment_id: assessment.assessment_id,
+                assessment_id,
                 question_id: qId,
                 code: currentCode,
             }
@@ -202,7 +239,6 @@ const SqlSection = () => {
     const handleSqlSubmit = async () => {
         const email = localStorage.getItem("candidate_email") || "";
         const user_name = localStorage.getItem("candidate_name") || "";
-        const assessment_id = assessment.assessment_id;
 
         const results_payload = questions.map((q: any) => {
             const qCode = code[q.question_id] || "";
@@ -259,11 +295,14 @@ const SqlSection = () => {
                 throw new Error("Failed to save SQL results");
             }
             
-            // Per-question logic
-            setSubmittedQuestions(prev => [...prev, qId]);
-
             const isLastQuestion = activeQIdx === questions.length - 1;
             if (isLastQuestion) {
+                // Cleanup local persistence ONLY on final section completion
+                clearCode();
+                clearRunApiResponse();
+                localStorage.removeItem(`sql_time_${assessment_id}`);
+                localStorage.removeItem(`assessment_data_${assessment_id}`);
+                
                 localStorage.setItem('sql_completed', 'true');
                 setSubmitted(true);
             } else {
@@ -298,6 +337,18 @@ const SqlSection = () => {
                         <button
                             onClick={() => {
                                 localStorage.setItem('sql_completed', 'true');
+                                
+                                const enabledSectionsRaw = localStorage.getItem('enabled_sections');
+                                if (enabledSectionsRaw) {
+                                  const enabledSections = JSON.parse(enabledSectionsRaw);
+                                  const currentIdx = enabledSections.findIndex((s: any) => s.key === 'sql');
+                                  
+                                  if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
+                                    const nextSection = enabledSections[currentIdx + 1];
+                                    navigate(`/section/${nextSection.key}`, { state: assessmentState });
+                                    return;
+                                  }
+                                }
                                 navigate('/submission');
                             }}
                             className="w-full py-4 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 active:scale-95 transition-all duration-150 cursor-pointer"
@@ -793,7 +844,6 @@ const SqlSection = () => {
                                 onClick={async () => {
                                     const email = localStorage.getItem("candidate_email") || "";
                                     const user_name = localStorage.getItem("candidate_name") || "";
-                                    const assessment_id = assessment.assessment_id;
 
                                     const results_payload = questions.map((q: any) => {
                                         const qCode = code[q.question_id] || "";
@@ -858,7 +908,26 @@ const SqlSection = () => {
                                         return;
                                     }
 
+                                    // Cleanup local persistence
+                                    clearCode();
+                                    clearRunApiResponse();
+                                    localStorage.removeItem(`sql_time_${assessment_id}`);
+                                    localStorage.removeItem(`assessment_data_${assessment_id}`);
+
+                                    localStorage.setItem('sql_completed', 'true');
                                     setSubmitted(true);
+                                    
+                                    const enabledSectionsRaw = localStorage.getItem('enabled_sections');
+                                    if (enabledSectionsRaw) {
+                                      const enabledSections = JSON.parse(enabledSectionsRaw);
+                                      const currentIdx = enabledSections.findIndex((s: any) => s.key === 'sql');
+                                      
+                                      if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
+                                        const nextSection = enabledSections[currentIdx + 1];
+                                        navigate(`/section/${nextSection.key}`, { state: assessmentState });
+                                        return;
+                                      }
+                                    }
                                     navigate('/submission');
                                 }}
                                 className="flex-1 py-3 bg-red-600 text-white text-sm font-bold rounded-xl hover:bg-red-700 active:scale-95 transition-all cursor-pointer uppercase tracking-wide shadow-md"

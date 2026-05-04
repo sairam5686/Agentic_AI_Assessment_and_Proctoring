@@ -1,9 +1,10 @@
-// # FILE: chatStore.ts - Zustand store for Agora RTM chat state management.
 import { create } from 'zustand';
 import axios from 'axios';
 import AgoraRTM, { RTMClient } from 'agora-rtm';
 
-const API_BASE_URL = 'http://localhost:8000';
+const API_BASE_URL = window.location.hostname === 'localhost' 
+    ? 'http://localhost:8000' 
+    : `http://${window.location.hostname}:8000`;
 
 export interface ChatMessage {
     id: string;
@@ -40,7 +41,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const { rtmClient, rtmStatus } = get();
         const rawEmail = localStorage.getItem('candidate_email') || '';
         const rawAId = localStorage.getItem('assessment_id') || '';
-        
+
         const candidateEmail = rawEmail.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
         const assessmentId = rawAId.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 
@@ -60,9 +61,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
         if (rtmClient && rtmStatus === 'connected') {
             try {
-                // Broadcast to assessment channel so proctor receives it
-                console.log(`[RTM] Candidate publishing to channel: [${assessmentId}]`);
-                await rtmClient.publish(assessmentId, text);
+                // Publish to assessment channel — proctor is subscribed to this channel
+                console.log(`[RTM] Candidate publishing to channel: [proctor_${assessmentId}]`);
+                const result = await rtmClient.publish(`proctor_${assessmentId}`, text);
+                console.log("[RTM] Publish result:", result);
             } catch (err) {
                 console.error("[RTM] Failed to send RTM message:", err);
             }
@@ -79,46 +81,65 @@ export const useChatStore = create<ChatState>((set, get) => ({
         const loginEmail = rawEmail.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
         const subAssessmentId = rawAId.trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 
+        console.log(`[RTM] Candidate Raw Email: [${rawEmail}], Cleaned: [${loginEmail}]`);
+        console.log(`[RTM] Candidate Raw AssessmentId: [${rawAId}], Cleaned: [${subAssessmentId}]`);
+
         if (!loginEmail || !subAssessmentId || rtmClient) return;
 
         set({ rtmStatus: 'connecting', rtmError: null });
 
         try {
-            // Use sanitized App ID from .env
-            const appId = (import.meta.env.VITE_AGORA_APP_ID || "").replace(/"/g, '').trim();
-            const client = new AgoraRTM.RTM(appId, loginEmail, {
-                presenceTimeout: 300
-            });
+            const appId = (import.meta.env.VITE_AGORA_APP_ID || '').replace(/"/g, '').trim();
+            const client = new AgoraRTM.RTM(appId, loginEmail);
+            console.log("[RTM] Candidate initializing with UserAccount:", loginEmail);
 
+            // Fetch RTM token from proctor's backend
             const response = await axios.get(`${API_BASE_URL}/agora/rtm-token`, {
                 params: { userAccount: loginEmail }
             });
             const { token } = response.data;
 
             await client.login({ token });
+            console.log("[RTM] Candidate login successful");
+
+            // Subscribe to the assessment channel (to receive proctor broadcasts)
+            // and own channel (to receive private messages from proctor)
             await client.subscribe(subAssessmentId);
             await client.subscribe(loginEmail);
+            console.log(`[RTM] Candidate subscribed to [${subAssessmentId}] and [${loginEmail}]`);
 
+            // Message listener
             client.addEventListener('message', (event: any) => {
                 const publisher = event.publisher;
-                if (publisher.toLowerCase() === loginEmail.toLowerCase()) return;
+                // Avoid adding our own echoed messages
+                if (publisher.toLowerCase() === loginEmail.toLowerCase()) {
+                    return;
+                }
+
+                console.log("[RTM] Candidate received message event:", {
+                    channelName: event.channelName,
+                    publisher: publisher,
+                    message: event.message
+                });
 
                 const msg: ChatMessage = {
                     id: Math.random().toString(36).substring(7),
                     sender: 'proctor',
-                    text: event.message.toString(),
+                    text: typeof event.message === 'string' ? event.message : (event.message?.toString() || ''),
                     timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
                 };
-                
-                set((state) => ({ 
+
+                set((state) => ({
                     messages: [...state.messages, msg],
                     unreadCount: get().isChatOpen ? 0 : get().unreadCount + 1
                 }));
             });
 
             client.addEventListener('status', (event: any) => {
-                if (event.state === 'CONNECTED') set({ rtmStatus: 'connected' });
-                else if (event.state === 'DISCONNECTED' || event.state === 'FAILED') {
+                console.log("[RTM] Candidate connection status change:", event);
+                if (event.state === 'CONNECTED') {
+                    set({ rtmStatus: 'connected' });
+                } else if (event.state === 'DISCONNECTED' || event.state === 'FAILED') {
                     set({ rtmStatus: 'error', rtmError: event.reason || 'Connection failed' });
                 }
             });

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router';
 
 const UserLogin = () => {
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [assessmentId, setAssessmentId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -12,35 +12,36 @@ const UserLogin = () => {
     e.preventDefault();
     setLoading(true);
     setError('');
-    localStorage.removeItem('assessment_completed');
-    localStorage.removeItem('assessment_started');
-    localStorage.removeItem('mcq_completed');
-    localStorage.removeItem('coding_completed');
-    localStorage.removeItem('sql_completed');
+    
+    // Clear previous session data
+    localStorage.clear();
     sessionStorage.removeItem('system_check_passed');
 
     try {
+      const payload = { identifier, assessment_id: assessmentId };
+
       const response = await fetch('http://127.0.0.1:8000/candidate/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, assessment_id: assessmentId }),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json();
 
-      if (response.ok) {
+      if (response.ok && data.status === "success") {
         // Store all candidate details in localStorage
         localStorage.setItem('candidate_name', data.user_name);
         localStorage.setItem('candidate_email', data.email);
         localStorage.setItem('assessment_id', data.assessment_id);
-        localStorage.setItem('roll_number', data.roll_number);
-        localStorage.setItem('candidate_id', data.candidate_id);
-        localStorage.setItem('department', data.department);
+        localStorage.setItem('roll_number', data.roll_number || '');
+        localStorage.setItem('candidate_id', data.candidate_id || '');
+        localStorage.setItem('department', data.department || '');
+        localStorage.setItem('login_mode', data.login_mode || 'Hiring');
 
         // Redirect to environment validation (SystemCheck)
         navigate('/system-check');
       } else {
-        setError(data.detail || 'Login failed. Please check your email and password.');
+        setError(data.detail || data.message || "Login failed. Please check your credentials.");
       }
     } catch (err) {
       setError('Connection error. Please ensure the backend is running.');
@@ -50,17 +51,21 @@ const UserLogin = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#f8fafc to-[#01F965] ] flex flex-col items-center justify-center p-6 font-['Inter']">
+    <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-6 font-['Inter']">
       {/* Logo */}
       <div className="mb-8">
-        <img src="https://pbs.twimg.com/profile_images/1973372506271584256/Sb4wfgD0_400x400.jpg"  alt="Virtusa" className="h-10 rounded-xl" />
+        <img src="https://pbs.twimg.com/profile_images/1973372506271584256/Sb4wfgD0_400x400.jpg" alt="Virtusa" className="h-10 rounded-xl" />
       </div>
 
       {/* Login Card */}
       <div className="w-full max-w-md bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 p-10">
+        
         <div className="text-center mb-10">
+          <div className="inline-block px-3 py-1 bg-blue-50 text-blue-600 text-[10px] font-bold uppercase tracking-widest rounded-full mb-4">
+            Unified Candidate Portal
+          </div>
           <h1 className="text-3xl font-bold text-gray-900 tracking-tight mb-3">Candidate Login</h1>
-          <p className="text-gray-500 text-sm">Enter your credentials to start the assessment</p>
+          <p className="text-gray-500 text-sm italic">Enter your Email and Assessment ID to begin.</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-6">
@@ -69,15 +74,15 @@ const UserLogin = () => {
             <input
               type="email"
               required
-              placeholder="e.g. candidate@example.com"
+              placeholder="e.g. candidate@mail.com"
               className="w-full px-5 py-4 bg-gray-50 border border-transparent focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 rounded-2xl outline-none transition-all duration-200 text-gray-800"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
             />
           </div>
 
           <div className="space-y-2">
-            <label className="text-sm font-semibold text-gray-700 ml-1">Password</label>
+            <label className="text-sm font-semibold text-gray-700 ml-1">Assessment ID / Password</label>
             <input
               type="text"
               required
@@ -111,14 +116,12 @@ const UserLogin = () => {
         </form>
 
         <div className="mt-10 pt-8 border-t border-gray-50 text-center">
-          <p className="text-xs text-gray-400 leading-relaxed max-w-[240px] mx-auto">
-            Secure browser environment will be initialized upon login.
+          <p className="text-xs text-gray-400 leading-relaxed max-w-[240px] mx-auto font-medium italic">
+            "Your progress is automatically saved as you go."
           </p>
         </div>
       </div>
 
-      {/* Footer */}
-    
       <style>{`
                 @keyframes shake {
                     0%, 100% { transform: translateX(0); }

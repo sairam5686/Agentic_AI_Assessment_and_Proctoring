@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import Editor from '@monaco-editor/react'
+import { useLocalPersist } from '../hooks/useLocalPersist'
 
 const LANGUAGE_TEMPLATES: Record<string, string> = {
   Python: `# Write your solution here\ndef solution():\n    pass\n`,
@@ -52,17 +53,32 @@ const CodingSection = () => {
   const state = Locator.state || {}
   
 
+  // Handle state persistence and recovery
+  const [assessmentState, setAssessmentState] = useState<any>(Locator.state || {})
+  const assessment_id = assessmentState?.assessment_id || localStorage.getItem("assessment_id") || "default"
+
+  useEffect(() => {
+    if (Locator.state && Object.keys(Locator.state as any).length > 0) {
+      localStorage.setItem(`assessment_data_${assessment_id}`, JSON.stringify(Locator.state))
+      setAssessmentState(Locator.state)
+    } else {
+      const savedState = localStorage.getItem(`assessment_data_${assessment_id}`)
+      if (savedState) {
+        setAssessmentState(JSON.parse(savedState))
+      }
+    }
+  }, [Locator.state, assessment_id])
+
   // Handle both full assessment object and standalone Coding questions array
-  const CodingQuestions = state.Coding_Questions || state
+  const CodingQuestions = assessmentState.Coding_Questions || assessmentState
   const assessment = Array.isArray(CodingQuestions) ? CodingQuestions[0] : CodingQuestions
   const questions = assessment?.questions || []
   const totalDurationSeconds = parseInt(assessment?.coding_duration || '0') * 60
 
   const [activeQIdx, setActiveQIdx] = useState(0)
-  const [selectedLang, setSelectedLang] = useState<Record<string, string>>({})
-  const [code, setCode] = useState<Record<string, string>>({})
+  const [selectedLang, setSelectedLang, clearLang] = useLocalPersist<Record<string, string>>(`coding_lang_${assessment_id}`, {})
+  const [code, setCode, clearCode] = useLocalPersist<Record<string, string>>(`coding_code_${assessment_id}`, {})
   const [activeTab, setActiveTab] = useState<'problem' | 'testcases'>('problem')
-  const [timeLeft, setTimeLeft] = useState(totalDurationSeconds)
   const [submitted, setSubmitted] = useState(false)
   const [lastSaved, setLastSaved] = useState<number>(Date.now())
   const [timeAgo, setTimeAgo] = useState("just now")
@@ -71,8 +87,29 @@ const CodingSection = () => {
   const [showUserInfo, setShowUserInfo] = useState(false)
   const [submittedQuestions, setSubmittedQuestions] = useState<string[]>([])
 
+  const [timeLeft, setTimeLeft] = useState<number>(() => {
+    const saved = localStorage.getItem(`coding_time_${assessment_id}`)
+    if (saved) return parseInt(saved)
+    return totalDurationSeconds > 0 ? totalDurationSeconds : 3600 // Default 60m if not yet loaded
+  })
+
+  // Sync timeLeft with localStorage
+  useEffect(() => {
+    if (timeLeft > 0 && !submitted) {
+      localStorage.setItem(`coding_time_${assessment_id}`, timeLeft.toString())
+    }
+  }, [timeLeft, assessment_id, submitted])
+
+  // If totalDurationSeconds becomes available and we haven't started yet
+  useEffect(() => {
+    const saved = localStorage.getItem(`coding_time_${assessment_id}`)
+    if (!saved && totalDurationSeconds > 0) {
+      setTimeLeft(totalDurationSeconds)
+    }
+  }, [totalDurationSeconds, assessment_id])
+
   // Per-question run results keyed by question_id
-  const [runResults, setRunResults] = useState<Record<string, RunResult | null>>({})
+  const [runResults, setRunResults, clearRunResults] = useLocalPersist<Record<string, RunResult | null>>(`coding_results_${assessment_id}`, {})
   const [isRunning, setIsRunning] = useState(false)
   const [runError, setRunError] = useState<string | null>(null)
 
@@ -90,7 +127,7 @@ const CodingSection = () => {
     
    const email =   localStorage.getItem("candidate_email")
     const data = {
-      assessment_id: assessment.assessment_id,
+      assessment_id,
       email : email,
       question_id: qId,
       language: lang,
@@ -204,6 +241,8 @@ const CodingSection = () => {
 
   const handleCodeChange = (val: string | undefined) => {
     setCode((prev) => ({ ...prev, [`${qId}-${lang}`]: val || '' }))
+    setLastSaved(Date.now())
+    setTimeAgo("just now")
   }
 
   const handleLangChange = (newLang: string) => {
@@ -221,13 +260,24 @@ const CodingSection = () => {
 
   const handleNextFlow = () => {
     localStorage.setItem('coding_completed', 'true');
-    navigate("/section/sql", { state });
+    
+    const enabledSectionsRaw = localStorage.getItem('enabled_sections');
+    if (enabledSectionsRaw) {
+      const enabledSections = JSON.parse(enabledSectionsRaw);
+      const currentIdx = enabledSections.findIndex((s: any) => s.key === 'coding');
+      
+      if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
+        const nextSection = enabledSections[currentIdx + 1];
+        navigate(`/section/${nextSection.key}`, { state: assessmentState });
+        return;
+      }
+    }
+    navigate('/submission');
   }
 
   const handleCodingSubmit = async () => {
     const email = localStorage.getItem("candidate_email") || "";
     const user_name = localStorage.getItem("candidate_name") || "";
-    const assessment_id = assessment.assessment_id;
 
     const results_payload = questions.map((q: any) => {
       const qLang = selectedLang[q.question_id] || q.languages[0];
@@ -292,6 +342,13 @@ const CodingSection = () => {
       
       const isLastQuestion = activeQIdx === questions.length - 1;
       if (isLastQuestion) {
+        // Cleanup local persistence ONLY on final section completion
+        clearCode();
+        clearLang();
+        clearRunResults();
+        localStorage.removeItem(`coding_time_${assessment_id}`);
+        localStorage.removeItem(`assessment_data_${assessment_id}`);
+
         localStorage.setItem("coding_completed", "true");
         setSubmitted(true);
       } else {
@@ -789,7 +846,6 @@ const CodingSection = () => {
                 onClick={async () => {
                   const email = localStorage.getItem("candidate_email") || "";
                   const user_name = localStorage.getItem("candidate_name") || "";
-                  const assessment_id = assessment.assessment_id;
 
                   const results_payload = questions.map((q: any) => {
                     const qLang = selectedLang[q.question_id] || q.languages[0];
@@ -859,8 +915,28 @@ const CodingSection = () => {
                     return;
                   }
 
+                  // Cleanup local persistence
+                  clearCode();
+                  clearLang();
+                  clearRunResults();
+                  localStorage.removeItem(`coding_time_${assessment_id}`);
+                  localStorage.removeItem(`assessment_data_${assessment_id}`);
+
                   localStorage.setItem("coding_completed", "true");
-                  localStorage.setItem("sql_completed", "true");
+                  
+                  const enabledSectionsRaw = localStorage.getItem('enabled_sections');
+                  if (enabledSectionsRaw) {
+                    const enabledSections = JSON.parse(enabledSectionsRaw);
+                    const currentIdx = enabledSections.findIndex((s: any) => s.key === 'coding');
+                    
+                    if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
+                      const nextSection = enabledSections[currentIdx + 1];
+                      setSubmitted(true);
+                      navigate(`/section/${nextSection.key}`, { state: assessmentState });
+                      return;
+                    }
+                  }
+                  
                   setSubmitted(true);
                   navigate('/submission');
                 }}

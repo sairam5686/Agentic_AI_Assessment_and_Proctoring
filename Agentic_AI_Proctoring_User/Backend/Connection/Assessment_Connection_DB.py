@@ -23,6 +23,7 @@ try:
     SQL_TestCases_DB = Database["SQL_TestCases_DB"]
     Pipe_Puzzle_Sessions_DB = Database["Pipe_Puzzle_Sessions_DB"]
     Gaming_DB = Database["Gaming_DB"]
+    FITB_DB = Database["FITB_DB"]
 
 
     # Candidate DataBase 
@@ -35,6 +36,7 @@ try:
     Coding_Results = CandidateData_DB["Coding_Results"]
     SQL_Results = CandidateData_DB["SQL_Results"]
     MCQ_Results = CandidateData_DB["MCQ_Results"]
+    FITB_Results = CandidateData_DB["FITB_Results"]
     
     # Note: Pipe_Puzzle_Results_DB has been moved to Candidate_Connection_DB
     

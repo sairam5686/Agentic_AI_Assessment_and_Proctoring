@@ -140,7 +140,7 @@ const DeploySuccess = () => {
                                 </div>
 
                                 <motion.button
-                                    onClick={() => navigate('/assessment-details')}
+                                    onClick={() => navigate('/assessments')}
                                     whileHover={{ scale: 1.02, x: 5 }}
                                     whileTap={{ scale: 0.98 }}
                                     className="w-full py-5 bg-slate-900 hover:bg-black text-white rounded-2xl font-black tracking-wide shadow-xl flex items-center justify-center gap-3 group transition-all"

@@ -2,9 +2,11 @@ from datetime import datetime
 from urllib import request
 import uuid
 from fastapi import FastAPI ,  HTTPException , Request ,  UploadFile, File, Form
-from Backend.Workers.Mail_Service import send_assessment_mail, send_proctor_mail
+from Backend.Workers.Mail_Service import send_assessment_mail, send_proctor_mail, send_university_assessment_mail
 from Backend.Connection.Assessment_Connection import MCQ_DB, Admin_Assessments_DB, Coding_Questions_DB, Coding_TestCases_DB, Enrollment_DB, SQL_Questions_DB, SQL_TestCases_DB, Gaming_DB, Game_Sessions_DB, Invigilator_DB
 from Backend.Excels_Parsers.MCQ_Parser import mcq_parser
+from Backend.Excels_Parsers.FITB_Parser import fitb_parser
+from Backend.Connection.Assessment_Connection import FITB_DB
 from fastapi.middleware.cors import CORSMiddleware
 from bson import ObjectId
 from Backend.Excels_Parsers.Coding_Parser import coding_parser
@@ -16,7 +18,7 @@ from Backend.Workers.Pipe_Puzzle_Logic import PipePuzzleLogic
 import time
 from agora_token_builder import RtcTokenBuilder, RtmTokenBuilder
 from Backend.Connection.Evdiences_log import Coding_collection, violation_logs_collection, Mobile_logs_collection
-from Backend.Connection.Assessment_Connection import MCQ_Results_DB, Coding_results_DB, SQL_Results_DB, Piped_Puzzle_DB
+from Backend.Connection.Assessment_Connection import MCQ_Results_DB, Coding_results_DB, SQL_Results_DB, Piped_Puzzle_DB, FITB_Results_DB
 from Backend.Connection.Evdiences_log import Risk_Score_DB , Mobile_Risk_Score
 
 import os
@@ -89,8 +91,27 @@ async def update_test_status(assessment_id: str = Form(...), status: str = Form(
 
 
 @app.post("/create-test")
-async def create_test( Admin_id: str = Form(...), Test_Title: str = Form(...),MCQ_duration: str = Form(None), Coding_duration: str = Form(None), SQL_duration: str = Form(None), MCQ_file: UploadFile = File(None),Coding_file: UploadFile = File(None), SQL_file: UploadFile = File(None),
-                     Gaming_enabled: str = Form("false"), Gaming_duration_per_round: str = Form(None), Gaming_rounds_count: str = Form(None)):
+async def create_test(
+    Admin_id: str = Form(...),
+    Test_Title: str = Form(...),
+    Category: str = Form("Hiring"),
+    Department: str = Form(None),
+    Semester: str = Form(None),
+    Subject_Code: str = Form(None),
+    Regulation: str = Form(None),
+    Subject_Name: str = Form(None),
+    MCQ_duration: str = Form(None),
+    Coding_duration: str = Form(None),
+    SQL_duration: str = Form(None),
+    FITB_duration: str = Form(None),
+    MCQ_file: UploadFile = File(None),
+    Coding_file: UploadFile = File(None),
+    SQL_file: UploadFile = File(None),
+    FITB_file: UploadFile = File(None),
+    Gaming_enabled: str = Form("false"),
+    Gaming_duration_per_round: str = Form(None),
+    Gaming_rounds_count: str = Form(None)
+):
     TestId = uuid.uuid4()
 
 
@@ -107,7 +128,14 @@ async def create_test( Admin_id: str = Form(...), Test_Title: str = Form(...),MC
             "admin_id": Admin_id,
             "test_id": str(TestId),
             "test_title": Test_Title,
-            "created_at": datetime.now()
+            "category": Category,
+            "department": Department,
+            "semester": Semester,
+            "subject_code": Subject_Code,
+            "regulation": Regulation,
+            "subject_name": Subject_Name,
+            "created_at": datetime.now(),
+            "status": "active"
         })
 
 
@@ -130,6 +158,16 @@ async def create_test( Admin_id: str = Form(...), Test_Title: str = Form(...),MC
             assessment_id=str(TestId),
             Test_Title=Test_Title,
             SQL_duration=SQL_duration
+        )
+
+    fitb_result = None
+    if FITB_file:
+        print("FITB File:", FITB_file.filename)
+        fitb_result = await fitb_parser(
+            file=FITB_file,
+            assessment_id=str(TestId),
+            Test_Title=Test_Title,
+            FITB_duration=FITB_duration
         )
 
     # Always create a gaming configuration entry, but set game enabled state based on input
@@ -165,6 +203,7 @@ async def get_test_preview(assessment_id: str):
     coding = Coding_Questions_DB.find_one({"assessment_id": assessment_id})
     sql = SQL_Questions_DB.find_one({"assessment_id": assessment_id})
     gaming = Gaming_DB.find_one({"assessment_id": assessment_id})
+    fitb = FITB_DB.find_one({"assessment_id": assessment_id})
 
     testcases_cursor = Coding_TestCases_DB.find(
         {"assessment_id": assessment_id}
@@ -188,10 +227,12 @@ async def get_test_preview(assessment_id: str):
     response = {
         "assessment_id": assessment_id,
         "status": status,
+        "metadata": assessment_info,
         "Coding": coding,
         "MCQ": mcq,
         "SQL": sql,
         "Gaming": gaming,
+        "FITB": fitb,
         "TestCases": testcases
     }
 
@@ -276,17 +317,36 @@ async def initiate_test(assessment_id: str = Form(...)):
     candidates = enrollment.get("candidates", [])
     sent_count = 0
     
+    # Robust category check
+    raw_category = str(test_info.get("category", "Hiring") if test_info else "Hiring").strip().lower()
+    is_university = "university" in raw_category
+    
     for candidate in candidates:
         link = "http://localhost:5173/"
-        success = send_assessment_mail(
-            candidate["email"], 
-            candidate["name"], 
-            test_title, 
-            assessment_id,
-            link,
-            candidate.get("valid_from", "N/A"),
-            candidate.get("valid_to", "N/A")
-        )
+        
+        if is_university:
+            # UNIVERSITY EXAM EMAIL
+            success = send_university_assessment_mail(
+                candidate["email"],
+                candidate["name"],
+                candidate.get("reg_no", "N/A"),
+                test_title,
+                assessment_id,
+                link,
+                candidate.get("valid_from", "N/A"),
+                candidate.get("valid_to", "N/A")
+            )
+        else:
+            # HIRING ASSESSMENT EMAIL
+            success = send_assessment_mail(
+                candidate["email"], 
+                candidate["name"], 
+                test_title, 
+                assessment_id,
+                link,
+                candidate.get("valid_from", "N/A"),
+                candidate.get("valid_to", "N/A")
+            )
         if success:
             status_text = "invitation sent to candidate"
             sent_count += 1
@@ -479,6 +539,7 @@ async def get_candidate_results(assessment_id: str, candidate_email: str):
     MCQ_results = list(MCQ_Results_DB.find(query))
     Coding_results = list(Coding_results_DB.find(query))
     SQL_results = list(SQL_Results_DB.find(query))
+    FITB_results = list(FITB_Results_DB.find(query))
     Pipe_Puzzle_results = list(Piped_Puzzle_DB.find(query))
     
     combined_results = {
@@ -487,13 +548,15 @@ async def get_candidate_results(assessment_id: str, candidate_email: str):
         "MCQ": MCQ_results,
         "Coding": Coding_results,
         "SQL": SQL_results,
+        "FITB": FITB_results,
         "Pipe_Puzzle": Pipe_Puzzle_results,
         "summary": {
             "total_MCQ": len(MCQ_results),
             "total_Coding": len(Coding_results),
             "total_SQL": len(SQL_results),
+            "total_FITB": len(FITB_results),
             "total_Pipe_Puzzle": len(Pipe_Puzzle_results),
-            "total_questions": len(MCQ_results) + len(Coding_results) + len(SQL_results) + len(Pipe_Puzzle_results)
+            "total_questions": len(MCQ_results) + len(Coding_results) + len(SQL_results) + len(Pipe_Puzzle_results) + len(FITB_results)
         }
     }
     print(combined_results)
@@ -655,3 +718,54 @@ async def get_risk_score(assessment_id , email):
 async def get_risk_score_mobile(assessment_id ,email ):
     data   = Mobile_Risk_Score.find_one({"assessment_id":assessment_id , "email":email })
     return serialize_mongo(data)
+# --- Candidate Portal Support Endpoints ---
+
+@app.post("/candidate/login")
+async def candidate_login(request: Request):
+    body = await request.json()
+    email = body.get("email")
+    assessment_id = body.get("assessment_id")
+    
+    if not email or not assessment_id:
+        raise HTTPException(status_code=400, detail="Email and Assessment ID are required")
+    
+    # Verify candidate enrollment
+    record = Enrollment_DB.find_one({
+        "assessment_id": assessment_id,
+        "candidates.email": email
+    })
+    
+    if not record:
+        raise HTTPException(status_code=401, detail="Invalid email or assessment ID")
+    
+    # Check if assessment is terminated
+    assessment_meta = Admin_Assessments_DB.find_one({"test_id": assessment_id})
+    if assessment_meta and assessment_meta.get("status") == "terminated":
+        raise HTTPException(status_code=403, detail="This assessment has been terminated.")
+    
+    candidate = next((c for c in record.get("candidates", []) if c.get("email") == email), None)
+    if not candidate:
+        raise HTTPException(status_code=401, detail="Candidate not found")
+    
+    # Get assigned proctor info
+    proctor_email = assessment_meta.get("proctor_email") if assessment_meta else None
+    
+    candidate_data = {
+        "user_name": candidate.get("name"),
+        "roll_number": candidate.get("reg_no"),  
+        "candidate_id": candidate.get("candidate_id"),
+        "college": candidate.get("college"),
+        "department": candidate.get("Department") or candidate.get("department"),
+        "email": email,
+        "assessment_id": assessment_id,
+        "proctor_email": proctor_email,
+        "status": "success"
+    }
+    
+    # Update status to Joined
+    Enrollment_DB.update_one(
+        {"assessment_id": assessment_id, "candidates.email": email},
+        {"": {"candidates.$.status": "Joined"}}
+    )
+    
+    return serialize_mongo(candidate_data)

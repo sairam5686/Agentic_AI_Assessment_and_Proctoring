@@ -1,27 +1,67 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocalPersist } from '../hooks/useLocalPersist'
 
 const McqSection = () => {
   const Locator = useLocation()
   const navigate = useNavigate()
   const state = Locator.state || {}
 
+  // Handle state persistence and recovery
+  const [assessmentState, setAssessmentState] = useState<any>(state)
+  const assessment_id = assessmentState?.assessment_id || localStorage.getItem("assessment_id") || "default"
+
+  useEffect(() => {
+    // If state is present in Locator, save it for recovery
+    if (Locator.state && Object.keys(Locator.state as any).length > 0) {
+      localStorage.setItem(`assessment_data_${assessment_id}`, JSON.stringify(Locator.state))
+      setAssessmentState(Locator.state)
+    } else {
+      // If state is missing (refresh), try to recover from localStorage
+      const savedState = localStorage.getItem(`assessment_data_${assessment_id}`)
+      if (savedState) {
+        setAssessmentState(JSON.parse(savedState))
+      }
+    }
+  }, [Locator.state, assessment_id])
+
   // Handle both full assessment object and standalone MCQ questions array
-  const McqQuestion = state.MCQ_Questions || state
+  const McqQuestion = assessmentState.MCQ_Questions || assessmentState
   const assessment = Array.isArray(McqQuestion) ? McqQuestion[0] : McqQuestion
 
   const sections = assessment?.sections || []
   const totalDurationSeconds = parseInt(assessment?.mcq_duration || '0') * 60
 
   const [activeSectionIdx, setActiveSectionIdx] = useState(0)
-  const [answers, setAnswers] = useState<Record<number, string>>({})
-  const [timeLeft, setTimeLeft] = useState(totalDurationSeconds)
+  const [answers, setAnswers, clearAnswers] = useLocalPersist<Record<number, string>>(`mcq_answers_${assessment_id}`, {})
+  
   const [submitted, setSubmitted] = useState(false)
   const [lastSaved, setLastSaved] = useState<number>(Date.now())
   const [timeAgo, setTimeAgo] = useState("just now")
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [showGlobalFinishConfirm, setShowGlobalFinishConfirm] = useState(false)
   const [showUserInfo, setShowUserInfo] = useState(false)
+  
+  const [timeLeft, setTimeLeft] = useState<number>(() => {
+    const saved = localStorage.getItem(`mcq_time_${assessment_id}`)
+    if (saved) return parseInt(saved)
+    return totalDurationSeconds > 0 ? totalDurationSeconds : 1800 // Default 30m if not yet loaded
+  })
+
+  // Sync timeLeft with localStorage
+  useEffect(() => {
+    if (timeLeft > 0 && !submitted) {
+      localStorage.setItem(`mcq_time_${assessment_id}`, timeLeft.toString())
+    }
+  }, [timeLeft, assessment_id, submitted])
+
+  // If totalDurationSeconds becomes available and we haven't started yet
+  useEffect(() => {
+    const saved = localStorage.getItem(`mcq_time_${assessment_id}`)
+    if (!saved && totalDurationSeconds > 0) {
+      setTimeLeft(totalDurationSeconds)
+    }
+  }, [totalDurationSeconds, assessment_id])
 
   const activeSection = sections[activeSectionIdx]
   const allQuestions = sections.flatMap((s: any) => s.questions)
@@ -82,7 +122,6 @@ const McqSection = () => {
     try {
       const email = localStorage.getItem("candidate_email") || "";
       const user_name = localStorage.getItem("candidate_name") || "";
-      const assessment_id = assessment?.assessment_id || localStorage.getItem("assessment_id") || "";
 
       const mcq_results = allQuestions.map((q: any) => {
         const userAnswer = answers[q.question_id] || "";
@@ -119,6 +158,11 @@ const McqSection = () => {
         throw new Error("Failed to save MCQ results");
       }
 
+      // Cleanup local persistence on success
+      clearAnswers();
+      localStorage.removeItem(`mcq_time_${assessment_id}`);
+      localStorage.removeItem(`assessment_data_${assessment_id}`);
+
       localStorage.setItem("mcq_completed", "true");
       setSubmitted(true);
     } catch (error) {
@@ -129,13 +173,23 @@ const McqSection = () => {
 
   const handleNextFlow = () => {
     localStorage.setItem('mcq_completed', 'true');
-    navigate("/section/coding", { state });
+    
+    const enabledSectionsRaw = localStorage.getItem('enabled_sections');
+    if (enabledSectionsRaw) {
+      const enabledSections = JSON.parse(enabledSectionsRaw);
+      const currentIdx = enabledSections.findIndex((s: any) => s.key === 'mcq');
+      
+      if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
+        const nextSection = enabledSections[currentIdx + 1];
+        navigate(`/section/${nextSection.key}`, { state });
+        return;
+      }
+    }
+    navigate('/submission');
   }
 
   const handleFinishAssessment = async () => {
     await handleSubmit();
-    localStorage.setItem('coding_completed', 'true');
-    localStorage.setItem('sql_completed', 'true');
     navigate('/submission');
   }
 
