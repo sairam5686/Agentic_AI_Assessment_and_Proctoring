@@ -184,30 +184,20 @@ async def evaluate_essay(submission: EssaySubmission):
 
     prompt = build_essay_prompt(essay_text=submission.essay_text, topic=submission.topic)
 
-    # ── First attempt ─────────────────────────────────────────────────────────
+    # ── Evaluation logic with retry ───────────────────────────────────────────
     result: dict | None = None
     try:
-        result = _call_gemini(prompt)
-    except (json.JSONDecodeError, ValueError):
-        pass  # fall through to retry
-
-    # ── Retry once on parse failure ───────────────────────────────────────────
-    if result is None:
         try:
             result = _call_gemini(prompt)
-        except (json.JSONDecodeError, ValueError) as exc:
-            raise HTTPException(
-                status_code=500,
-                detail=(
-                    "Gemini returned an invalid JSON response after 2 attempts. "
-                    f"Parse error: {str(exc)}"
-                )
-            )
-        except Exception as exc:
-            raise HTTPException(
-                status_code=500,
-                detail=f"Gemini API error on retry: {str(exc)}"
-            )
+        except (json.JSONDecodeError, ValueError):
+            # Retry once on parse failure
+            result = _call_gemini(prompt)
+
+    except (json.JSONDecodeError, ValueError) as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Gemini returned an invalid JSON response after 2 attempts. Parse error: {str(exc)}"
+        )
     except Exception as exc:
         raise HTTPException(
             status_code=500,
