@@ -20,6 +20,7 @@ try:
     SQL_Results_DB = Candidate_DB["SQL_Results"]
     Piped_Puzzle_DB  = Candidate_DB["Pipe_Puzzle_Results"]
     FITB_Results_DB = Candidate_DB["FITB_Results"]
+    Essay_Results_DB = Candidate_DB["essay_results"]
 
 
     # Fro Admin Assessments DB
@@ -45,3 +46,4 @@ except Exception as e:
     Coding_TestCases_DB = None
     SQL_Questions_DB = None
     SQL_TestCases_DB = None
+    Essay_Results_DB = None

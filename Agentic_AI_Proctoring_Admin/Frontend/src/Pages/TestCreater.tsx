@@ -43,6 +43,99 @@ const TestCreator: React.FC = () => {
   const [gamingRounds, setGamingRounds] = useState<string>('3');
   const [uniStep, setUniStep] = useState<number>(1);
 
+  // Essay state — dynamic rubric
+  const [essayEnabled, setEssayEnabled] = useState<boolean>(false);
+  const [essayTopic, setEssayTopic] = useState<string>('');
+  const [essayDuration, setEssayDuration] = useState<string>('30');
+
+  interface RubricSection {
+    key: string;
+    name: string;
+    max_marks: number;
+    criteria: string[];
+  }
+
+  const DEFAULT_RUBRIC: RubricSection[] = [
+    {
+      key: 'introduction',
+      name: 'Introduction',
+      max_marks: 10,
+      criteria: [
+        'Clearly introduces the topic',
+        'States purpose of essay',
+        'Mentions specific industry or context',
+      ],
+    },
+    {
+      key: 'industry_overview',
+      name: 'Industry Overview',
+      max_marks: 10,
+      criteria: [
+        'Explains the industry clearly',
+        'Covers key characteristics',
+        'Mentions current challenges',
+      ],
+    },
+    {
+      key: 'impact_analysis',
+      name: 'Impact Analysis',
+      max_marks: 10,
+      criteria: [
+        'Covers positive impacts',
+        'Covers risks and challenges',
+        'Provides concrete examples',
+      ],
+    },
+    {
+      key: 'future_predictions',
+      name: 'Future Predictions',
+      max_marks: 10,
+      criteria: [
+        'Predicts future trends',
+        'Provides justification for predictions',
+      ],
+    },
+    {
+      key: 'conclusion',
+      name: 'Conclusion',
+      max_marks: 10,
+      criteria: [
+        'Summarizes key points effectively',
+        'Ends with a clear, forward-looking insight',
+      ],
+    },
+  ];
+
+  const [rubricSections, setRubricSections] = useState<RubricSection[]>(DEFAULT_RUBRIC);
+  const [expandedRubricKey, setExpandedRubricKey] = useState<string | null>(null);
+
+  const updateRubricSection = (key: string, field: keyof RubricSection, value: any) => {
+    setRubricSections(prev => prev.map(s => s.key === key ? { ...s, [field]: value } : s));
+  };
+
+  const updateCriterion = (sectionKey: string, idx: number, value: string) => {
+    setRubricSections(prev => prev.map(s => {
+      if (s.key !== sectionKey) return s;
+      const updated = [...s.criteria];
+      updated[idx] = value;
+      return { ...s, criteria: updated };
+    }));
+  };
+
+  const addCriterion = (sectionKey: string) => {
+    setRubricSections(prev => prev.map(s =>
+      s.key === sectionKey ? { ...s, criteria: [...s.criteria, ''] } : s
+    ));
+  };
+
+  const removeCriterion = (sectionKey: string, idx: number) => {
+    setRubricSections(prev => prev.map(s =>
+      s.key === sectionKey ? { ...s, criteria: s.criteria.filter((_, i) => i !== idx) } : s
+    ));
+  };
+
+  const totalRubricMarks = rubricSections.reduce((sum, s) => sum + (s.max_marks || 0), 0);
+
   // Per-section enabled toggles
   const [sectionEnabled, setSectionEnabled] = useState<Record<SectionType, boolean>>({
     MCQ:    true,
@@ -102,6 +195,19 @@ const TestCreator: React.FC = () => {
     if (gamingSection && !isUni) {
       formData.append("Gaming_duration_per_round", gamingSection.duration);
       formData.append("Gaming_rounds_count", gamingRounds);
+    }
+
+    // Essay section
+    formData.append("Essay_enabled", String(essayEnabled));
+    if (essayEnabled) {
+      formData.append("Essay_topic", essayTopic);
+      formData.append("Essay_duration", essayDuration);
+      // Build rubric object: { sections: { [key]: { name, max_marks, criteria } } }
+      const rubricPayload: Record<string, { name: string; max_marks: number; criteria: string[] }> = {};
+      rubricSections.forEach(s => {
+        rubricPayload[s.key] = { name: s.name, max_marks: s.max_marks, criteria: s.criteria.filter(c => c.trim() !== '') };
+      });
+      formData.append("Essay_rubric", JSON.stringify({ sections: rubricPayload }));
     }
 
     try {
@@ -290,6 +396,163 @@ const TestCreator: React.FC = () => {
                   </div>
                 );
               })}
+            </div>
+
+            {/* ═══ Essay / Long Answer — Dynamic Rubric Builder ═══ */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mt-4">
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-sm font-bold text-gray-800">Essay / Long Answer</h3>
+                  <p className="text-xs text-gray-500">AI-evaluated with a custom rubric you define below</p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input type="checkbox" className="sr-only peer" checked={essayEnabled} onChange={(e) => setEssayEnabled(e.target.checked)} />
+                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-violet-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600" />
+                </label>
+              </div>
+
+              <div className={`space-y-4 pt-4 border-t border-gray-100 transition-opacity duration-300 ${essayEnabled ? 'opacity-100' : 'opacity-40 grayscale pointer-events-none'}`}>
+
+                {/* Topic + Duration row */}
+                <div className="flex gap-4">
+                  <div className="flex-1">
+                    <label className="block text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider">Essay Topic / Prompt</label>
+                    <input
+                      type="text"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white"
+                      placeholder="e.g., Impact of Generative AI on the Healthcare Industry"
+                      value={essayTopic}
+                      onChange={(e) => setEssayTopic(e.target.value)}
+                    />
+                  </div>
+                  <div className="w-36">
+                    <label className="block text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider">Duration</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        className="w-20 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white"
+                        placeholder="Mins"
+                        value={essayDuration}
+                        onChange={(e) => setEssayDuration(e.target.value)}
+                      />
+                      <span className="text-[10px] text-gray-500 font-bold uppercase">Mins</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Rubric builder header */}
+                <div className="flex items-center justify-between pt-2">
+                  <div>
+                    <p className="text-xs font-black text-gray-700 uppercase tracking-wider">Evaluation Rubric</p>
+                    <p className="text-[10px] text-gray-400 mt-0.5">Gemini will evaluate each section using these criteria</p>
+                  </div>
+                  <span className={`px-3 py-1 rounded-full text-xs font-black border ${
+                    totalRubricMarks === 50
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-red-50 text-red-600 border-red-200'
+                  }`}>
+                    Total: {totalRubricMarks} / 50 marks
+                  </span>
+                </div>
+
+                {/* Rubric sections */}
+                <div className="space-y-2">
+                  {rubricSections.map((section, sIdx) => {
+                    const isOpen = expandedRubricKey === section.key;
+                    const sectionColors = [
+                      { bg: 'bg-indigo-50',  border: 'border-indigo-200',  badge: 'bg-indigo-100 text-indigo-700',  accent: 'text-indigo-600',  ring: 'focus:ring-indigo-300'  },
+                      { bg: 'bg-blue-50',    border: 'border-blue-200',    badge: 'bg-blue-100 text-blue-700',      accent: 'text-blue-600',    ring: 'focus:ring-blue-300'    },
+                      { bg: 'bg-orange-50',  border: 'border-orange-200',  badge: 'bg-orange-100 text-orange-700',  accent: 'text-orange-600',  ring: 'focus:ring-orange-300'  },
+                      { bg: 'bg-purple-50',  border: 'border-purple-200',  badge: 'bg-purple-100 text-purple-700',  accent: 'text-purple-600',  ring: 'focus:ring-purple-300'  },
+                      { bg: 'bg-emerald-50', border: 'border-emerald-200', badge: 'bg-emerald-100 text-emerald-700',accent: 'text-emerald-600', ring: 'focus:ring-emerald-300' },
+                    ];
+                    const sc = sectionColors[sIdx % sectionColors.length];
+                    return (
+                      <div key={section.key} className={`rounded-xl border ${sc.border} ${sc.bg} overflow-hidden`}>
+                        {/* Section row header */}
+                        <button
+                          type="button"
+                          onClick={() => setExpandedRubricKey(isOpen ? null : section.key)}
+                          className="w-full flex items-center gap-3 px-4 py-3 text-left"
+                        >
+                          <span className={`text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center ${sc.badge}`}>
+                            {sIdx + 1}
+                          </span>
+
+                          {/* Editable section name */}
+                          <input
+                            type="text"
+                            value={section.name}
+                            onClick={e => e.stopPropagation()}
+                            onChange={e => updateRubricSection(section.key, 'name', e.target.value)}
+                            className={`flex-1 bg-transparent text-sm font-bold text-gray-800 border-none outline-none focus:bg-white/70 focus:rounded px-1 ${sc.ring}`}
+                          />
+
+                          {/* Max marks */}
+                          <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                            <input
+                              type="number"
+                              min={0}
+                              max={50}
+                              value={section.max_marks}
+                              onChange={e => updateRubricSection(section.key, 'max_marks', parseInt(e.target.value) || 0)}
+                              className={`w-12 px-2 py-0.5 text-sm font-black text-center border border-gray-300 rounded-lg bg-white focus:outline-none ${sc.ring} focus:ring-2`}
+                            />
+                            <span className="text-[10px] text-gray-500 font-bold">marks</span>
+                          </div>
+
+                          <span className={`text-xs ${sc.accent} ml-1`}>{isOpen ? '▲' : '▼'}</span>
+                        </button>
+
+                        {/* Expanded: criteria list */}
+                        {isOpen && (
+                          <div className="px-4 pb-4 pt-1 space-y-2 border-t border-white/60">
+                            <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Grading Criteria — Gemini checks each of these</p>
+                            {section.criteria.map((criterion, cIdx) => (
+                              <div key={cIdx} className="flex items-center gap-2">
+                                <span className="text-gray-400 text-xs shrink-0">•</span>
+                                <input
+                                  type="text"
+                                  value={criterion}
+                                  onChange={e => updateCriterion(section.key, cIdx, e.target.value)}
+                                  placeholder="e.g., Clearly introduces the topic..."
+                                  className="flex-1 text-sm px-3 py-1.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-violet-300"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => removeCriterion(section.key, cIdx)}
+                                  className="text-gray-300 hover:text-red-400 transition-colors text-lg leading-none"
+                                >×</button>
+                              </div>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => addCriterion(section.key)}
+                              className={`mt-1 flex items-center gap-1.5 text-[11px] font-bold ${sc.accent} hover:underline`}
+                            >
+                              <span className="text-base leading-none">+</span> Add criterion
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Feature badges */}
+                <div className="flex flex-wrap gap-2 pt-1">
+                  {[
+                    { icon: '💡', label: 'Specific improvement suggestions per section' },
+                    { icon: '🔍', label: 'Originality & generic writing detection' },
+                    { icon: '✨', label: 'Strengths highlighted per section' },
+                  ].map(f => (
+                    <span key={f.label} className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 border border-violet-100 rounded-lg text-[10px] font-bold text-violet-700">
+                      <span>{f.icon}</span>{f.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
           </>
         )}

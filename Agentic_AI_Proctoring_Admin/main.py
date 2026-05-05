@@ -1,6 +1,7 @@
 from datetime import datetime
 from urllib import request
 import uuid
+import json
 from fastapi import FastAPI ,  HTTPException , Request ,  UploadFile, File, Form
 from Backend.Workers.Mail_Service import send_assessment_mail, send_proctor_mail, send_university_assessment_mail
 from Backend.Connection.Assessment_Connection import MCQ_DB, Admin_Assessments_DB, Coding_Questions_DB, Coding_TestCases_DB, Enrollment_DB, SQL_Questions_DB, SQL_TestCases_DB, Gaming_DB, Game_Sessions_DB, Invigilator_DB
@@ -18,7 +19,7 @@ from Backend.Workers.Pipe_Puzzle_Logic import PipePuzzleLogic
 import time
 from agora_token_builder import RtcTokenBuilder, RtmTokenBuilder
 from Backend.Connection.Evdiences_log import Coding_collection, violation_logs_collection, Mobile_logs_collection
-from Backend.Connection.Assessment_Connection import MCQ_Results_DB, Coding_results_DB, SQL_Results_DB, Piped_Puzzle_DB, FITB_Results_DB
+from Backend.Connection.Assessment_Connection import MCQ_Results_DB, Coding_results_DB, SQL_Results_DB, Piped_Puzzle_DB, FITB_Results_DB, Essay_Results_DB
 from Backend.Connection.Evdiences_log import Risk_Score_DB , Mobile_Risk_Score
 
 import os
@@ -110,7 +111,11 @@ async def create_test(
     FITB_file: UploadFile = File(None),
     Gaming_enabled: str = Form("false"),
     Gaming_duration_per_round: str = Form(None),
-    Gaming_rounds_count: str = Form(None)
+    Gaming_rounds_count: str = Form(None),
+    Essay_enabled: str = Form("false"),
+    Essay_topic: str = Form(None),
+    Essay_duration: str = Form(None),
+    Essay_rubric: str = Form(None)   # JSON string: { sections: { key: { name, max_marks, criteria[] } } }
 ):
     TestId = uuid.uuid4()
 
@@ -134,6 +139,10 @@ async def create_test(
             "subject_code": Subject_Code,
             "regulation": Regulation,
             "subject_name": Subject_Name,
+            "essay_enabled": Essay_enabled.lower() == "true",
+            "essay_topic": Essay_topic if Essay_enabled.lower() == "true" else None,
+            "essay_duration": int(Essay_duration) if Essay_duration and Essay_duration.isdigit() else None,
+            "essay_rubric": json.loads(Essay_rubric) if Essay_rubric and Essay_enabled.lower() == "true" else None,
             "created_at": datetime.now(),
             "status": "active"
         })
@@ -217,11 +226,15 @@ async def get_test_preview(assessment_id: str):
     assessment_info = Admin_Assessments_DB.find_one({"test_id": assessment_id})
     status = assessment_info.get("status", "draft") if assessment_info else "draft"
 
-    # If status is terminated, candidates (and preview) should be aware
-    if status == "terminated":
-         # We still return the info for preview but add a flag or raise if needed
-         # For now, let's just make sure the status is passed correctly.
-         pass
+    # Build essay config from assessment metadata
+    essay = None
+    if assessment_info and assessment_info.get("essay_enabled"):
+        essay = {
+            "enabled": True,
+            "topic": assessment_info.get("essay_topic", ""),
+            "duration": assessment_info.get("essay_duration"),
+            "rubric": assessment_info.get("essay_rubric"),
+        }
 
     # 🔥 SERIALIZE EVERYTHING
     response = {
@@ -233,6 +246,7 @@ async def get_test_preview(assessment_id: str):
         "SQL": sql,
         "Gaming": gaming,
         "FITB": fitb,
+        "Essay": essay,
         "TestCases": testcases
     }
 
@@ -541,6 +555,14 @@ async def get_candidate_results(assessment_id: str, candidate_email: str):
     SQL_results = list(SQL_Results_DB.find(query))
     FITB_results = list(FITB_Results_DB.find(query))
     Pipe_Puzzle_results = list(Piped_Puzzle_DB.find(query))
+
+    # Essay results use candidate_id (email) as candidate_id key
+    essay_result = None
+    if Essay_Results_DB is not None:
+        essay_result = Essay_Results_DB.find_one(
+            {"exam_id": assessment_id, "candidate_id": candidate_email},
+            {"_id": 0}
+        )
     
     combined_results = {
         "assessment_id": assessment_id,
@@ -550,6 +572,7 @@ async def get_candidate_results(assessment_id: str, candidate_email: str):
         "SQL": SQL_results,
         "FITB": FITB_results,
         "Pipe_Puzzle": Pipe_Puzzle_results,
+        "Essay": essay_result,
         "summary": {
             "total_MCQ": len(MCQ_results),
             "total_Coding": len(Coding_results),
@@ -559,8 +582,21 @@ async def get_candidate_results(assessment_id: str, candidate_email: str):
             "total_questions": len(MCQ_results) + len(Coding_results) + len(SQL_results) + len(Pipe_Puzzle_results) + len(FITB_results)
         }
     }
-    print(combined_results)
     return serialize_mongo(combined_results)
+
+
+@app.get("/candidate/{assessment_id}/{candidate_email}/essay-result")
+async def get_essay_result(assessment_id: str, candidate_email: str):
+    """Dedicated endpoint for fetching a single candidate's essay evaluation."""
+    if Essay_Results_DB is None:
+        raise HTTPException(status_code=503, detail="Essay results database unavailable.")
+    record = Essay_Results_DB.find_one(
+        {"exam_id": assessment_id, "candidate_id": candidate_email},
+        {"_id": 0}
+    )
+    if not record:
+        raise HTTPException(status_code=404, detail="No essay result found for this candidate.")
+    return serialize_mongo(record)
 
 # ─── Proctor Management Endpoints ─────────────────────────────────────────────
 

@@ -7,7 +7,7 @@ import {
     Camera, Puzzle, Smartphone, Download, XCircle, FileText, 
     ArrowLeft, User, ShieldCheck, AlertCircle, CheckCircle2, 
     Code2, Database, HelpCircle, TrendingUp, Award, BarChart2, 
-    RefreshCw, ShieldAlert, Bot, Copy
+    RefreshCw, ShieldAlert, Bot, Copy, PenLine
 } from 'lucide-react';
 import NavBar from '../Components/NavBar';
 import RemoteVideoPlayer from '../Components/RemoteVideoPlayer';
@@ -227,6 +227,7 @@ const CandidateAnalytics = () => {
     const [testInfo, setTestInfo] = useState<any>(null);
     // ── NEW: mobile risk state ──
     const [mobileRiskData, setMobileRiskData] = useState<any>(null);
+    const [essayResult, setEssayResult]        = useState<any>(null);
     
 
     /* ── fetchers ── */
@@ -285,6 +286,18 @@ const CandidateAnalytics = () => {
         }
     };
 
+    const EssayFetcher = async () => {
+        try {
+            const res = await fetch(`http://localhost:8000/candidate/${testId}/${candidate.email}/essay-result`);
+            if (res.ok) {
+                const data = await res.json();
+                setEssayResult(data);
+            }
+        } catch (err) {
+            console.log('Essay result not found:', err);
+        }
+    };
+
     useEffect(() => {
       FetcherRiskScoreMobile()
     }, [])
@@ -323,6 +336,7 @@ const CandidateAnalytics = () => {
         const hasSQL    = !!testInfo?.SQL;
         const hasFITB   = !!testInfo?.FITB;
         const hasGaming = !!testInfo?.Gaming?.games?.[0]?.enabled;
+        const hasEssay  = !!testInfo?.Essay?.enabled;
 
         const mcqScore  = (bestMCQ as any)?.user_total_marks ?? 0;
         const mcqMax    = hasMCQ ? ((bestMCQ as any)?.total_marks ?? 30) : 0;
@@ -384,7 +398,7 @@ const CandidateAnalytics = () => {
             totalScore, totalMax,
             mcqScore, mcqMax, codScore, codMax, sqlScore, sqlMax, fitbScore, fitbMax,
             pipePass, pipeMax,
-            hasMCQ, hasCod, hasSQL, hasFITB, hasGaming,
+            hasMCQ, hasCod, hasSQL, hasFITB, hasGaming, hasEssay,
             mcqAnswered, mcqSkipped, mcqCorrect, mcqWrong,
             codAttempted, codPassed, codTotalQ,
             sqlAttempted, sqlPassed, sqlTotalQ,
@@ -425,7 +439,7 @@ const CandidateAnalytics = () => {
         fetchAnalytics();
     }, [testId, candidate]);
 
-    useEffect(() => { FetcherLogs(); CandidateResult(); }, []);
+    useEffect(() => { FetcherLogs(); CandidateResult(); EssayFetcher(); }, []);
 
     if (!candidate) return (
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
@@ -549,6 +563,7 @@ const CandidateAnalytics = () => {
                                                 { label: 'SQL',    show: ds?.hasSQL },
                                                 { label: 'MCQ',    show: ds?.hasMCQ },
                                                 { label: 'FITB',   show: ds?.hasFITB },
+                                                { label: 'Essay',  show: ds?.hasEssay },
                                             ].filter(t => t.show).map(tag => (
                                                 <span key={tag.label} className="px-3 py-1.5 bg-indigo-50 text-indigo-600 text-[9px] font-black rounded-lg border border-indigo-100 uppercase tracking-tight leading-none">{tag.label}</span>
                                             ))}
@@ -838,6 +853,137 @@ const CandidateAnalytics = () => {
                                         </div>
                                     </div>
                                 )}
+
+                                {/* ── Essay Deep-Dive ── */}
+                                {essayResult && (() => {
+                                    const ev = essayResult.result || essayResult.evaluation;
+                                    if (!ev) return null;
+                                    const GRADE_STYLES: Record<string, { text: string; bg: string; border: string }> = {
+                                        'A':  { text: '#15803d', bg: '#dcfce7', border: '#86efac' },
+                                        'B+': { text: '#1d4ed8', bg: '#dbeafe', border: '#93c5fd' },
+                                        'B':  { text: '#7c3aed', bg: '#ede9fe', border: '#c4b5fd' },
+                                        'C':  { text: '#b45309', bg: '#fef3c7', border: '#fcd34d' },
+                                        'F':  { text: '#dc2626', bg: '#fee2e2', border: '#fca5a5' },
+                                    };
+                                    const gradeStyle = GRADE_STYLES[ev.grade] ?? GRADE_STYLES['B'];
+
+                                    // Build dynamic sections from rubric_used or fallback to result.sections keys
+                                    const rubric = essayResult.rubric_used?.sections || {};
+                                    const sectionColors = [
+                                        { bg: 'bg-indigo-50',  border: 'border-indigo-100',  text: 'text-indigo-700',  barColor: '#6366f1' },
+                                        { bg: 'bg-blue-50',    border: 'border-blue-100',    text: 'text-blue-700',    barColor: '#3b82f6' },
+                                        { bg: 'bg-orange-50',  border: 'border-orange-100',  text: 'text-orange-700',  barColor: '#f97316' },
+                                        { bg: 'bg-purple-50',  border: 'border-purple-100',  text: 'text-purple-700',  barColor: '#8b5cf6' },
+                                        { bg: 'bg-emerald-50', border: 'border-emerald-100', text: 'text-emerald-700', barColor: '#10b981' },
+                                    ];
+                                    const sectionIcons = ['📖', '🏭', '📊', '🔭', '🏁', '🧠', '🔍', '💡'];
+
+                                    // All section keys: prefer from rubric_used, fallback to what Gemini returned
+                                    const sectionKeys = Object.keys(rubric).length > 0
+                                        ? Object.keys(rubric)
+                                        : Object.keys(ev.sections || {});
+
+                                    const totalMax = sectionKeys.reduce((sum, k) => {
+                                        const m = rubric[k]?.max_marks ?? ev.sections?.[k]?.max ?? 10;
+                                        return sum + m;
+                                    }, 0);
+                                    const totalPct = totalMax > 0 ? Math.round((ev.total_score / totalMax) * 100) : 0;
+
+                                    return (
+                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-7">
+                                            <div className="flex items-center gap-2.5 mb-7">
+                                                <div className="w-7 h-7 rounded-lg bg-violet-50 flex items-center justify-center text-violet-600">
+                                                    <PenLine size={14} />
+                                                </div>
+                                                <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight">Essay Evaluation</h3>
+                                                <span className="ml-auto px-2.5 py-1 bg-gray-50 text-[9px] font-black text-gray-400 rounded-lg border border-gray-100 uppercase tracking-widest">
+                                                    {essayResult.submitted_at || '--'}
+                                                </span>
+                                            </div>
+
+                                            {/* Score hero */}
+                                            <div className="flex items-center gap-8 mb-7 p-5 bg-gray-50/60 rounded-2xl border border-gray-100">
+                                                <div className="flex flex-col items-center gap-2 shrink-0">
+                                                    <Ring pct={totalPct} size={100} stroke={10} color="#6366f1">
+                                                        <span className="text-lg font-black text-gray-800">{ev.total_score}</span>
+                                                    </Ring>
+                                                    <span className="text-[9px] font-black text-gray-400 uppercase tracking-widest">/ {totalMax} marks</span>
+                                                    <span
+                                                        className="px-3 py-1 rounded-full text-xs font-black border"
+                                                        style={{ color: gradeStyle.text, background: gradeStyle.bg, borderColor: gradeStyle.border }}
+                                                    >
+                                                        Grade {ev.grade}
+                                                    </span>
+                                                </div>
+                                                <div className="flex-1 min-w-0">
+                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Overall Feedback</p>
+                                                    <p className="text-xs text-gray-700 leading-relaxed mb-3">{ev.overall_feedback}</p>
+                                                    <div className="flex items-start gap-2 bg-blue-50 border border-blue-100 rounded-xl px-3 py-2.5">
+                                                        <span className="text-sm shrink-0">💡</span>
+                                                        <div>
+                                                            <p className="text-[9px] font-black text-blue-500 uppercase tracking-widest mb-0.5">Originality Note</p>
+                                                            <p className="text-[11px] text-blue-600 leading-snug">{ev.originality_note}</p>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Dynamic section breakdown */}
+                                            <div className="grid grid-cols-2 gap-4">
+                                                {sectionKeys.map((key, idx) => {
+                                                    const sec = ev.sections?.[key];
+                                                    if (!sec) return null;
+                                                    const maxMarks = rubric[key]?.max_marks ?? sec.max ?? 10;
+                                                    const sectionName = rubric[key]?.name ?? key.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+                                                    const pct = Math.round((sec.score / maxMarks) * 100);
+                                                    const sc = sectionColors[idx % sectionColors.length];
+                                                    const icon = sectionIcons[idx % sectionIcons.length];
+                                                    return (
+                                                        <div key={key} className={`rounded-xl border p-4 ${sc.bg} ${sc.border}`}>
+                                                            <div className="flex items-center justify-between mb-2">
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-base">{icon}</span>
+                                                                    <p className={`text-[10px] font-black uppercase tracking-widest ${sc.text}`}>{sectionName}</p>
+                                                                </div>
+                                                                <span className={`text-sm font-black ${sc.text}`}>{sec.score}/{maxMarks}</span>
+                                                            </div>
+                                                            <ThinBar pct={pct} colorClass="bg-violet-400" />
+                                                            <p className="text-[10px] text-gray-600 leading-snug mt-2">{sec.feedback}</p>
+                                                            <div className="mt-2 flex items-start gap-1.5">
+                                                                <span className="text-emerald-500 text-xs shrink-0">✓</span>
+                                                                <p className="text-[10px] text-emerald-700 leading-snug">{sec.strengths}</p>
+                                                            </div>
+                                                            <div className="mt-1.5 flex items-start gap-1.5">
+                                                                <span className="text-amber-500 text-xs shrink-0">→</span>
+                                                                <p className="text-[10px] text-amber-700 leading-snug">{sec.improvement}</p>
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+
+                                            {/* Topic + rubric info banner */}
+                                            <div className="mt-5 grid grid-cols-2 gap-3">
+                                                {essayResult.topic && (
+                                                    <div className="flex items-center gap-3 bg-violet-50 rounded-xl px-4 py-3 border border-violet-100">
+                                                        <PenLine size={13} className="text-violet-400 shrink-0" />
+                                                        <div>
+                                                            <p className="text-[9px] font-black text-violet-400 uppercase tracking-widest">Essay Topic</p>
+                                                            <p className="text-xs font-bold text-violet-700">{essayResult.topic}</p>
+                                                        </div>
+                                                    </div>
+                                                )}
+                                                <div className="flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-3 border border-gray-100">
+                                                    <PenLine size={13} className="text-gray-400 shrink-0" />
+                                                    <div>
+                                                        <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest">Sections Evaluated</p>
+                                                        <p className="text-xs font-bold text-gray-700">{sectionKeys.length} sections · {totalMax} marks total</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })()}
 
                                 {/* ── R5: Pipe Puzzle analytics ── */}
                                 {ds && ds.pipeMax > 0 && (

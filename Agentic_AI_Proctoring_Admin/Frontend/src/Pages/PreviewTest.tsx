@@ -136,6 +136,7 @@ interface AssessmentData {
   SQL: SQLSectionData | null
   Gaming: GamingSectionData | null
   FITB: FITBSectionData | null
+  Essay: { enabled: boolean; topic: string; duration: number | null; rubric?: { sections: Record<string, { name: string; max_marks: number; criteria: string[] }> } | null } | null
 }
 
 const difficultyColors: Record<string, string> = {
@@ -179,7 +180,7 @@ const PreviewTest = () => {
   const [data, setData] = useState<AssessmentData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'coding' | 'mcq' | 'sql' | 'gaming' | 'fitb' | null>(null)
+  const [activeTab, setActiveTab] = useState<'coding' | 'mcq' | 'sql' | 'gaming' | 'fitb' | 'essay' | null>(null)
   const [expandedQuestion, setExpandedQuestion] = useState<string | number | null>(null)
   const [showStopModal, setShowStopModal] = useState(false)
 
@@ -192,7 +193,7 @@ const PreviewTest = () => {
       console.log('API response:', json)
 
       // Accept data even if sections are null — just not all missing entirely
-      if (!json?.Coding && !json?.MCQ && !json?.SQL && !json?.Gaming && !json?.FITB) {
+      if (!json?.Coding && !json?.MCQ && !json?.SQL && !json?.Gaming && !json?.FITB && !json?.Essay) {
         setError(`Unexpected data shape: ${JSON.stringify(Object.keys(json))}`)
         return
       }
@@ -262,6 +263,7 @@ const PreviewTest = () => {
   const hasSQL = !!(data?.SQL?.questions?.length)
   const hasFITB = !!(data?.FITB?.sections?.length)
   const hasGaming = !!(data?.Gaming && data?.Gaming?.games?.[0]?.enabled)
+  const hasEssay = !!(data?.Essay?.enabled)
 
   // ── Render guards ──────────────────────────────────────────────────────────
 
@@ -367,6 +369,12 @@ const PreviewTest = () => {
               color: 'amber',
               show: !!(data.FITB?.total_questions)
             },
+            {
+              label: 'Essay',
+              value: '50 marks',
+              color: 'violet',
+              show: hasEssay
+            },
           ].filter(card => card.show).map(({ label, value, color }) => (
             <div key={label} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
               <p className="text-sm text-gray-500">{label}</p>
@@ -430,6 +438,17 @@ const PreviewTest = () => {
                 }`}
             >
               ✏️ Fill in the Blanks
+            </button>
+          )}
+          {hasEssay && (
+            <button
+              onClick={() => setActiveTab('essay')}
+              className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'essay'
+                ? 'bg-violet-600 text-white shadow'
+                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                }`}
+            >
+              📝 Essay
             </button>
           )}
         </div>
@@ -940,6 +959,121 @@ const PreviewTest = () => {
             )}
           </>
         )}
+
+        {/* ── Essay Tab ── */}
+        {activeTab === 'essay' && hasEssay && data.Essay && (() => {
+          const rubricSections = data.Essay.rubric?.sections
+            ? Object.entries(data.Essay.rubric.sections as Record<string, { name: string; max_marks: number; criteria: string[] }>)
+            : null;
+          const totalMarks = rubricSections
+            ? rubricSections.reduce((sum, [, s]) => sum + (s.max_marks || 0), 0)
+            : 50;
+          const sectionColors = [
+            'bg-indigo-50 border-indigo-100 text-indigo-700',
+            'bg-blue-50 border-blue-100 text-blue-700',
+            'bg-orange-50 border-orange-100 text-orange-700',
+            'bg-purple-50 border-purple-100 text-purple-700',
+            'bg-emerald-50 border-emerald-100 text-emerald-700',
+          ];
+          const sectionIcons = ['📖', '🏭', '📊', '🔭', '🏁', '🧠', '🔍', '💡'];
+          return (
+            <div className="space-y-4">
+              <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-8">
+                <div className="flex items-center gap-3 mb-6">
+                  <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center text-2xl">📝</div>
+                  <div>
+                    <h3 className="font-bold text-gray-800">Essay / Long Answer Section</h3>
+                    <p className="text-xs text-gray-500">AI-evaluated with dynamic rubric · {totalMarks} marks total</p>
+                  </div>
+                  {data.Essay.duration && (
+                    <div className="ml-auto flex items-center gap-1.5 bg-violet-50 text-violet-700 px-3 py-1.5 rounded-lg text-sm">
+                      ⏱ {formatDuration(String(data.Essay.duration))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="bg-violet-50 border border-violet-100 rounded-xl px-6 py-5 mb-6">
+                  <p className="text-[10px] font-black text-violet-400 uppercase tracking-widest mb-2">Essay Topic / Prompt</p>
+                  <p className="text-base font-semibold text-gray-800 leading-relaxed">{data.Essay.topic || '—'}</p>
+                </div>
+
+                <div>
+                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">
+                    {rubricSections ? 'Admin-Defined Rubric Sections' : 'Default Rubric Breakdown'}
+                  </p>
+                  {rubricSections ? (
+                    <div className="space-y-3">
+                      {rubricSections.map(([key, sec], idx) => (
+                        <div key={key} className={`rounded-xl border px-5 py-4 ${sectionColors[idx % sectionColors.length]}`}>
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">{sectionIcons[idx % sectionIcons.length]}</span>
+                              <p className="text-sm font-black">{sec.name}</p>
+                            </div>
+                            <span className="text-xl font-black">{sec.max_marks} <span className="text-xs font-bold opacity-60">marks</span></span>
+                          </div>
+                          {sec.criteria?.length > 0 && (
+                            <ul className="mt-1 space-y-0.5">
+                              {sec.criteria.map((c, ci) => (
+                                <li key={ci} className="flex items-start gap-1.5 text-[10px] opacity-80">
+                                  <span className="mt-0.5 shrink-0">•</span>{c}
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {[
+                        { label: 'Introduction',        marks: 10, color: 'bg-indigo-50 border-indigo-100 text-indigo-700',   icon: '📖' },
+                        { label: 'Industry Overview',   marks: 10, color: 'bg-blue-50 border-blue-100 text-blue-700',         icon: '🏭' },
+                        { label: 'Impact Analysis',     marks: 10, color: 'bg-orange-50 border-orange-100 text-orange-700',   icon: '📊' },
+                        { label: 'Future Predictions',  marks: 10, color: 'bg-purple-50 border-purple-100 text-purple-700',   icon: '🔭' },
+                        { label: 'Conclusion',          marks: 10, color: 'bg-emerald-50 border-emerald-100 text-emerald-700',icon: '🏁' },
+                      ].map((r) => (
+                        <div key={r.label} className={`rounded-xl border px-4 py-4 flex flex-col gap-2 ${r.color}`}>
+                          <span className="text-xl">{r.icon}</span>
+                          <p className="text-xs font-bold leading-snug">{r.label}</p>
+                          <p className="text-2xl font-black">{r.marks}</p>
+                          <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">marks</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="mt-6 grid grid-cols-3 gap-3">
+                  {[
+                    { label: 'Total Marks', value: `${totalMarks} marks` },
+                    { label: 'Min. Word Count', value: '200 words' },
+                    { label: 'Evaluation Engine', value: 'Google Gemini 1.5 Flash' },
+                  ].map((k) => (
+                    <div key={k.label} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">{k.label}</p>
+                      <p className="text-xs font-bold text-gray-700">{k.value}</p>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Feature badges */}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {[
+                    { icon: '💡', label: 'Per-section improvement suggestions' },
+                    { icon: '🔍', label: 'Originality & generic-writing detection' },
+                    { icon: '✨', label: 'Strength highlights per section' },
+                  ].map(f => (
+                    <span key={f.label} className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 border border-violet-100 rounded-lg text-[10px] font-bold text-violet-700">
+                      <span>{f.icon}</span>{f.label}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
       </div>
 
       {data.status !== 'terminated' && (
