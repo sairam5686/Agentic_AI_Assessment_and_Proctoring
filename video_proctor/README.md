@@ -1,4 +1,4 @@
-# AI Video Proctor & Code Analysis System
+# AI Video Proctor & Code Analysis System 
 
 An AI-powered proctoring solution that combines real-time video monitoring with automated code analysis to ensure exam integrity.
 
