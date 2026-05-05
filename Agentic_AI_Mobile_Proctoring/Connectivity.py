@@ -1,9 +1,9 @@
 """
-main.py — Pure function-call proctoring entry point.
+Connectivity.py — Pure function-call proctoring entry point.
 
 Public API
 ──────────
-  analyze_frame(frame, assessment_id, email_id, agents) → dict
+  analyze_frame(frame, assessment_id, email_id, session) → dict
       Run ONE frame through all agents. Returns a structured result dict.
 
   run_session(source, assessment_id, email_id, show_preview) → dict
@@ -16,6 +16,10 @@ Public API
 import time
 import cv2
 import numpy as np
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import TimeoutError as FuturesTimeoutError
+from collections import defaultdict
+from typing import Optional
 
 from agents.vision_agent     import VisionAgent
 from agents.gesture_agent    import GestureAgent
@@ -44,12 +48,61 @@ class ProctoringSession:
         self.report_agent    = ReportAgent(self.risk_agent, self.violation_agent)
         self.session_start   = time.time()
         self.frame_count     = 0
+
+        # ── Concurrency & frame-drop guard ────────────────────────────────────
+        self.processing  = False  # True while a frame is being analysed
+        self._executor   = ThreadPoolExecutor(max_workers=2)  # vision + gesture in parallel
+
+        # ── Per-agent result cache (used as fallback on timeout / error) ──────
+        self._last_valid = {"vision": None, "gesture": None}
+
+        # ── N-frame consolidation buffers (violation name → deque of bools) ──
+        self._buffers = defaultdict(list)
+
+        # ── Minimum consecutive detections required before a violation fires ─
+        self._thresholds = {
+            "face_not_visible":   5,
+            "multiple_people":    3,
+            "illegal_objects":    3,
+            "suspicious_gesture": 5,
+            "phone_detected":     3,
+            "looking_away":       5,
+            "reaching_down":      4,  # gesture event active in supervisor
+        }
+
         print("[MobileProctor] All agents initialised.")
+
+    def _should_fire(self, violation: str, detected: bool) -> bool:
+        """
+        N-frame debounce gate: returns True only when the violation has been
+        detected in every one of the last N consecutive frames.
+
+        This eliminates single-frame false positives (lighting glitch, YOLO
+        jitter, etc.) without modifying any agent or supervisor file.
+
+        Args:
+            violation : key matching self._thresholds (e.g. "multiple_people")
+            detected  : whether this agent flagged the violation this frame
+
+        Returns:
+            True  → violation is genuine; pass it through to supervisor
+            False → not enough consecutive detections yet; suppress this frame
+        """
+        n   = self._thresholds.get(violation, 5)
+        buf = self._buffers[violation]
+        buf.append(detected)
+        # Keep only the last N entries to bound memory
+        if len(buf) > n:
+            del buf[:-n]
+        return len(buf) == n and all(buf)
 
     def close(self):
         """
-        Explicitly close all resource-heavy agents.
+        Explicitly close all resource-heavy agents and the thread-pool executor.
         """
+        # Shut down the shared executor (non-blocking so FastAPI can respond)
+        if hasattr(self, "_executor"):
+            self._executor.shutdown(wait=False)
         if hasattr(self, "vision_agent"):
             self.vision_agent.close()
         if hasattr(self, "gesture_agent"):
@@ -65,7 +118,7 @@ def analyze_frame(
     frame: np.ndarray,
     assessment_id: str = "",
     email_id:      str = "",
-    session: ProctoringSession | None = None,
+    session: Optional[ProctoringSession] = None,
 ) -> dict:
     """
     Analyse ONE video frame through all proctoring agents.
@@ -97,16 +150,82 @@ def analyze_frame(
 
     session.frame_count += 1
 
-    vision_data  = session.vision_agent.analyze_vision(frame)
-    gesture_data = session.gesture_agent.analyze_gestures(frame)
+    # ── Safe defaults (used on agent timeout / error) ─────────────────────────
+    _DEFAULT_VISION  = {"face_visible": True, "multiple_people": False, "illegal_objects": []}
+    _DEFAULT_GESTURE = {"suspicious_gesture": False, "phone_detected": False,
+                        "looking_away": False, "reaching_down": False}
+
+    # ── Take a single snapshot so both agents see the exact same frame ────────
+    frame_snapshot = frame.copy()
+
+    # ── Dispatch vision + gesture in parallel via the session executor ────────
+    futures = {
+        session._executor.submit(session.vision_agent.analyze_vision,    frame_snapshot): "vision",
+        session._executor.submit(session.gesture_agent.analyze_gestures, frame_snapshot): "gesture",
+    }
+
+    vision_data  = None
+    gesture_data = None
+
+    for future in as_completed(futures, timeout=2.0):
+        agent_name = futures[future]
+        try:
+            result = future.result()
+            if result:                              # cache the last valid output
+                session._last_valid[agent_name] = result
+            if agent_name == "vision":
+                vision_data  = result or session._last_valid["vision"]  or _DEFAULT_VISION
+            else:
+                gesture_data = result or session._last_valid["gesture"] or _DEFAULT_GESTURE
+        except (FuturesTimeoutError, Exception) as exc:
+            print(f"[Mobile][{agent_name}] agent failed: {exc}")
+            if agent_name == "vision":
+                vision_data  = session._last_valid["vision"]  or _DEFAULT_VISION
+            else:
+                gesture_data = session._last_valid["gesture"] or _DEFAULT_GESTURE
+
+    # ── Final safety fallback if as_completed itself timed out ────────────────
+    if vision_data  is None: vision_data  = _DEFAULT_VISION
+    if gesture_data is None: gesture_data = _DEFAULT_GESTURE
+
+    # ── N-frame debounce: pre-filter vision_data before supervisor sees it ────
+    # We build a filtered copy so the supervisor fires only on genuine,
+    # consecutive detections — without touching supervisor_agent.py at all.
+    filtered_vision = {
+        "face_visible":    vision_data.get("face_visible", True),
+        # multiple_people fires only after 3 consecutive detections
+        "multiple_people": (
+            vision_data.get("multiple_people", False)
+            and session._should_fire("multiple_people", vision_data.get("multiple_people", False))
+        ),
+        # illegal_objects fires only after 3 consecutive frames for each obj
+        "illegal_objects": [
+            obj for obj in vision_data.get("illegal_objects", [])
+            if session._should_fire(f"illegal_obj:{obj}", True)
+        ],
+    }
+
+    filtered_gesture = {
+        k: (
+            v and session._should_fire(k, bool(v))
+        )
+        for k, v in gesture_data.items()
+    }
 
     violations_this_frame = session.supervisor.supervise(
-        vision_data   = vision_data,
-        gesture_data  = gesture_data,
+        vision_data   = filtered_vision,
+        gesture_data  = filtered_gesture,
         frame         = frame,
         assessment_id = assessment_id,
         email_id      = email_id,
     )
+
+    # ── Reset _should_fire buffers for any violation NOT detected this frame ──
+    # This ensures the N-consecutive counter resets on clean frames.
+    for viol_key in list(session._buffers.keys()):
+        # If the buffer's last entry was False, clear it to avoid stale counts
+        if session._buffers[viol_key] and not session._buffers[viol_key][-1]:
+            session._buffers[viol_key].clear()
 
     result = {
         "suspicion_score":       session.risk_agent.suspicion_score,
