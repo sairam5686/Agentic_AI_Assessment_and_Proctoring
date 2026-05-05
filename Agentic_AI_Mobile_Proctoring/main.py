@@ -5,8 +5,9 @@ import asyncio
 if sys.platform == 'win32':
     asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
-from fastapi import FastAPI
+from fastapi import FastAPI, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
+from concurrent.futures import ThreadPoolExecutor
 import base64
 import cv2
 import numpy as np
@@ -14,12 +15,15 @@ from pydantic import BaseModel
 import time
 import os
 import signal
-import state 
+import state
 from Connectivity import ProctoringSession, analyze_frame
 from starlette.middleware.base import BaseHTTPMiddleware
 from fastapi import Request
 
 from Connection.ViolationLogs import Risk_Score_Mobile_collection
+
+# ── Module-level thread pool for offloading CPU-bound frame analysis ──────────
+executor = ThreadPoolExecutor(max_workers=4)
 
 
 app = FastAPI()
@@ -93,7 +97,7 @@ class FrameRequest(BaseModel):
 
 
 @app.post("/video/frame/mobile")
-async def receive_frame(data: FrameRequest):
+async def receive_frame(data: FrameRequest, background_tasks: BackgroundTasks):
 
     try:
         # Create session key (normalized)
@@ -104,14 +108,21 @@ async def receive_frame(data: FrameRequest):
         # Create session only if allowed or exists
         if session_key not in sessions:
             if not accepting_new_sessions:
-                print(f"[DEBUG] Rejecting session {session_key}: Proctoring not active")
+                print(f"[Mobile] Rejecting session {session_key}: Proctoring not active")
                 return {"status": "error", "message": "Proctoring session not active"}
-            print(f"[DEBUG] Initializing new session for {session_key}")
+            print(f"[Mobile] Initializing new session for {session_key}")
             sessions[session_key] = ProctoringSession()
         
         session = sessions[session_key]
         session.last_activity = time.time()  # Update activity time
-        print(f"[DEBUG] Processing frame {session.frame_count} for {session_key}")
+
+        # ── Frame-drop guard: skip if the previous frame is still being analysed
+        if session.processing:
+            return {"status": "skipped", "message": "Previous frame still processing"}
+
+        # Throttled session log (every 30 frames instead of every frame)
+        if session.frame_count % 30 == 0:
+            print(f"[Mobile] Session {session_key} — frame {session.frame_count}")
 
         # Handle both "data:image/jpeg;base64,<data>" and raw base64 strings
         if "," in data.image:
@@ -128,18 +139,24 @@ async def receive_frame(data: FrameRequest):
         # Convert to OpenCV frame
         frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
 
-        # Call your AI proctoring function
-        result = analyze_frame(
-            frame=frame,
-            assessment_id=data.assessment_id,
-            email_id=data.email_id,
-            session=session
-        )
+        # ── Offload CPU-bound frame analysis to the thread pool ──────────────────
+        session.processing = True
+        try:
+            result = await asyncio.get_event_loop().run_in_executor(
+                executor,
+                analyze_frame,
+                frame, data.assessment_id, data.email_id, session
+            )
+        finally:
+            session.processing = False
 
-        # Update analytics periodically (every 30 frames) OR if a violation occurred
+        # ── Schedule report generation in the background (non-blocking) ─────────
+        # Only generate on violations or every 30 frames to avoid I/O thrash
         if session.frame_count % 30 == 0 or result["violations_this_frame"]:
-            duration = time.time() - session.session_start
-            session.report_agent.generate_reports(duration, include_pdf=False)
+            duration_snap = time.time() - session.session_start
+            background_tasks.add_task(
+                session.report_agent.generate_reports, duration_snap, include_pdf=False
+            )
 
         return {
             "status": "success",
