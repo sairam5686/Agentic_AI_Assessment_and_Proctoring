@@ -27,8 +27,9 @@ Essay_Results = CandidateData_DB["essay_results"] if CandidateData_DB is not Non
 class EssaySubmission(BaseModel):
     essay_text: str
     topic: str
-    candidate_id: str
-    exam_id: str
+    email: str
+    assessment_id: str
+    user_name: str
 
 
 # ── Default rubric (fallback when admin has not defined one) ──────────────────
@@ -234,7 +235,7 @@ async def evaluate_essay(submission: EssaySubmission):
     builds a dynamic Gemini prompt, evaluates the essay, saves to MongoDB, and
     returns the structured result with all 3 extra features.
     """
-    print(f"[ESSAY ROUTER] Received submission for candidate: {submission.candidate_id}, exam: {submission.exam_id}")
+    print(f"[ESSAY ROUTER] Received submission for candidate: {submission.email}, assessment: {submission.assessment_id}")
     
     if not GEMINI_API_KEY:
         raise HTTPException(
@@ -243,7 +244,7 @@ async def evaluate_essay(submission: EssaySubmission):
         )
 
     # ── Fetch the admin-defined rubric (or default) ───────────────────────────
-    rubric = fetch_rubric(submission.exam_id)
+    rubric = fetch_rubric(submission.assessment_id)
 
     # ── Build dynamic prompt ──────────────────────────────────────────────────
     prompt = build_essay_prompt(
@@ -279,8 +280,9 @@ async def evaluate_essay(submission: EssaySubmission):
 
     # ── Persist to MongoDB ────────────────────────────────────────────────────
     document = {
-        "candidate_id": submission.candidate_id,
-        "exam_id": submission.exam_id,
+        "email": submission.email,
+        "assessment_id": submission.assessment_id,
+        "user_name": submission.user_name,
         "topic": submission.topic,
         "essay_text": submission.essay_text,
         "rubric_used": rubric,
@@ -291,7 +293,7 @@ async def evaluate_essay(submission: EssaySubmission):
     if Essay_Results is not None:
         try:
             Essay_Results.update_one(
-                {"candidate_id": submission.candidate_id, "exam_id": submission.exam_id},
+                {"email": submission.email, "assessment_id": submission.assessment_id},
                 {"$set": document},
                 upsert=True,
             )
@@ -303,16 +305,17 @@ async def evaluate_essay(submission: EssaySubmission):
 
     return {
         "status": "success",
-        "candidate_id": submission.candidate_id,
-        "exam_id": submission.exam_id,
+        "email": submission.email,
+        "assessment_id": submission.assessment_id,
+        "user_name": submission.user_name,
         "topic": submission.topic,
         "rubric_used": rubric,
         "result": result,
     }
 
 
-@router.get("/result/{candidate_id}/{exam_id}")
-async def get_essay_result(candidate_id: str, exam_id: str):
+@router.get("/result/{email}/{assessment_id}")
+async def get_essay_result(email: str, assessment_id: str):
     """
     Fetches the essay evaluation result for a specific candidate and exam
     from MongoDB, including the rubric that was used at evaluation time.
@@ -324,20 +327,21 @@ async def get_essay_result(candidate_id: str, exam_id: str):
         )
 
     record = Essay_Results.find_one(
-        {"candidate_id": candidate_id, "exam_id": exam_id},
+        {"email": email, "assessment_id": assessment_id},
         {"_id": 0}
     )
 
     if record is None:
         raise HTTPException(
             status_code=404,
-            detail=f"No essay result found for candidate '{candidate_id}' in exam '{exam_id}'."
+            detail=f"No essay result found for candidate '{email}' in assessment '{assessment_id}'."
         )
 
     return {
         "status": "success",
-        "candidate_id": candidate_id,
-        "exam_id": exam_id,
+        "email": email,
+        "assessment_id": assessment_id,
+        "user_name": record.get("user_name"),
         "topic": record.get("topic"),
         "rubric_used": record.get("rubric_used"),
         "submitted_at": record.get("submitted_at"),

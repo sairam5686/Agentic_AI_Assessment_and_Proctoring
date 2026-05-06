@@ -556,11 +556,11 @@ async def get_candidate_results(assessment_id: str, candidate_email: str):
     FITB_results = list(FITB_Results_DB.find(query))
     Pipe_Puzzle_results = list(Piped_Puzzle_DB.find(query))
 
-    # Essay results use candidate_id (email) as candidate_id key
+    # Essay results use email and assessment_id
     essay_result = None
     if Essay_Results_DB is not None:
         essay_result = Essay_Results_DB.find_one(
-            {"exam_id": assessment_id, "candidate_id": candidate_email},
+            {"assessment_id": assessment_id, "email": candidate_email},
             {"_id": 0}
         )
     
@@ -591,7 +591,7 @@ async def get_essay_result(assessment_id: str, candidate_email: str):
     if Essay_Results_DB is None:
         raise HTTPException(status_code=503, detail="Essay results database unavailable.")
     record = Essay_Results_DB.find_one(
-        {"exam_id": assessment_id, "candidate_id": candidate_email},
+        {"assessment_id": assessment_id, "email": candidate_email},
         {"_id": 0}
     )
     if not record:

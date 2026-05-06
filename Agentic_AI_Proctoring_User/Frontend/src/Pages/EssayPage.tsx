@@ -179,8 +179,9 @@ const EssayPage = () => {
       const payload = {
         essay_text: essayText,
         topic: topic,
-        candidate_id: candidateId,
-        exam_id: examId,
+        email: candidateId, // candidateId variable holds the email
+        assessment_id: examId,
+        user_name: localStorage.getItem("candidate_name") || "Candidate",
       }
 
       const res = await fetch(`${API_BASE}/api/essay/evaluate`, {
