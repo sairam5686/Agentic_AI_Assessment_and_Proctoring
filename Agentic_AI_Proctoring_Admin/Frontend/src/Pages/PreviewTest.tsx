@@ -131,12 +131,22 @@ interface FITBSectionData {
 interface AssessmentData {
   assessment_id: string
   status: string
+  category?: string
+  metadata?: any
+  certification_config?: any
   Coding: CodingSection | null
   MCQ: MCQSectionData | null
   SQL: SQLSectionData | null
   Gaming: GamingSectionData | null
   FITB: FITBSectionData | null
-  Essay: { enabled: boolean; topic: string; duration: number | null; rubric?: { sections: Record<string, { name: string; max_marks: number; criteria: string[] }> } | null } | null
+  Essay: { 
+    enabled: boolean; 
+    topic: string; 
+    duration: number | null; 
+    rubric?: { 
+      sections: Record<string, { name: string; max_marks: number; criteria: string[] }> 
+    } | null 
+  } | null
 }
 
 const difficultyColors: Record<string, string> = {
@@ -184,7 +194,7 @@ const PreviewTest = () => {
   const [expandedQuestion, setExpandedQuestion] = useState<string | number | null>(null)
   const [showStopModal, setShowStopModal] = useState(false)
 
-  const navigator = useNavigate()
+  const navigate = useNavigate()
 
   const fetcher = async (assessment_id: string) => {
     try {
@@ -201,7 +211,7 @@ const PreviewTest = () => {
       setData(json)
 
       // Auto-select a tab that actually has data
-      const hasGaming = json.Gaming && json.Gaming.games?.[0]?.enabled
+      const hasGaming = !!(json.Gaming && json.Gaming.games?.[0]?.enabled)
       if (hasGaming) setActiveTab('gaming')
       else if (json.MCQ && json.MCQ.total_questions > 0) setActiveTab('mcq')
       else if (json.Coding && json.Coding.total_questions > 0) setActiveTab('coding')
@@ -239,7 +249,7 @@ const PreviewTest = () => {
 
       if (!response.ok) throw new Error('Failed to update status');
 
-      setData({ ...data, status: 'terminated' });
+      setData(prev => prev ? { ...prev, status: 'terminated' } : null);
       toast.success("Assessment has been terminated successfully.");
       setShowStopModal(false);
     } catch (err) {
@@ -297,15 +307,26 @@ const PreviewTest = () => {
       <div className="bg-white border-b border-gray-200 px-6 py-5 sticky top-0 z-10 shadow-sm">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div>
-            <button onClick={() => navigator(-1)} className="flex gap-2 items-center text-gray-500 hover:text-gray-700">
+            <button onClick={() => navigate(-1)} className="flex gap-2 items-center text-gray-500 hover:text-gray-700">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg> Back
             </button>
             <h1 className="text-xl font-bold text-gray-900">
-              {data.Gaming?.test_title ?? data.Coding?.test_title ?? data.MCQ?.test_title ?? data.FITB?.test_title ?? 'Assessment Preview'}
+              {data.category === 'Certification' 
+                ? `${data.certification_config?.track_name} Assessment` 
+                : (data.Coding?.test_title ?? data.MCQ?.test_title ?? data.SQL?.test_title ?? data.FITB?.test_title ?? 'Assessment Preview')
+              }
             </h1>
-            <p className="text-xs text-gray-400 mt-0.5">ID: {data.assessment_id}</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">ID: {data.assessment_id}</p>
+              {data.certification_config && (
+                <>
+                  <span className="text-gray-300">•</span>
+                  <p className="text-xs text-blue-600 font-bold uppercase tracking-wider">{data.certification_config.issuer}</p>
+                </>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex gap-4 text-sm text-gray-600">
@@ -341,9 +362,9 @@ const PreviewTest = () => {
           {[
             {
               label: 'Gaming Rounds',
-              value: data.Gaming?.games[0]?.rounds_count ?? 0,
+              value: data.Gaming?.games?.[0]?.rounds_count ?? 0,
               color: 'orange',
-              show: data.Gaming && data.Gaming.games?.[0]?.enabled
+              show: !!(data.Gaming && data.Gaming.games?.[0]?.enabled)
             },
             {
               label: 'MCQ Questions',
@@ -992,10 +1013,17 @@ const PreviewTest = () => {
                   )}
                 </div>
 
-                <div className="bg-violet-50 border border-violet-100 rounded-xl px-6 py-5 mb-6">
-                  <p className="text-[10px] font-black text-violet-400 uppercase tracking-widest mb-2">Essay Topic / Prompt</p>
+                <div className="bg-violet-50 border border-violet-100 rounded-xl px-6 py-5 mb-4">
+                  <p className="text-[10px] font-black text-violet-400 uppercase tracking-widest mb-1">Essay Topic / Prompt</p>
                   <p className="text-base font-semibold text-gray-800 leading-relaxed">{data.Essay.topic || '—'}</p>
                 </div>
+
+                {data.metadata?.essay_instructions && (
+                  <div className="bg-white border border-gray-100 rounded-xl px-6 py-5 mb-6 shadow-sm">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Instructions / Question Description</p>
+                    <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{data.metadata.essay_instructions}</p>
+                  </div>
+                )}
 
                 <div>
                   <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">
@@ -1077,7 +1105,7 @@ const PreviewTest = () => {
       </div>
 
       {data.status !== 'terminated' && (
-        <button onClick={() => navigator("/start-test", { state: { assessment_id: data.assessment_id } })}
+        <button onClick={() => navigate("/start-test", { state: { assessment_id: data.assessment_id } })}
           className="fixed right-6 bottom-6 group flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-5 py-3 rounded-2xl shadow-lg hover:shadow-indigo-300 hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 active:scale-95 active:translate-y-0">
           {/* Pulsing dot */}
           <span className="relative flex h-2.5 w-2.5">

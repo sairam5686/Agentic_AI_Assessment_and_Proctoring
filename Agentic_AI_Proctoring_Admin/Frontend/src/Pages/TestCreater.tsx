@@ -36,7 +36,9 @@ const TestCreator: React.FC = () => {
     semester: '',
     subjectCode: '',
     examDate: '',
-    duration: '180'
+    duration: '180',
+    regulation: '',
+    subjectName: ''
   });
 
   const [certificationData, setCertificationData] = useState({
@@ -69,6 +71,7 @@ const TestCreator: React.FC = () => {
       Gaming: config.Gaming
     });
     setEssayEnabled(config.Essay);
+    setGamingEnabled(config.Gaming);
   };
   const [gamingEnabled, setGamingEnabled] = useState<boolean>(true);
   const [gamingRounds, setGamingRounds] = useState<string>('3');
@@ -78,6 +81,7 @@ const TestCreator: React.FC = () => {
   // Essay state — dynamic rubric
   const [essayEnabled, setEssayEnabled] = useState<boolean>(false);
   const [essayTopic, setEssayTopic] = useState<string>('');
+  const [essayInstructions, setEssayInstructions] = useState<string>('');
   const [essayDuration, setEssayDuration] = useState<string>('30');
 
   interface RubricSection {
@@ -139,6 +143,7 @@ const TestCreator: React.FC = () => {
   ];
 
   const [rubricSections, setRubricSections] = useState<RubricSection[]>(DEFAULT_RUBRIC);
+  const totalRubricMarks = rubricSections.reduce((sum, s) => sum + (Number(s.max_marks) || 0), 0);
   const [expandedRubricKey, setExpandedRubricKey] = useState<string | null>(null);
 
   const updateRubricSection = (key: string, field: keyof RubricSection, value: any) => {
@@ -166,7 +171,6 @@ const TestCreator: React.FC = () => {
     ));
   };
 
-  const totalRubricMarks = rubricSections.reduce((sum, s) => sum + (s.max_marks || 0), 0);
 
   // Per-section enabled toggles
   const [sectionEnabled, setSectionEnabled] = useState<Record<SectionType, boolean>>({
@@ -204,6 +208,8 @@ const TestCreator: React.FC = () => {
       formData.append("Certification_Title", certificationData.certificateTitle);
       formData.append("Certification_Thresholds", JSON.stringify(certificationData.sectionThresholds));
       formData.append("Certification_Global_Threshold", String(certificationData.globalThreshold));
+    } else if (selectedCategory === 'University') {
+      formData.append("Test_Title", universityData.examTitle);
     } else {
       formData.append("Test_Title", testName);
     }
@@ -233,7 +239,10 @@ const TestCreator: React.FC = () => {
 
     const gamingSection = sections.find(s => s.type === "Gaming");
     const isUni = selectedCategory === 'University';
-    formData.append("Gaming_enabled", String(isUni ? false : gamingEnabled));
+    const isCert = selectedCategory === 'Certification';
+    const actualGamingEnabled = isCert ? sectionEnabled.Gaming : (isUni ? false : gamingEnabled);
+    
+    formData.append("Gaming_enabled", String(actualGamingEnabled));
     if (gamingSection && !isUni) {
       formData.append("Gaming_duration_per_round", gamingSection.duration);
       formData.append("Gaming_rounds_count", gamingRounds);
@@ -243,6 +252,7 @@ const TestCreator: React.FC = () => {
     formData.append("Essay_enabled", String(essayEnabled));
     if (essayEnabled) {
       formData.append("Essay_topic", essayTopic);
+      formData.append("Essay_instructions", essayInstructions);
       formData.append("Essay_duration", essayDuration);
       // Build rubric object: { sections: { [key]: { name, max_marks, criteria } } }
       const rubricPayload: Record<string, { name: string; max_marks: number; criteria: string[] }> = {};
@@ -307,78 +317,83 @@ const TestCreator: React.FC = () => {
 
         {(selectedCategory === 'Hiring' || (selectedCategory === 'Certification' && certStep === 2)) && (
           <>
-            <div className="flex items-center gap-0 mb-8 overflow-x-auto">
-              {steps.map((step, i) => (
-                <React.Fragment key={step}>
-                  <div className="flex items-center gap-1.5 whitespace-nowrap">
-                    <span className={`text-sm font-semibold ${i === 0 ? 'text-orange-500 border-b-2 border-orange-500 pb-0.5' : 'text-gray-400'}`}>
-                      {i + 1}. {step}
-                    </span>
-                  </div>
-                  {i < steps.length - 1 && (
-                    <svg className="w-4 h-4 text-gray-300 mx-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  )}
-                </React.Fragment>
-              ))}
-            </div>
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
-              <div className="mb-2">
-                <label className="block text-sm font-medium text-gray-700 mb-1">Assessment Title</label>
-                <input
-                  type="text"
-                  className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition"
-                  placeholder="e.g., Summer Internship 2026"
-                  value={testName}
-                  onChange={(e) => setTestName(e.target.value)}
-                />
+            {selectedCategory === 'Hiring' && (
+              <>
+                <div className="flex items-center gap-0 mb-8 overflow-x-auto">
+                {steps.map((step, i) => (
+                  <React.Fragment key={step}>
+                    <div className="flex items-center gap-1.5 whitespace-nowrap">
+                      <span className={`text-sm font-semibold ${i === 0 ? 'text-orange-500 border-b-2 border-orange-500 pb-0.5' : 'text-gray-400'}`}>
+                        {i + 1}. {step}
+                      </span>
+                    </div>
+                    {i < steps.length - 1 && (
+                      <svg className="w-4 h-4 text-gray-300 mx-2 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                      </svg>
+                    )}
+                  </React.Fragment>
+                ))}
               </div>
-            </div>
 
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-sm font-bold text-gray-800">Gaming Section</h3>
-                  <p className="text-xs text-gray-500">Enable decision-making simulations</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" className="sr-only peer" checked={gamingEnabled} onChange={(e) => setGamingEnabled(e.target.checked)} />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
-                </label>
-              </div>
-              <div className="space-y-4 pt-4 border-t border-gray-100">
-                <div className={`flex items-center justify-between p-4 bg-orange-50 rounded-xl border border-orange-100 transition-opacity duration-300 ${gamingEnabled ? 'opacity-100' : 'opacity-40 grayscale pointer-events-none'}`}>
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center text-xl">🧩</div>
-                    <div>
-                      <p className="text-sm font-semibold text-gray-800">Pipe Puzzle</p>
-                      <p className="text-xs text-gray-500">Cognitive assessment simulation</p>
-                    </div>
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+                  <div className="mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Assessment Title</label>
+                    <input
+                      type="text"
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 focus:border-transparent transition"
+                      placeholder="e.g., Summer Internship 2026"
+                      value={testName}
+                      onChange={(e) => setTestName(e.target.value)}
+                    />
                   </div>
-                  <div className="flex items-center gap-8">
+                </div>
+
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mb-6">
+                  <div className="flex items-center justify-between mb-4">
                     <div>
-                      <label className="block text-[10px] text-gray-500 mb-1">Rounds (1-3)</label>
-                      <select
-                        className="w-20 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
-                        value={gamingRounds}
-                        onChange={(e) => setGamingRounds(e.target.value)}
-                      >
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                      </select>
+                      <h3 className="text-sm font-bold text-gray-800">Gaming Section</h3>
+                      <p className="text-xs text-gray-500">Enable decision-making simulations</p>
                     </div>
-                    <div>
-                      <label className="block text-[10px] text-gray-500 mb-1">Total Duration</label>
-                      <div className="w-24 px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-800 font-semibold shadow-sm">
-                        {(parseInt(gamingRounds) || 0) * 4} Mins
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={gamingEnabled} onChange={(e) => setGamingEnabled(e.target.checked)} />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500"></div>
+                    </label>
+                  </div>
+                  <div className="space-y-4 pt-4 border-t border-gray-100">
+                    <div className={`flex items-center justify-between p-4 bg-orange-50 rounded-xl border border-orange-100 transition-opacity duration-300 ${gamingEnabled ? 'opacity-100' : 'opacity-40 grayscale pointer-events-none'}`}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center text-xl">🧩</div>
+                        <div>
+                          <p className="text-sm font-semibold text-gray-800">Pipe Puzzle</p>
+                          <p className="text-xs text-gray-500">Cognitive assessment simulation</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-8">
+                        <div>
+                          <label className="block text-[10px] text-gray-500 mb-1">Rounds (1-3)</label>
+                          <select
+                            className="w-20 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
+                            value={gamingRounds}
+                            onChange={(e) => setGamingRounds(e.target.value)}
+                          >
+                            <option value="1">1</option>
+                            <option value="2">2</option>
+                            <option value="3">3</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-[10px] text-gray-500 mb-1">Total Duration</label>
+                          <div className="w-24 px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white text-gray-800 font-semibold shadow-sm">
+                            {(parseInt(gamingRounds) || 0) * 4} Mins
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            </div>
+              </>
+            )}
 
             <div className="space-y-4">
               {([
@@ -387,7 +402,17 @@ const TestCreator: React.FC = () => {
                 { section: sql,    label: 'SQL Queries',        color: 'emerald', sublabel: 'Database query challenges',        type: 'SQL'    as SectionType },
                 { section: fitb,   label: 'Fill in the Blanks', color: 'amber',   sublabel: 'Vocabulary and concept recall',    type: 'FITB'   as SectionType },
               ] as { section: Section; label: string; color: string; sublabel: string; type: SectionType }[]).map(({ section, label, color, sublabel, type }) => {
-                const enabled = sectionEnabled[type];
+                const isCert = selectedCategory === 'Certification';
+                const config = isCert ? CERTIFICATION_TRACKS[certificationData.trackName] : null;
+                const isEnabledByTrack = isCert ? config?.[type] : true;
+                
+                // For Certification, only show sections enabled for the track
+                if (isCert && !isEnabledByTrack) return null;
+
+                const enabled = isCert ? true : sectionEnabled[type];
+                
+                const cardColor = isCert ? 'blue' : color;
+
                 return (
                   <div key={section.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
                     <div className="flex items-center justify-between mb-4">
@@ -395,18 +420,23 @@ const TestCreator: React.FC = () => {
                         <h3 className="text-sm font-bold text-gray-800">{label}</h3>
                         <p className="text-xs text-gray-500">{sublabel}</p>
                       </div>
-                      <label className="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" className="sr-only peer" checked={enabled} onChange={() => toggleSection(type)} />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500" />
-                      </label>
+                      {!isCert && (
+                        <label className="relative inline-flex items-center cursor-pointer">
+                          <input type="checkbox" className="sr-only peer" checked={enabled} onChange={() => toggleSection(type)} />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500" />
+                        </label>
+                      )}
+                      {isCert && (
+                        <span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)] animate-pulse" />
+                      )}
                     </div>
                     <div className="space-y-4 pt-4 border-t border-gray-100">
-                      <div className={`flex items-center justify-between p-4 bg-${color}-50 rounded-xl border border-${color}-100 transition-opacity duration-300 ${enabled ? 'opacity-100' : 'opacity-40 grayscale pointer-events-none'}`}>
+                      <div className={`flex items-center justify-between p-4 bg-${cardColor}-50 rounded-xl border border-${cardColor}-100 transition-opacity duration-300 ${enabled ? 'opacity-100' : 'opacity-40 grayscale pointer-events-none'}`}>
                         <div>
                           <p className="text-sm font-semibold text-gray-800">{label}</p>
                           <p className="text-xs text-gray-500">{sublabel}</p>
                         </div>
-                        <div className="flex items-center gap-8">
+                        <div className="flex items-center gap-6">
                           <div>
                             <label className="block text-[10px] text-gray-500 mb-1">Question File</label>
                             <label className={`flex items-center gap-2 px-3 py-1.5 border-2 border-dashed ${section.file1 ? 'border-orange-500 bg-orange-50' : 'border-gray-300 hover:border-orange-400 hover:bg-orange-50'} rounded-lg cursor-pointer transition-all`}>
@@ -414,7 +444,7 @@ const TestCreator: React.FC = () => {
                               <svg className={`w-4 h-4 shrink-0 ${section.file1 ? 'text-orange-600' : 'text-gray-400'}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
                               </svg>
-                              <span className={`text-xs font-bold truncate max-w-[130px] ${section.file1 ? 'text-orange-700' : 'text-gray-400'}`}>
+                              <span className={`text-xs font-bold truncate max-w-[100px] ${section.file1 ? 'text-orange-700' : 'text-gray-400'}`}>
                                 {section.file1 ? section.file1.name : 'Choose .xlsx'}
                               </span>
                             </label>
@@ -424,7 +454,7 @@ const TestCreator: React.FC = () => {
                             <div className="flex items-center gap-2">
                               <input
                                 type="number"
-                                className="w-20 px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
+                                className="w-16 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
                                 placeholder="Mins"
                                 value={section.duration}
                                 onChange={(e) => handleDurationChange(section.id, e.target.value)}
@@ -432,170 +462,354 @@ const TestCreator: React.FC = () => {
                               <span className="text-[10px] text-gray-500 font-bold uppercase">Mins</span>
                             </div>
                           </div>
+                          {isCert && (
+                            <div>
+                              <label className="block text-[10px] text-gray-500 mb-1">Passing %</label>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="number"
+                                  className="w-16 px-2 py-1.5 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white font-bold text-blue-700"
+                                  placeholder="60"
+                                  value={certificationData.sectionThresholds[type.toLowerCase()] || certificationData.globalThreshold}
+                                  onChange={(e) => {
+                                    const val = Number(e.target.value);
+                                    setCertificationData({
+                                      ...certificationData,
+                                      sectionThresholds: { ...certificationData.sectionThresholds, [type.toLowerCase()]: val }
+                                    });
+                                  }}
+                                />
+                                <span className="text-[10px] text-blue-500 font-bold">%</span>
+                              </div>
+                            </div>
+                          )}
                         </div>
                       </div>
                     </div>
                   </div>
                 );
               })}
-            </div>
 
-            {/* ═══ Essay / Long Answer — Dynamic Rubric Builder ═══ */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mt-4">
-              {/* Header */}
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className="text-sm font-bold text-gray-800">Essay / Long Answer</h3>
-                  <p className="text-xs text-gray-500">AI-evaluated with a custom rubric you define below</p>
-                </div>
-                <label className="relative inline-flex items-center cursor-pointer">
-                  <input type="checkbox" className="sr-only peer" checked={essayEnabled} onChange={(e) => setEssayEnabled(e.target.checked)} />
-                  <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-violet-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600" />
-                </label>
-              </div>
-
-              <div className={`space-y-4 pt-4 border-t border-gray-100 transition-opacity duration-300 ${essayEnabled ? 'opacity-100' : 'opacity-40 grayscale pointer-events-none'}`}>
-
-                {/* Topic + Duration row */}
-                <div className="flex gap-4">
-                  <div className="flex-1">
-                    <label className="block text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider">Essay Topic / Prompt</label>
-                    <input
-                      type="text"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white"
-                      placeholder="e.g., Impact of Generative AI on the Healthcare Industry"
-                      value={essayTopic}
-                      onChange={(e) => setEssayTopic(e.target.value)}
-                    />
-                  </div>
-                  <div className="w-36">
-                    <label className="block text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider">Duration</label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        className="w-20 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white"
-                        placeholder="Mins"
-                        value={essayDuration}
-                        onChange={(e) => setEssayDuration(e.target.value)}
-                      />
-                      <span className="text-[10px] text-gray-500 font-bold uppercase">Mins</span>
+              {/* Essay Section for Certification Step 2 */}
+              {selectedCategory === 'Certification' && CERTIFICATION_TRACKS[certificationData.trackName]?.Essay && (
+                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <div>
+                        <h3 className="text-sm font-bold text-gray-800">Strategic Essay</h3>
+                        <p className="text-xs text-gray-500">AI-evaluated with a custom rubric you define below</p>
+                      </div>
+                      <span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)] animate-pulse" />
                     </div>
-                  </div>
-                </div>
-
-                {/* Rubric builder header */}
-                <div className="flex items-center justify-between pt-2">
-                  <div>
-                    <p className="text-xs font-black text-gray-700 uppercase tracking-wider">Evaluation Rubric</p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">Gemini will evaluate each section using these criteria</p>
-                  </div>
-                  <span className={`px-3 py-1 rounded-full text-xs font-black border ${
-                    totalRubricMarks === 50
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : 'bg-red-50 text-red-600 border-red-200'
-                  }`}>
-                    Total: {totalRubricMarks} / 50 marks
-                  </span>
-                </div>
-
-                {/* Rubric sections */}
-                <div className="space-y-2">
-                  {rubricSections.map((section, sIdx) => {
-                    const isOpen = expandedRubricKey === section.key;
-                    const sectionColors = [
-                      { bg: 'bg-indigo-50',  border: 'border-indigo-200',  badge: 'bg-indigo-100 text-indigo-700',  accent: 'text-indigo-600',  ring: 'focus:ring-indigo-300'  },
-                      { bg: 'bg-blue-50',    border: 'border-blue-200',    badge: 'bg-blue-100 text-blue-700',      accent: 'text-blue-600',    ring: 'focus:ring-blue-300'    },
-                      { bg: 'bg-orange-50',  border: 'border-orange-200',  badge: 'bg-orange-100 text-orange-700',  accent: 'text-orange-600',  ring: 'focus:ring-orange-300'  },
-                      { bg: 'bg-purple-50',  border: 'border-purple-200',  badge: 'bg-purple-100 text-purple-700',  accent: 'text-purple-600',  ring: 'focus:ring-purple-300'  },
-                      { bg: 'bg-emerald-50', border: 'border-emerald-200', badge: 'bg-emerald-100 text-emerald-700',accent: 'text-emerald-600', ring: 'focus:ring-emerald-300' },
-                    ];
-                    const sc = sectionColors[sIdx % sectionColors.length];
-                    return (
-                      <div key={section.key} className={`rounded-xl border ${sc.border} ${sc.bg} overflow-hidden`}>
-                        {/* Section row header */}
-                        <button
-                          type="button"
-                          onClick={() => setExpandedRubricKey(isOpen ? null : section.key)}
-                          className="w-full flex items-center gap-3 px-4 py-3 text-left"
-                        >
-                          <span className={`text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center ${sc.badge}`}>
-                            {sIdx + 1}
-                          </span>
-
-                          {/* Editable section name */}
+                    
+                    <div className="space-y-6 pt-4 border-t border-gray-100">
+                      {/* Topic + Duration row */}
+                      <div className="flex gap-4">
+                        <div className="flex-1">
+                          <label className="block text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider">Essay Topic / Prompt</label>
                           <input
                             type="text"
-                            value={section.name}
-                            onClick={e => e.stopPropagation()}
-                            onChange={e => updateRubricSection(section.key, 'name', e.target.value)}
-                            className={`flex-1 bg-transparent text-sm font-bold text-gray-800 border-none outline-none focus:bg-white/70 focus:rounded px-1 ${sc.ring}`}
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white"
+                            placeholder="e.g., Impact of Generative AI on the Healthcare Industry"
+                            value={essayTopic}
+                            onChange={(e) => setEssayTopic(e.target.value)}
                           />
-
-                          {/* Max marks */}
-                          <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                        </div>
+                        <div className="w-32">
+                          <label className="block text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider">Duration</label>
+                          <div className="flex items-center gap-2">
                             <input
                               type="number"
-                              min={0}
-                              max={50}
-                              value={section.max_marks}
-                              onChange={e => updateRubricSection(section.key, 'max_marks', parseInt(e.target.value) || 0)}
-                              className={`w-12 px-2 py-0.5 text-sm font-black text-center border border-gray-300 rounded-lg bg-white focus:outline-none ${sc.ring} focus:ring-2`}
+                              className="w-20 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white"
+                              value={essayDuration}
+                              onChange={(e) => setEssayDuration(e.target.value)}
                             />
-                            <span className="text-[10px] text-gray-500 font-bold">marks</span>
+                            <span className="text-[10px] text-gray-500 font-bold">Mins</span>
                           </div>
+                        </div>
+                        <div className="w-32">
+                          <label className="block text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider">Passing %</label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="number"
+                              className="w-20 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white font-bold text-blue-700"
+                              value={certificationData.sectionThresholds['essay'] || 60}
+                              onChange={(e) => {
+                                const val = Number(e.target.value);
+                                setCertificationData({
+                                  ...certificationData,
+                                  sectionThresholds: { ...certificationData.sectionThresholds, essay: val }
+                                });
+                              }}
+                            />
+                            <span className="text-[10px] text-blue-500 font-bold">%</span>
+                          </div>
+                        </div>
+                      </div>
 
-                          <span className={`text-xs ${sc.accent} ml-1`}>{isOpen ? '▲' : '▼'}</span>
-                        </button>
+                      {/* Instructions row */}
+                      <div>
+                        <label className="block text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider">Question Description / Instructions</label>
+                        <textarea
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white min-h-[80px]"
+                          placeholder="Provide detailed instructions or the full question text here..."
+                          value={essayInstructions}
+                          onChange={(e) => setEssayInstructions(e.target.value)}
+                        />
+                      </div>
 
-                        {/* Expanded: criteria list */}
-                        {isOpen && (
-                          <div className="px-4 pb-4 pt-1 space-y-2 border-t border-white/60">
-                            <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Grading Criteria — Gemini checks each of these</p>
-                            {section.criteria.map((criterion, cIdx) => (
-                              <div key={cIdx} className="flex items-center gap-2">
-                                <span className="text-gray-400 text-xs shrink-0">•</span>
+                      {/* Rubric builder header */}
+                      <div className="flex items-center justify-between pt-2">
+                        <div>
+                          <p className="text-xs font-black text-gray-700 uppercase tracking-wider">Evaluation Rubric</p>
+                          <p className="text-[10px] text-gray-400 mt-0.5">Define sub-headings and criteria for evaluation (e.g., Intro, Analysis, Conclusion)</p>
+                        </div>
+                        <span className={`px-3 py-1 rounded-full text-xs font-black border ${
+                          totalRubricMarks === 50
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                            : 'bg-red-50 text-red-600 border-red-200'
+                        }`}>
+                          Total: {totalRubricMarks} / 50 marks
+                        </span>
+                      </div>
+
+                      {/* Rubric sections */}
+                      <div className="space-y-2">
+                        {rubricSections.map((section, sIdx) => {
+                          const isOpen = expandedRubricKey === section.key;
+                          const sectionColors = [
+                            { bg: 'bg-indigo-50',  border: 'border-indigo-200',  badge: 'bg-indigo-100 text-indigo-700',  accent: 'text-indigo-600',  ring: 'focus:ring-indigo-300'  },
+                            { bg: 'bg-blue-50',    border: 'border-blue-200',    badge: 'bg-blue-100 text-blue-700',      accent: 'text-blue-600',    ring: 'focus:ring-blue-300'    },
+                            { bg: 'bg-orange-50',  border: 'border-orange-200',  badge: 'bg-orange-100 text-orange-700',  accent: 'text-orange-600',  ring: 'focus:ring-orange-300'  },
+                            { bg: 'bg-purple-50',  border: 'border-purple-200',  badge: 'bg-purple-100 text-purple-700',  accent: 'text-purple-600',  ring: 'focus:ring-purple-300'  },
+                            { bg: 'bg-emerald-50', border: 'border-emerald-200', badge: 'bg-emerald-100 text-emerald-700',accent: 'text-emerald-600', ring: 'focus:ring-emerald-300' },
+                          ];
+                          const sc = sectionColors[sIdx % sectionColors.length];
+                          return (
+                            <div key={section.key} className={`rounded-xl border ${sc.border} ${sc.bg} overflow-hidden`}>
+                              <button
+                                type="button"
+                                onClick={() => setExpandedRubricKey(isOpen ? null : section.key)}
+                                className="w-full flex items-center gap-3 px-4 py-3 text-left"
+                              >
+                                <span className={`text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center ${sc.badge}`}>
+                                  {sIdx + 1}
+                                </span>
                                 <input
                                   type="text"
-                                  value={criterion}
-                                  onChange={e => updateCriterion(section.key, cIdx, e.target.value)}
-                                  placeholder="e.g., Clearly introduces the topic..."
-                                  className="flex-1 text-sm px-3 py-1.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-violet-300"
+                                  value={section.name}
+                                  onClick={e => e.stopPropagation()}
+                                  onChange={e => updateRubricSection(section.key, 'name', e.target.value)}
+                                  className={`flex-1 bg-transparent text-sm font-bold text-gray-800 border-none outline-none focus:bg-white/70 focus:rounded px-1 ${sc.ring}`}
                                 />
-                                <button
-                                  type="button"
-                                  onClick={() => removeCriterion(section.key, cIdx)}
-                                  className="text-gray-300 hover:text-red-400 transition-colors text-lg leading-none"
-                                >×</button>
-                              </div>
-                            ))}
-                            <button
-                              type="button"
-                              onClick={() => addCriterion(section.key)}
-                              className={`mt-1 flex items-center gap-1.5 text-[11px] font-bold ${sc.accent} hover:underline`}
-                            >
-                              <span className="text-base leading-none">+</span> Add criterion
-                            </button>
-                          </div>
-                        )}
+                                <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                                  <input
+                                    type="number"
+                                    min={0}
+                                    max={50}
+                                    value={section.max_marks}
+                                    onChange={e => updateRubricSection(section.key, 'max_marks', parseInt(e.target.value) || 0)}
+                                    className={`w-12 px-2 py-0.5 text-sm font-black text-center border border-gray-300 rounded-lg bg-white focus:outline-none ${sc.ring} focus:ring-2`}
+                                  />
+                                  <span className="text-[10px] text-gray-500 font-bold">marks</span>
+                                </div>
+                                <span className={`text-xs ${sc.accent} ml-1`}>{isOpen ? '▲' : '▼'}</span>
+                              </button>
+
+                              {isOpen && (
+                                <div className="px-4 pb-4 pt-1 space-y-2 border-t border-white/60">
+                                  <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Grading Criteria</p>
+                                  {section.criteria.map((criterion, cIdx) => (
+                                    <div key={cIdx} className="flex items-center gap-2">
+                                      <span className="text-gray-400 text-xs shrink-0">•</span>
+                                      <input
+                                        type="text"
+                                        value={criterion}
+                                        onChange={e => updateCriterion(section.key, cIdx, e.target.value)}
+                                        placeholder="e.g., Clearly introduces the topic..."
+                                        className="flex-1 text-sm px-3 py-1.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-violet-300"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => removeCriterion(section.key, cIdx)}
+                                        className="text-gray-300 hover:text-red-400 transition-colors text-lg leading-none"
+                                      >×</button>
+                                    </div>
+                                  ))}
+                                  <button
+                                    type="button"
+                                    onClick={() => addCriterion(section.key)}
+                                    className={`mt-1 flex items-center gap-1.5 text-[11px] font-bold ${sc.accent} hover:underline`}
+                                  >
+                                    <span className="text-base leading-none">+</span> Add criterion
+                                  </button>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
-                    );
-                  })}
+                    </div>
+                 </div>
+              )}
+            </div>
+
+            {selectedCategory === 'Hiring' && (
+              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mt-4">
+                {/* Header */}
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-800">Essay / Long Answer</h3>
+                    <p className="text-xs text-gray-500">AI-evaluated with a custom rubric you define below</p>
+                  </div>
+                  <label className="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" className="sr-only peer" checked={essayEnabled} onChange={(e) => setEssayEnabled(e.target.checked)} />
+                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-violet-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-violet-600" />
+                  </label>
                 </div>
 
-                {/* Feature badges */}
-                <div className="flex flex-wrap gap-2 pt-1">
-                  {[
-                    { icon: '💡', label: 'Specific improvement suggestions per section' },
-                    { icon: '🔍', label: 'Originality & generic writing detection' },
-                    { icon: '✨', label: 'Strengths highlighted per section' },
-                  ].map(f => (
-                    <span key={f.label} className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 border border-violet-100 rounded-lg text-[10px] font-bold text-violet-700">
-                      <span>{f.icon}</span>{f.label}
+                <div className={`space-y-4 pt-4 border-t border-gray-100 transition-opacity duration-300 ${essayEnabled ? 'opacity-100' : 'opacity-40 grayscale pointer-events-none'}`}>
+
+                  {/* Topic + Duration row */}
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <label className="block text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider">Essay Topic / Prompt</label>
+                      <input
+                        type="text"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white"
+                        placeholder="e.g., Impact of Generative AI on the Healthcare Industry"
+                        value={essayTopic}
+                        onChange={(e) => setEssayTopic(e.target.value)}
+                      />
+                    </div>
+                    <div className="w-36">
+                      <label className="block text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider">Duration</label>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          className="w-20 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white"
+                          placeholder="Mins"
+                          value={essayDuration}
+                          onChange={(e) => setEssayDuration(e.target.value)}
+                        />
+                        <span className="text-[10px] text-gray-500 font-bold uppercase">Mins</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Rubric builder header */}
+                  <div className="flex items-center justify-between pt-2">
+                    <div>
+                      <p className="text-xs font-black text-gray-700 uppercase tracking-wider">Evaluation Rubric</p>
+                      <p className="text-[10px] text-gray-400 mt-0.5">Gemini will evaluate each section using these criteria</p>
+                    </div>
+                    <span className={`px-3 py-1 rounded-full text-xs font-black border ${
+                      totalRubricMarks === 50
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-red-50 text-red-600 border-red-200'
+                    }`}>
+                      Total: {totalRubricMarks} / 50 marks
                     </span>
-                  ))}
+                  </div>
+
+                  {/* Rubric sections */}
+                  <div className="space-y-2">
+                    {rubricSections.map((section, sIdx) => {
+                      const isOpen = expandedRubricKey === section.key;
+                      const sectionColors = [
+                        { bg: 'bg-indigo-50',  border: 'border-indigo-200',  badge: 'bg-indigo-100 text-indigo-700',  accent: 'text-indigo-600',  ring: 'focus:ring-indigo-300'  },
+                        { bg: 'bg-blue-50',    border: 'border-blue-200',    badge: 'bg-blue-100 text-blue-700',      accent: 'text-blue-600',    ring: 'focus:ring-blue-300'    },
+                        { bg: 'bg-orange-50',  border: 'border-orange-200',  badge: 'bg-orange-100 text-orange-700',  accent: 'text-orange-600',  ring: 'focus:ring-orange-300'  },
+                        { bg: 'bg-purple-50',  border: 'border-purple-200',  badge: 'bg-purple-100 text-purple-700',  accent: 'text-purple-600',  ring: 'focus:ring-purple-300'  },
+                        { bg: 'bg-emerald-50', border: 'border-emerald-200', badge: 'bg-emerald-100 text-emerald-700',accent: 'text-emerald-600', ring: 'focus:ring-emerald-300' },
+                      ];
+                      const sc = sectionColors[sIdx % sectionColors.length];
+                      return (
+                        <div key={section.key} className={`rounded-xl border ${sc.border} ${sc.bg} overflow-hidden`}>
+                          {/* Section row header */}
+                          <button
+                            type="button"
+                            onClick={() => setExpandedRubricKey(isOpen ? null : section.key)}
+                            className="w-full flex items-center gap-3 px-4 py-3 text-left"
+                          >
+                            <span className={`text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center ${sc.badge}`}>
+                              {sIdx + 1}
+                            </span>
+
+                            {/* Editable section name */}
+                            <input
+                              type="text"
+                              value={section.name}
+                              onClick={e => e.stopPropagation()}
+                              onChange={e => updateRubricSection(section.key, 'name', e.target.value)}
+                              className={`flex-1 bg-transparent text-sm font-bold text-gray-800 border-none outline-none focus:bg-white/70 focus:rounded px-1 ${sc.ring}`}
+                            />
+
+                            {/* Max marks */}
+                            <div className="flex items-center gap-1 shrink-0" onClick={e => e.stopPropagation()}>
+                              <input
+                                type="number"
+                                min={0}
+                                max={50}
+                                value={section.max_marks}
+                                onChange={e => updateRubricSection(section.key, 'max_marks', parseInt(e.target.value) || 0)}
+                                className={`w-12 px-2 py-0.5 text-sm font-black text-center border border-gray-300 rounded-lg bg-white focus:outline-none ${sc.ring} focus:ring-2`}
+                              />
+                              <span className="text-[10px] text-gray-500 font-bold">marks</span>
+                            </div>
+
+                            <span className={`text-xs ${sc.accent} ml-1`}>{isOpen ? '▲' : '▼'}</span>
+                          </button>
+
+                          {/* Expanded: criteria list */}
+                          {isOpen && (
+                            <div className="px-4 pb-4 pt-1 space-y-2 border-t border-white/60">
+                              <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Grading Criteria — Gemini checks each of these</p>
+                              {section.criteria.map((criterion, cIdx) => (
+                                <div key={cIdx} className="flex items-center gap-2">
+                                  <span className="text-gray-400 text-xs shrink-0">•</span>
+                                  <input
+                                    type="text"
+                                    value={criterion}
+                                    onChange={e => updateCriterion(section.key, cIdx, e.target.value)}
+                                    placeholder="e.g., Clearly introduces the topic..."
+                                    className="flex-1 text-sm px-3 py-1.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-violet-300"
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => removeCriterion(section.key, cIdx)}
+                                    className="text-gray-300 hover:text-red-400 transition-colors text-lg leading-none"
+                                  >×</button>
+                                </div>
+                              ))}
+                              <button
+                                type="button"
+                                onClick={() => addCriterion(section.key)}
+                                className={`mt-1 flex items-center gap-1.5 text-[11px] font-bold ${sc.accent} hover:underline`}
+                              >
+                                <span className="text-base leading-none">+</span> Add criterion
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Feature badges */}
+                  <div className="flex flex-wrap gap-2 pt-1">
+                    {[
+                      { icon: '💡', label: 'Specific improvement suggestions per section' },
+                      { icon: '🔍', label: 'Originality & generic writing detection' },
+                      { icon: '✨', label: 'Strengths highlighted per section' },
+                    ].map(f => (
+                      <span key={f.label} className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 border border-violet-100 rounded-lg text-[10px] font-bold text-violet-700">
+                        <span>{f.icon}</span>{f.label}
+                      </span>
+                    ))}
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </>
         )}
 
@@ -813,56 +1027,7 @@ const TestCreator: React.FC = () => {
                 </div>
               </div>
 
-              <div className="mt-10">
-                <div className="flex items-center justify-between mb-6">
-                  <h4 className="text-sm font-black text-gray-800 uppercase tracking-wider">Passing Standards (%)</h4>
-                  <div className="flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
-                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Global Cutoff:</span>
-                    <input 
-                      type="number" 
-                      value={certificationData.globalThreshold}
-                      onChange={(e) => setCertificationData({...certificationData, globalThreshold: Number(e.target.value)})}
-                      className="w-10 bg-transparent text-xs font-black text-blue-700 outline-none text-center"
-                    />
-                    <span className="text-[10px] font-black text-blue-600">%</span>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  {[
-                    { key: 'mcq', label: 'MCQ Concepts', enabled: sectionEnabled.MCQ },
-                    { key: 'coding', label: 'Coding Lab', enabled: sectionEnabled.Coding },
-                    { key: 'sql', label: 'SQL Mastery', enabled: sectionEnabled.SQL },
-                    { key: 'fitb', label: 'Theory (FITB)', enabled: sectionEnabled.FITB },
-                    { key: 'essay', label: 'Strategic Essay', enabled: essayEnabled },
-                    { key: 'gaming', label: 'Problem Solving', enabled: sectionEnabled.Gaming },
-                  ].map((sec) => (
-                    <div key={sec.key} className={`p-4 rounded-xl border-2 transition-all ${sec.enabled ? 'border-blue-100 bg-white shadow-sm' : 'border-gray-50 bg-gray-50/50 opacity-40 grayscale pointer-events-none'}`}>
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{sec.label}</span>
-                        {sec.enabled && <span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)] animate-pulse" />}
-                      </div>
-                      <div className="flex items-end gap-1">
-                        <input
-                          type="number"
-                          className="w-full text-2xl font-black text-gray-800 bg-transparent outline-none border-b-2 border-gray-100 focus:border-blue-400 transition-colors"
-                          value={certificationData.sectionThresholds[sec.key] || certificationData.globalThreshold}
-                          onChange={(e) => {
-                            const val = Number(e.target.value);
-                            setCertificationData({
-                              ...certificationData,
-                              sectionThresholds: { ...certificationData.sectionThresholds, [sec.key]: val }
-                            });
-                          }}
-                        />
-                        <span className="text-sm font-black text-gray-400 mb-1">%</span>
-                      </div>
-                      <p className="text-[9px] font-bold text-gray-400 mt-2">Required to pass section</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
+             </div>
           </div>
         )}
 
@@ -906,8 +1071,24 @@ const TestCreator: React.FC = () => {
               onClick={handleSubmit}
               disabled={
                 selectedCategory === 'Hiring' ? !testName : 
-                selectedCategory === 'Certification' ? !certificationData.trackName :
-                !universityData.examTitle
+                selectedCategory === 'Certification' ? (
+                  !certificationData.trackName || 
+                  !certificationData.issuer || 
+                  !certificationData.certificateTitle ||
+                  // Check if at least one section is enabled and configured
+                  (() => {
+                    const track = CERTIFICATION_TRACKS[certificationData.trackName];
+                    const activeSections = [
+                      track.MCQ && sections.find(s => s.type === 'MCQ')?.file1,
+                      track.Coding && sections.find(s => s.type === 'Coding')?.file1,
+                      track.SQL && sections.find(s => s.type === 'SQL')?.file1,
+                      track.FITB && sections.find(s => s.type === 'FITB')?.file1,
+                      track.Essay && essayTopic && essayDuration && totalRubricMarks === 50
+                    ].filter(Boolean);
+                    return activeSections.length === 0;
+                  })()
+                ) :
+                !universityData.examTitle || !universityData.regulation || !universityData.subjectName
               }
               className="px-8 py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
             >

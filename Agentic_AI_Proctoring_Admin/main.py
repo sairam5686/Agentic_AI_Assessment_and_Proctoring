@@ -114,6 +114,7 @@ async def create_test(
     Gaming_rounds_count: str = Form(None),
     Essay_enabled: str = Form("false"),
     Essay_topic: str = Form(None),
+    Essay_instructions: str = Form(None),
     Essay_duration: str = Form(None),
     Essay_rubric: str = Form(None),
     Certification_Track: str = Form(None),
@@ -146,6 +147,7 @@ async def create_test(
             "subject_name": Subject_Name,
             "essay_enabled": Essay_enabled.lower() == "true",
             "essay_topic": Essay_topic if Essay_enabled.lower() == "true" else None,
+            "essay_instructions": Essay_instructions if Essay_enabled.lower() == "true" else None,
             "essay_duration": int(Essay_duration) if Essay_duration and Essay_duration.isdigit() else None,
             "essay_rubric": json.loads(Essay_rubric) if Essay_rubric and Essay_enabled.lower() == "true" else None,
             "certification_config": {
