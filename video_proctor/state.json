@@ -2,7 +2,7 @@
     "video": {
         "risk_score": 50,
         "trust_score": 0,
-        "violation_score": 17
+        "violation_score": 30
     },
     "code": {
         "risk_score": 20,

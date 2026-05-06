@@ -218,7 +218,8 @@ def _clean_and_parse(raw: str) -> dict:
 
 def _call_gemini(prompt: str) -> dict:
     """Call Gemini and attempt to parse the JSON response. Returns parsed dict."""
-    model = genai.GenerativeModel("gemini-1.5-flash")
+    # Using gemini-flash-latest for best compatibility and availability
+    model = genai.GenerativeModel("gemini-flash-latest")
     response = model.generate_content(prompt)
     raw_text = response.text.strip()
     return _clean_and_parse(raw_text)
@@ -233,6 +234,8 @@ async def evaluate_essay(submission: EssaySubmission):
     builds a dynamic Gemini prompt, evaluates the essay, saves to MongoDB, and
     returns the structured result with all 3 extra features.
     """
+    print(f"[ESSAY ROUTER] Received submission for candidate: {submission.candidate_id}, exam: {submission.exam_id}")
+    
     if not GEMINI_API_KEY:
         raise HTTPException(
             status_code=500,
@@ -260,12 +263,18 @@ async def evaluate_essay(submission: EssaySubmission):
     except (json.JSONDecodeError, ValueError) as exc:
         raise HTTPException(
             status_code=500,
-            detail=f"Gemini returned invalid JSON after 2 attempts. Error: {str(exc)}"
+            detail=f"AI returned invalid JSON after 2 attempts. Please try again."
         )
     except Exception as exc:
+        err_msg = str(exc)
+        if "429" in err_msg or "quota" in err_msg.lower():
+            raise HTTPException(
+                status_code=429,
+                detail="Gemini API Quota Exceeded. Please check your API key limits or try again in a minute."
+            )
         raise HTTPException(
             status_code=500,
-            detail=f"Gemini API error: {str(exc)}"
+            detail=f"Gemini API error: {err_msg}"
         )
 
     # ── Persist to MongoDB ────────────────────────────────────────────────────

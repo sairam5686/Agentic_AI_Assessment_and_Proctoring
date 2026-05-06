@@ -99,6 +99,14 @@ const UserQuestionSections = () => {
       sub: `Concepts · ${QuestionsJson.FITB_Questions.length} items`, 
       tag: 'Theory', tagColor: '#f59e0b', tagBg: '#fffbeb' 
     }] : []),
+
+    // Only show Essay if it's enabled in Assessment_Info
+    ...(QuestionsJson.Assessment_Info?.essay_enabled ? [{
+      key: 'essay',
+      label: 'Essay Assessment',
+      sub: `Analytical Writing · ${QuestionsJson.Assessment_Info?.essay_topic || 'Standard Topic'}`,
+      tag: 'Writing', tagColor: '#ec4899', tagBg: '#fdf2f8'
+    }] : []),
   ] : [];
 
   useEffect(() => {
