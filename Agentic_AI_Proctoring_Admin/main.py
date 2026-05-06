@@ -115,7 +115,12 @@ async def create_test(
     Essay_enabled: str = Form("false"),
     Essay_topic: str = Form(None),
     Essay_duration: str = Form(None),
-    Essay_rubric: str = Form(None)   # JSON string: { sections: { key: { name, max_marks, criteria[] } } }
+    Essay_rubric: str = Form(None),
+    Certification_Track: str = Form(None),
+    Certification_Issuer: str = Form(None),
+    Certification_Title: str = Form(None),
+    Certification_Thresholds: str = Form(None),
+    Certification_Global_Threshold: str = Form(None)
 ):
     TestId = uuid.uuid4()
 
@@ -143,6 +148,13 @@ async def create_test(
             "essay_topic": Essay_topic if Essay_enabled.lower() == "true" else None,
             "essay_duration": int(Essay_duration) if Essay_duration and Essay_duration.isdigit() else None,
             "essay_rubric": json.loads(Essay_rubric) if Essay_rubric and Essay_enabled.lower() == "true" else None,
+            "certification_config": {
+                "track_name": Certification_Track,
+                "issuer": Certification_Issuer,
+                "title": Certification_Title,
+                "thresholds": json.loads(Certification_Thresholds) if Certification_Thresholds else {},
+                "global_threshold": int(Certification_Global_Threshold) if Certification_Global_Threshold else 60
+            } if Category == "Certification" else None,
             "created_at": datetime.now(),
             "status": "active"
         })
@@ -245,9 +257,11 @@ async def get_test_preview(assessment_id: str):
         "MCQ": mcq,
         "SQL": sql,
         "Gaming": gaming,
-        "FITB": fitb,
+        "FITB": serialize_mongo(fitb),
         "Essay": essay,
-        "TestCases": testcases
+        "TestCases": testcases,
+        "category": assessment_info.get("category") if assessment_info else "Hiring",
+        "certification_config": assessment_info.get("certification_config") if assessment_info else None
     }
 
     return serialize_mongo(response)

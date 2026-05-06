@@ -228,6 +228,7 @@ const CandidateAnalytics = () => {
     // ── NEW: mobile risk state ──
     const [mobileRiskData, setMobileRiskData] = useState<any>(null);
     const [essayResult, setEssayResult]        = useState<any>(null);
+    const [showCertificate, setShowCertificate] = useState(false);
     
 
     /* ── fetchers ── */
@@ -313,7 +314,7 @@ const CandidateAnalytics = () => {
 
     /* ── derived stats from candidateResult ── */
     const ds = (() => {
-        if (!candidateResult) return null;
+        if (!candidateResult || !testInfo) return null;
 
         const mcqList:  any[] = candidateResult.MCQ         || [];
         const codList:  any[] = candidateResult.Coding       || [];
@@ -329,7 +330,6 @@ const CandidateAnalytics = () => {
         const bestSQL = bestOf(sqlList, (x: any) => x.total_marks        ?? 0);
         const bestFITB = bestOf(fitbList, (x: any) => x.user_total_marks ?? 0);
 
-        /* scores */
         /* marks configuration from testInfo */
         const hasMCQ    = !!testInfo?.MCQ;
         const hasCod    = !!testInfo?.Coding;
@@ -349,45 +349,69 @@ const CandidateAnalytics = () => {
         const pipePass  = pipeList.filter((p: any) => p.scores?.[0]?.success).length;
         const pipeMax   = hasGaming ? pipeList.length : 0;
 
-        const totalScore = mcqScore + codScore + sqlScore + fitbScore;
-        const totalMax   = mcqMax + codMax + sqlMax + fitbMax;
+        /* essay score */
+        const essayEv = essayResult?.result || essayResult?.evaluation;
+        const essayScore = essayEv?.total_score ?? 0;
+        const essayMax = hasEssay ? Object.values(testInfo.Essay.rubric?.sections || {}).reduce((s: any, sec: any) => s + (sec.max_marks || 0), 0) : 0;
 
-        /* MCQ detail */
+        const totalScore = mcqScore + codScore + sqlScore + fitbScore + essayScore;
+        const totalMax   = mcqMax + codMax + sqlMax + fitbMax + essayMax;
+
+        /* Certification Logic */
+        const isCertification = testInfo?.category === 'Certification';
+        const certConfig = testInfo?.certification_config;
+        const thresholds = certConfig?.thresholds || {};
+        const globalThreshold = certConfig?.global_threshold || 60;
+
+        const checkPass = (score: number, max: number, key: string) => {
+            const threshold = thresholds[key] || globalThreshold;
+            return max > 0 ? (score / max) * 100 >= threshold : true;
+        };
+
+        const sectionPass = {
+            mcq: checkPass(mcqScore, mcqMax, 'mcq'),
+            coding: checkPass(codScore, codMax, 'coding'),
+            sql: checkPass(sqlScore, sqlMax, 'sql'),
+            fitb: checkPass(fitbScore, fitbMax, 'fitb'),
+            essay: checkPass(essayScore, essayMax, 'essay'),
+            gaming: hasGaming ? (pipePass / pipeMax) * 100 >= (thresholds['gaming'] || globalThreshold) : true
+        };
+
+        const isPassed = isCertification ? (
+            Object.values(sectionPass).every(v => v) && 
+            (totalScore / totalMax) * 100 >= globalThreshold
+        ) : false;
+
+        /* details */
         const mcqResults   = (bestMCQ as any)?.MCQ_Result ?? [];
         const mcqAnswered  = mcqResults.filter((q: any) => q.user_answer !== '').length;
         const mcqSkipped   = mcqResults.filter((q: any) => q.user_answer === '').length;
         const mcqCorrect   = mcqResults.filter((q: any) => q.Mark > 0).length;
         const mcqWrong     = mcqAnswered - mcqCorrect;
 
-        /* coding detail */
         const codResults   = (bestCod as any)?.results ?? [];
         const codAttempted = codResults.filter((q: any) => q.code?.trim()).length;
         const codPassed    = codResults.filter((q: any) => q.status === 'Passed').length;
         const codTotalQ    = codResults.length;
 
-        /* SQL detail */
         const sqlResults   = (bestSQL as any)?.results ?? [];
         const sqlAttempted = sqlResults.filter((q: any) => q.query?.trim()).length;
         const sqlPassed    = sqlResults.filter((q: any) => q.status === 'Passed').length;
         const sqlTotalQ    = sqlResults.length;
 
-        /* accuracy */
         const mcqAccuracy = mcqAnswered > 0 ? Math.round((mcqCorrect / mcqAnswered) * 100) : 0;
         const codAccuracy = codAttempted > 0 ? Math.round((codPassed / codAttempted) * 100) : 0;
         const sqlAccuracy = sqlAttempted > 0 ? Math.round((sqlPassed / sqlAttempted) * 100) : 0;
 
-        /* FITB detail */
         const fitbResults = (bestFITB as any)?.FITB_Result ?? [];
         const fitbAnswered = fitbResults.filter((q: any) => q.user_answer !== '').length;
         const fitbCorrect = fitbResults.filter((q: any) => q.Mark > 0).length;
         const fitbAccuracy = fitbAnswered > 0 ? Math.round((fitbCorrect / fitbAnswered) * 100) : 0;
 
-        /* score-over-attempts series */
         const mcqSeries = mcqList.map((a: any) => a.user_total_marks ?? 0);
         const codSeries = codList.map((a: any) => a.total_marks       ?? 0);
         const sqlSeries = sqlList.map((a: any) => a.total_marks        ?? 0);
 
-        /* pipe puzzle */
         const pipeSucc      = pipeList.filter((p: any) => p.scores?.[0]?.success);
         const pipeBestTime  = pipeSucc.length ? Math.min(...pipeSucc.map((p: any) => p.scores[0].time)) : null;
         const pipeAvgMoves  = pipeSucc.length ? Math.round(pipeSucc.reduce((s: number, p: any) => s + p.scores[0].moves, 0) / pipeSucc.length) : null;
@@ -397,7 +421,9 @@ const CandidateAnalytics = () => {
         return {
             totalScore, totalMax,
             mcqScore, mcqMax, codScore, codMax, sqlScore, sqlMax, fitbScore, fitbMax,
+            essayScore, essayMax,
             pipePass, pipeMax,
+            isCertification, isPassed, sectionPass, certConfig,
             hasMCQ, hasCod, hasSQL, hasFITB, hasGaming, hasEssay,
             mcqAnswered, mcqSkipped, mcqCorrect, mcqWrong,
             codAttempted, codPassed, codTotalQ,
@@ -414,7 +440,7 @@ const CandidateAnalytics = () => {
             pipeAttempts: pipeList.length,
             summary: candidateResult.summary,
         };
-    })();
+    })();;
 
     /* ── effects ── */
     useEffect(() => {
@@ -491,21 +517,45 @@ const CandidateAnalytics = () => {
             <div className="max-w-[1800px] mx-auto px-10 py-8">
 
                 {/* ── Header – unchanged ── */}
-                <div className="flex items-center gap-6 mb-10">
-                    <button onClick={() => navigate(-1)}
-                        className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors text-gray-600 active:scale-95">
-                        <ArrowLeft size={20} />
-                    </button>
-                    <div>
-                        <div className="flex items-center gap-3 mb-1">
-                            <h1 className="text-3xl font-black text-[#1e293b] tracking-tight uppercase">{candidate.name}</h1>
-                            <span className={`px-3 py-1 rounded-full text-[10px] font-black border uppercase tracking-widest leading-none
-                                ${analytics?.status === 'Completed' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-orange-50 text-orange-700 border-orange-100'}`}>
-                                {analytics?.status || 'Active'}
-                            </span>
+                <div className="flex items-center justify-between mb-10">
+                    <div className="flex items-center gap-6">
+                        <button onClick={() => navigate(-1)}
+                            className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center shadow-sm border border-gray-100 hover:bg-gray-50 transition-colors text-gray-600 active:scale-95">
+                            <ArrowLeft size={20} />
+                        </button>
+                        <div>
+                            <div className="flex items-center gap-3 mb-1">
+                                <h1 className="text-3xl font-black text-[#1e293b] tracking-tight uppercase">{candidate.name}</h1>
+                                <span className={`px-3 py-1 rounded-full text-[10px] font-black border uppercase tracking-widest leading-none
+                                    ${analytics?.status === 'Completed' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-orange-50 text-orange-700 border-orange-100'}`}>
+                                    {analytics?.status || 'Active'}
+                                </span>
+                            </div>
+                            <p className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em]">Candidate Assessment Report</p>
                         </div>
-                        <p className="text-[11px] font-bold text-gray-400 uppercase tracking-[0.2em]">Candidate Assessment Report</p>
                     </div>
+
+                    {ds?.isCertification && (
+                        <div className={`flex items-center gap-4 px-6 py-4 rounded-2xl border-2 transition-all duration-500 shadow-lg ${ds.isPassed ? 'bg-emerald-50 border-emerald-200' : 'bg-red-50 border-red-200'}`}>
+                            <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm ${ds.isPassed ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white'}`}>
+                                {ds.isPassed ? <Award /> : <XCircle />}
+                            </div>
+                            <div>
+                                <p className={`text-[10px] font-black uppercase tracking-widest ${ds.isPassed ? 'text-emerald-600' : 'text-red-600'}`}>Certification Status</p>
+                                <h3 className={`text-xl font-black uppercase ${ds.isPassed ? 'text-emerald-900' : 'text-red-900'}`}>
+                                    {ds.isPassed ? 'SUCCESSFUL' : 'FAILED'}
+                                </h3>
+                            </div>
+                            {ds.isPassed && (
+                                <button 
+                                    onClick={() => setShowCertificate(true)}
+                                    className="ml-4 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[10px] font-black uppercase tracking-widest rounded-lg flex items-center gap-2 transition-all hover:scale-105 active:scale-95 shadow-md"
+                                >
+                                    <Download size={14} /> Get Certificate
+                                </button>
+                            )}
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
@@ -1351,6 +1401,113 @@ const CandidateAnalytics = () => {
                     </div>
                 </div>
             </div>
+            {/* ── Certificate Modal ── */}
+            {showCertificate && ds && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0f172a]/90 backdrop-blur-md p-4">
+                    <motion.div 
+                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        className="bg-white rounded-[2.5rem] shadow-2xl max-w-4xl w-full overflow-hidden relative border-[12px] border-white"
+                    >
+                        {/* Certificate Design */}
+                        <div className="relative p-12 border-[3px] border-gray-100 rounded-[1.5rem] bg-gradient-to-br from-white via-slate-50/50 to-white overflow-hidden">
+                            {/* Decorative background elements */}
+                            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl" />
+                            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-64 h-64 bg-emerald-500/5 rounded-full blur-3xl" />
+                            
+                            {/* Watermark Logo */}
+                            <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none grayscale">
+                                <ShieldCheck size={500} />
+                            </div>
+
+                            <div className="relative flex flex-col items-center text-center">
+                                {/* Logo & Header */}
+                                <div className="w-20 h-20 bg-indigo-600 rounded-[1.5rem] flex items-center justify-center text-white mb-6 shadow-xl shadow-indigo-200 ring-8 ring-indigo-50">
+                                    <ShieldCheck size={40} />
+                                </div>
+                                <h1 className="text-sm font-black text-indigo-600 uppercase tracking-[0.4em] mb-4">{ds.certConfig?.issuer || 'VIRTUSA - JATAYU SEASON 5'}</h1>
+                                <div className="h-1 w-16 bg-indigo-600 rounded-full mb-12" />
+
+                                <h2 className="text-4xl font-black text-slate-900 tracking-tight uppercase mb-2">
+                                    {ds.certConfig?.title || 'Certificate of Achievement'}
+                                </h2>
+                                <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] mb-12">This high-honour credential is proudly presented to</p>
+
+                                <h3 className="text-6xl font-serif italic text-slate-800 mb-8 tracking-tight">{candidate.name}</h3>
+
+                                <div className="max-w-xl mx-auto mb-12">
+                                    <p className="text-slate-500 font-medium leading-relaxed">
+                                        For successfully demonstrating industry-standard proficiency and clearing all assessment benchmarks for the professional track of
+                                    </p>
+                                    <p className="text-xl font-black text-slate-900 mt-2 uppercase tracking-wide">
+                                        {ds.certConfig?.track_name || 'Professional Certification'}
+                                    </p>
+                                </div>
+
+                                {/* Results Summary on Certificate */}
+                                <div className="flex gap-6 mb-16">
+                                    <div className="text-center px-8 py-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Overall Score</p>
+                                        <p className="text-2xl font-black text-slate-800">{Math.round((ds.totalScore / ds.totalMax) * 100)}%</p>
+                                    </div>
+                                    <div className="text-center px-8 py-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Grade</p>
+                                        <p className="text-2xl font-black text-emerald-600">DISTINCTION</p>
+                                    </div>
+                                    <div className="text-center px-8 py-4 bg-slate-50 rounded-2xl border border-slate-100">
+                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Issued Date</p>
+                                        <p className="text-sm font-black text-slate-800 uppercase mt-1.5">{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                                    </div>
+                                </div>
+
+                                {/* Signatures */}
+                                <div className="w-full flex justify-between items-end px-12 mt-4">
+                                    <div className="text-center">
+                                        <div className="w-40 h-px bg-slate-300 mb-2" />
+                                        <p className="text-[10px] font-black text-slate-900 uppercase">Executive Director</p>
+                                        <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Virtusa Global Services</p>
+                                    </div>
+                                    <div className="relative">
+                                        <div className="w-24 h-24 absolute -top-12 -left-12 opacity-10">
+                                            <Fingerprint size={96} />
+                                        </div>
+                                        <div className="px-6 py-3 border-2 border-indigo-600/20 rounded-xl bg-white shadow-sm">
+                                            <p className="text-[8px] font-black text-indigo-600 uppercase tracking-tighter">Verified Credential</p>
+                                            <p className="text-[7px] text-slate-400 font-mono mt-0.5">{testId.substring(0,18).toUpperCase()}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-center">
+                                        <div className="w-40 h-px bg-slate-300 mb-2" />
+                                        <p className="text-[10px] font-black text-slate-900 uppercase">Lead Program Mentor</p>
+                                        <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Jatayu Season 5</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="p-6 bg-slate-50 border-t border-slate-100 flex justify-between items-center px-12">
+                            <button 
+                                onClick={() => setShowCertificate(false)}
+                                className="px-6 py-3 text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-slate-600 transition-colors"
+                            >
+                                Close Preview
+                            </button>
+                            <div className="flex gap-4">
+                                <button className="px-8 py-4 bg-white border border-slate-200 text-slate-900 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm">
+                                    <Copy size={14} /> Share Link
+                                </button>
+                                <button 
+                                    onClick={() => window.print()}
+                                    className="px-8 py-4 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all flex items-center gap-2 shadow-lg shadow-indigo-200 active:scale-95"
+                                >
+                                    <Download size={14} /> Download PDF
+                                </button>
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
+            )}
         </div>
     );
 };

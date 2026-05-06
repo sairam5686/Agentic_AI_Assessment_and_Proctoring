@@ -17,18 +17,34 @@ type AssessmentCategory = 'Hiring' | 'University' | 'Certification';
 
 const steps = ['Basic Info', 'Gaming', 'MCQ', 'Coding', 'SQL', 'FITB', 'Review'];
 
+const CERTIFICATION_TRACKS: Record<string, any> = {
+  'Python Developer': { MCQ: true, Coding: true, SQL: false, FITB: true, Essay: true, Gaming: false },
+  'Data Analyst': { MCQ: true, Coding: false, SQL: true, FITB: true, Essay: true, Gaming: false },
+  'Full Stack Dev': { MCQ: true, Coding: true, SQL: true, FITB: false, Essay: false, Gaming: false },
+  'Problem Solving': { MCQ: true, Coding: true, SQL: false, FITB: false, Essay: false, Gaming: true },
+  'AI/ML Engineer': { MCQ: true, Coding: true, SQL: false, FITB: true, Essay: true, Gaming: false },
+};
+
 const TestCreator: React.FC = () => {
   const navigate = useNavigate();
   const [selectedCategory, setSelectedCategory] = useState<AssessmentCategory>('Hiring');
 
   // University Fields State
   const [universityData, setUniversityData] = useState({
+    examTitle: '',
     department: '',
     semester: '',
     subjectCode: '',
-    regulation: '',
-    subjectName: '',
-    examTitle: ''
+    examDate: '',
+    duration: '180'
+  });
+
+  const [certificationData, setCertificationData] = useState({
+    trackName: '',
+    issuer: 'Virtusa - Jatayu Season 5',
+    certificateTitle: 'Certificate of Achievement',
+    globalThreshold: 60,
+    sectionThresholds: {} as Record<string, number>
   });
 
   const [testName, setTestName] = useState<string>('');
@@ -39,9 +55,25 @@ const TestCreator: React.FC = () => {
     { id: 4, type: 'SQL', name: 'SQL', duration: '', file1: null },
     { id: 5, type: 'FITB', name: 'FITB', duration: '', file1: null },
   ]);
+
+  const handleTrackChange = (trackName: string) => {
+    const config = CERTIFICATION_TRACKS[trackName];
+    if (!config) return;
+
+    setCertificationData(prev => ({ ...prev, trackName }));
+    setSectionEnabled({
+      MCQ: config.MCQ,
+      Coding: config.Coding,
+      SQL: config.SQL,
+      FITB: config.FITB,
+      Gaming: config.Gaming
+    });
+    setEssayEnabled(config.Essay);
+  };
   const [gamingEnabled, setGamingEnabled] = useState<boolean>(true);
   const [gamingRounds, setGamingRounds] = useState<string>('3');
   const [uniStep, setUniStep] = useState<number>(1);
+  const [certStep, setCertStep] = useState<number>(1);
 
   // Essay state — dynamic rubric
   const [essayEnabled, setEssayEnabled] = useState<boolean>(false);
@@ -164,7 +196,17 @@ const TestCreator: React.FC = () => {
 
     const formData = new FormData();
     formData.append("Admin_id", adminId);
-    formData.append("Test_Title", selectedCategory === 'University' ? universityData.examTitle : testName);
+    // Certification specific
+    if (selectedCategory === 'Certification') {
+      formData.append("Test_Title", certificationData.trackName);
+      formData.append("Certification_Track", certificationData.trackName);
+      formData.append("Certification_Issuer", certificationData.issuer);
+      formData.append("Certification_Title", certificationData.certificateTitle);
+      formData.append("Certification_Thresholds", JSON.stringify(certificationData.sectionThresholds));
+      formData.append("Certification_Global_Threshold", String(certificationData.globalThreshold));
+    } else {
+      formData.append("Test_Title", testName);
+    }
     formData.append("Category", selectedCategory);
 
     if (selectedCategory === 'University') {
@@ -211,7 +253,7 @@ const TestCreator: React.FC = () => {
     }
 
     try {
-      const response = await fetch("http://127.0.0.1:8000/create-test", {
+      const response = await fetch("http://localhost:8000/create-test", {
         method: "POST",
         body: formData,
       });
@@ -263,7 +305,7 @@ const TestCreator: React.FC = () => {
           ))}
         </div>
 
-        {selectedCategory === 'Hiring' && (
+        {(selectedCategory === 'Hiring' || (selectedCategory === 'Certification' && certStep === 2)) && (
           <>
             <div className="flex items-center gap-0 mb-8 overflow-x-auto">
               {steps.map((step, i) => (
@@ -712,15 +754,137 @@ const TestCreator: React.FC = () => {
           </div>
         )}
 
-        {selectedCategory === 'Certification' && (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-12 text-center">
-            <div className="text-5xl mb-4">📜</div>
-            <h3 className="text-xl font-bold text-gray-800">Skills Certification Portal</h3>
-            <p className="text-gray-500 mt-2">This feature is coming soon to the platform.</p>
+        {selectedCategory === 'Certification' && certStep === 1 && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center text-3xl shadow-inner">📜</div>
+                <div>
+                  <h3 className="text-xl font-black text-gray-800 tracking-tight">Professional Certification Designer</h3>
+                  <p className="text-sm text-gray-500 font-medium">Define the standards for your industry-grade certification</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-8">
+                <div className="space-y-6">
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 text-left">Certification Track Name</label>
+                    <div className="relative">
+                      <select
+                        className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-100 focus:border-blue-500 focus:bg-white rounded-2xl outline-none transition-all font-bold text-gray-800 appearance-none"
+                        value={certificationData.trackName}
+                        onChange={(e) => handleTrackChange(e.target.value)}
+                      >
+                        <option value="">Select a Certification Track</option>
+                        {Object.keys(CERTIFICATION_TRACKS).map(track => (
+                          <option key={track} value={track}>{track}</option>
+                        ))}
+                      </select>
+                      <div className="absolute right-5 top-1/2 -translate-y-1/2 pointer-events-none">
+                        <div className="w-2 h-2 border-b-2 border-r-2 border-gray-400 rotate-45" />
+                      </div>
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 text-left">Issuing Authority</label>
+                    <input
+                      type="text"
+                      className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-blue-400 outline-none transition-all"
+                      placeholder="e.g. Virtusa - Jatayu Season 5"
+                      value={certificationData.issuer}
+                      onChange={(e) => setCertificationData({...certificationData, issuer: e.target.value})}
+                    />
+                  </div>
+                </div>
+
+                <div className="bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-200 p-6 flex flex-col items-center justify-center relative overflow-hidden group">
+                   <div className="absolute top-0 right-0 p-3">
+                      <span className="px-2 py-1 bg-blue-500 text-[8px] font-black text-white rounded uppercase">Preview</span>
+                   </div>
+                   <div className="w-full border-4 border-double border-gray-300 p-4 bg-white shadow-sm flex flex-col items-center">
+                      <div className="w-8 h-8 bg-blue-600 rounded-full mb-2 flex items-center justify-center text-[10px] text-white font-bold">V</div>
+                      <h4 className="text-[10px] font-black uppercase tracking-tighter text-blue-900">{certificationData.certificateTitle}</h4>
+                      <div className="w-12 h-[1px] bg-gray-200 my-2" />
+                      <p className="text-[7px] text-gray-400 uppercase tracking-widest font-bold">This is to certify that</p>
+                      <p className="text-[12px] font-serif italic my-1 text-gray-800">Candidate Name</p>
+                      <p className="text-[7px] text-gray-400 uppercase tracking-widest font-bold">has successfully cleared the</p>
+                      <p className="text-[9px] font-black text-gray-700">{certificationData.trackName || 'Certification Track'}</p>
+                   </div>
+                </div>
+              </div>
+
+              <div className="mt-10">
+                <div className="flex items-center justify-between mb-6">
+                  <h4 className="text-sm font-black text-gray-800 uppercase tracking-wider">Passing Standards (%)</h4>
+                  <div className="flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
+                    <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">Global Cutoff:</span>
+                    <input 
+                      type="number" 
+                      value={certificationData.globalThreshold}
+                      onChange={(e) => setCertificationData({...certificationData, globalThreshold: Number(e.target.value)})}
+                      className="w-10 bg-transparent text-xs font-black text-blue-700 outline-none text-center"
+                    />
+                    <span className="text-[10px] font-black text-blue-600">%</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-4">
+                  {[
+                    { key: 'mcq', label: 'MCQ Concepts', enabled: sectionEnabled.MCQ },
+                    { key: 'coding', label: 'Coding Lab', enabled: sectionEnabled.Coding },
+                    { key: 'sql', label: 'SQL Mastery', enabled: sectionEnabled.SQL },
+                    { key: 'fitb', label: 'Theory (FITB)', enabled: sectionEnabled.FITB },
+                    { key: 'essay', label: 'Strategic Essay', enabled: essayEnabled },
+                    { key: 'gaming', label: 'Problem Solving', enabled: sectionEnabled.Gaming },
+                  ].map((sec) => (
+                    <div key={sec.key} className={`p-4 rounded-xl border-2 transition-all ${sec.enabled ? 'border-blue-100 bg-white shadow-sm' : 'border-gray-50 bg-gray-50/50 opacity-40 grayscale pointer-events-none'}`}>
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{sec.label}</span>
+                        {sec.enabled && <span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)] animate-pulse" />}
+                      </div>
+                      <div className="flex items-end gap-1">
+                        <input
+                          type="number"
+                          className="w-full text-2xl font-black text-gray-800 bg-transparent outline-none border-b-2 border-gray-100 focus:border-blue-400 transition-colors"
+                          value={certificationData.sectionThresholds[sec.key] || certificationData.globalThreshold}
+                          onChange={(e) => {
+                            const val = Number(e.target.value);
+                            setCertificationData({
+                              ...certificationData,
+                              sectionThresholds: { ...certificationData.sectionThresholds, [sec.key]: val }
+                            });
+                          }}
+                        />
+                        <span className="text-sm font-black text-gray-400 mb-1">%</span>
+                      </div>
+                      <p className="text-[9px] font-bold text-gray-400 mt-2">Required to pass section</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
           </div>
         )}
 
-        <div className="flex justify-end mt-8">
+        <div className="flex justify-end gap-4 mt-8">
+          {(selectedCategory === 'University' && uniStep === 2) && (
+            <button
+              onClick={() => setUniStep(1)}
+              className="px-8 py-3 bg-white border border-gray-200 text-gray-600 text-sm font-semibold rounded-lg shadow-sm hover:bg-gray-50 transition-all"
+            >
+              Back: Edit Info
+            </button>
+          )}
+
+          {(selectedCategory === 'Certification' && certStep === 2) && (
+            <button
+              onClick={() => setCertStep(1)}
+              className="px-8 py-3 bg-white border border-gray-200 text-gray-600 text-sm font-semibold rounded-lg shadow-sm hover:bg-gray-50 transition-all"
+            >
+              Back: Edit Certificate
+            </button>
+          )}
+
           {selectedCategory === 'University' && uniStep === 1 ? (
             <button
               onClick={() => setUniStep(2)}
@@ -729,13 +893,26 @@ const TestCreator: React.FC = () => {
             >
               Next: Add Questions
             </button>
+          ) : selectedCategory === 'Certification' && certStep === 1 ? (
+            <button
+              onClick={() => setCertStep(2)}
+              disabled={!certificationData.trackName || !certificationData.issuer}
+              className="px-8 py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
+            >
+              Next: Add Questions
+            </button>
           ) : (
             <button
               onClick={handleSubmit}
-              disabled={selectedCategory === 'Hiring' ? !testName : !universityData.examTitle}
+              disabled={
+                selectedCategory === 'Hiring' ? !testName : 
+                selectedCategory === 'Certification' ? !certificationData.trackName :
+                !universityData.examTitle
+              }
               className="px-8 py-3 bg-orange-500 hover:bg-orange-600 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-lg shadow-sm hover:shadow-md transition-all duration-200"
             >
-              {selectedCategory === 'University' ? 'Create University Exam' : 'Next Step'}
+              {selectedCategory === 'University' ? 'Create University Exam' : 
+               selectedCategory === 'Certification' ? 'Deploy Certification' : 'Next Step'}
             </button>
           )}
         </div>
