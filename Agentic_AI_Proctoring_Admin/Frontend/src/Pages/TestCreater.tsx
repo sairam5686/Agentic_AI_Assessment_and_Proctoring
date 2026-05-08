@@ -3,6 +3,7 @@ import NavBar from '../Components/NavBar';
 import { useNavigate } from 'react-router';
 import { toast } from 'react-toastify';
 import DiagramCreator from '../Components/DiagramCreator';
+import { Layout } from 'lucide-react';
 
 type SectionType = 'Coding' | 'MCQ' | 'SQL' | 'Gaming' | 'FITB';
 
@@ -104,6 +105,7 @@ const TestCreator: React.FC = () => {
   const [diagramEnabled, setDiagramEnabled] = useState<boolean>(false);
   const [diagramPrompt, setDiagramPrompt] = useState<string>('');
   const [masterJson, setMasterJson] = useState<any>(null);
+  const [isDiagramModalOpen, setIsDiagramModalOpen] = useState<boolean>(false);
 
   const DEFAULT_RUBRIC: RubricSection[] = [
     {
@@ -716,13 +718,59 @@ const TestCreator: React.FC = () => {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider">Master Solution (Correct Diagram)</label>
-                    <div className="h-[500px]">
+                    <label className="block text-[10px] text-gray-500 mb-2 font-bold uppercase tracking-wider">Diagram Configuration</label>
+                    <button
+                      type="button"
+                      onClick={() => setIsDiagramModalOpen(true)}
+                      className="flex items-center gap-2 bg-blue-50 text-blue-600 border border-blue-200 px-6 py-3 rounded-xl font-bold text-sm hover:bg-blue-100 transition-colors"
+                    >
+                      <Layout size={18} />
+                      {masterJson ? "Edit Master Solution Diagram" : "Configure Master Diagram Solution"}
+                    </button>
+                    {masterJson && (
+                      <p className="text-[10px] text-emerald-600 font-bold uppercase mt-2 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Master Diagram Saved
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Diagram Modal */}
+              {isDiagramModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm">
+                  <div className="bg-white w-full max-w-[1400px] h-[90vh] rounded-3xl shadow-2xl flex flex-col overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
+                    <div className="flex items-center justify-between px-6 py-4 border-b bg-slate-50">
+                      <div>
+                        <h2 className="text-lg font-black text-slate-800">Master Diagram Configuration</h2>
+                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Draw the ideal solution for AI Evaluation</p>
+                      </div>
+                      <div className="flex gap-4">
+                        <button
+                          onClick={() => setIsDiagramModalOpen(false)}
+                          className="px-6 py-2 bg-slate-200 text-slate-700 font-bold text-xs uppercase tracking-wider rounded-lg hover:bg-slate-300 transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={() => {
+                            // Saving is handled by onSave in DiagramCreator automatically updating state, 
+                            // but we can enforce it or just close.
+                            setIsDiagramModalOpen(false);
+                            toast.success("Master diagram configuration saved.");
+                          }}
+                          className="px-8 py-2 bg-blue-600 text-white font-bold text-xs uppercase tracking-wider rounded-lg hover:bg-blue-700 shadow-md transition-all"
+                        >
+                          Save Configuration
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex-1 overflow-hidden">
                       <DiagramCreator onSave={(data) => setMasterJson(data)} initialData={masterJson} />
                     </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
 
             {selectedCategory === 'Hiring' && (

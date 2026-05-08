@@ -3,150 +3,228 @@ import ReactFlow, {
   addEdge, 
   Background, 
   Controls, 
-  MiniMap, 
   useNodesState, 
   useEdgesState,
   ReactFlowProvider,
   Handle,
   Position,
-  Panel,
   MarkerType
 } from 'reactflow';
 import type { Connection, Edge, Node, NodeProps } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { toPng } from 'html-to-image';
 import { toast } from 'react-toastify';
-import { motion, AnimatePresence } from 'framer-motion';
 import { 
-  Square, Diamond, Circle, Database, Cloud, FileText, 
-  Send, Trash2, Palette, Type, Layers, Layout, X, Eraser, MousePointer2, Settings2, Activity
+  Search, Bold, Italic, Underline, Link, Image, 
+  Undo, Redo, ZoomIn, ZoomOut, Trash2, Eraser, ChevronDown, Flag, FileQuestion, Send
 } from 'lucide-react';
 
-// ── Mettl Pro Custom Node Components (Shared for consistent grading) ────────
+// ── Draw.io Style Custom Nodes (Shared for consistent grading) ──────────────
 
-const BaseNode = ({ children, data, selected, color = '#3b82f6', shape = 'rounded' }: any) => {
-  const borderRadius = shape === 'circle' ? '50%' : (shape === 'rounded' ? '8px' : '0px');
+const BaseNode = ({ data, selected, shape = 'rect' }: any) => {
+  let borderRadius = '0px';
+  if (shape === 'rounded') borderRadius = '8px';
+  if (shape === 'circle') borderRadius = '50%';
+  
   return (
     <div 
-      className={`relative px-4 py-2 shadow-sm transition-all border-2 ${selected ? 'ring-4 ring-blue-100 scale-105' : ''}`}
+      className={`relative flex items-center justify-center border-[1.5px] ${selected ? 'border-blue-500 shadow-[0_0_0_1px_rgba(59,130,246,0.5)]' : ''}`}
       style={{ 
         backgroundColor: data.bgColor || '#ffffff', 
-        borderColor: data.borderColor || color,
+        borderColor: selected ? '#3b82f6' : (data.borderColor || '#000000'),
         borderRadius: borderRadius,
         minWidth: '100px',
-        textAlign: 'center'
+        minHeight: '40px',
+        color: data.fontColor || '#000000',
+        fontWeight: data.bold ? 'bold' : 'normal',
+        fontStyle: data.italic ? 'italic' : 'normal',
+        textDecoration: data.underline ? 'underline' : 'none',
+        fontSize: `${data.fontSize || 12}px`,
+        fontFamily: data.fontFamily || 'Arial, sans-serif'
       }}
     >
-      <Handle type="target" position={Position.Top} className="!w-1.5 !h-1.5 !bg-slate-400 !border-none" />
-      <div className="text-[11px] font-black text-slate-800 uppercase tracking-tight" style={{ fontSize: `${data.fontSize || 11}px` }}>
+      <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-blue-500 !border-white !border-2 opacity-0 hover:opacity-100" />
+      <div className="px-2 py-1 select-none">
         {data.label}
       </div>
-      <Handle type="source" position={Position.Bottom} className="!w-1.5 !h-1.5 !bg-slate-400 !border-none" />
-      <Handle type="source" position={Position.Left} className="!w-1.5 !h-1.5 !bg-slate-400 !border-none" />
-      <Handle type="source" position={Position.Right} className="!w-1.5 !h-1.5 !bg-slate-400 !border-none" />
+      <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-blue-500 !border-white !border-2 opacity-0 hover:opacity-100" />
+      <Handle type="source" position={Position.Left} className="!w-2 !h-2 !bg-blue-500 !border-white !border-2 opacity-0 hover:opacity-100" />
+      <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-blue-500 !border-white !border-2 opacity-0 hover:opacity-100" />
     </div>
   );
 };
 
 const DiamondNode = ({ data, selected }: NodeProps) => (
   <div 
-    className={`w-20 h-20 flex items-center justify-center rotate-45 border-2 shadow-sm transition-all ${selected ? 'ring-4 ring-orange-100 scale-105' : ''}`}
-    style={{ backgroundColor: data.bgColor || '#fff', borderColor: data.borderColor || '#f97316' }}
+    className={`w-20 h-20 flex items-center justify-center rotate-45 border-[1.5px] ${selected ? 'border-blue-500 shadow-[0_0_0_1px_rgba(59,130,246,0.5)]' : ''}`}
+    style={{ 
+      backgroundColor: data.bgColor || '#ffffff', 
+      borderColor: selected ? '#3b82f6' : (data.borderColor || '#000000'),
+      color: data.fontColor || '#000000',
+    }}
   >
-    <Handle type="target" position={Position.Top} className="!w-1.5 !h-1.5 !bg-slate-400 !-rotate-45" />
-    <div className="-rotate-45 text-[9px] font-black text-slate-800 text-center uppercase tracking-tighter" style={{ fontSize: `${data.fontSize || 9}px` }}>
+    <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-blue-500 !border-white !border-2 opacity-0 hover:opacity-100 !-rotate-45" />
+    <div 
+      className="-rotate-45 select-none text-center leading-tight px-1"
+      style={{
+        fontWeight: data.bold ? 'bold' : 'normal',
+        fontStyle: data.italic ? 'italic' : 'normal',
+        textDecoration: data.underline ? 'underline' : 'none',
+        fontSize: `${data.fontSize || 12}px`,
+        fontFamily: data.fontFamily || 'Arial, sans-serif'
+      }}
+    >
       {data.label}
     </div>
-    <Handle type="source" position={Position.Bottom} className="!w-1.5 !h-1.5 !bg-slate-400 !-rotate-45" />
-    <Handle type="source" position={Position.Left} className="!w-1.5 !h-1.5 !bg-slate-400 !-rotate-45" />
-    <Handle type="source" position={Position.Right} className="!w-1.5 !h-1.5 !bg-slate-400 !-rotate-45" />
+    <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-blue-500 !border-white !border-2 opacity-0 hover:opacity-100 !-rotate-45" />
+    <Handle type="source" position={Position.Left} className="!w-2 !h-2 !bg-blue-500 !border-white !border-2 opacity-0 hover:opacity-100 !-rotate-45" />
+    <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-blue-500 !border-white !border-2 opacity-0 hover:opacity-100 !-rotate-45" />
   </div>
 );
 
-const CloudNode = ({ data, selected }: NodeProps) => (
-  <div className={`relative p-4 transition-all ${selected ? 'scale-105' : ''}`}>
-    <Cloud size={60} fill={data.bgColor || '#eff6ff'} stroke={data.borderColor || '#3b82f6'} strokeWidth={2} />
-    <div className="absolute inset-0 flex items-center justify-center">
-      <span className="text-[9px] font-black text-slate-700 uppercase" style={{ fontSize: `${data.fontSize || 9}px` }}>{data.label}</span>
+const DatabaseNode = ({ data, selected }: NodeProps) => (
+  <div 
+    className={`w-16 h-20 flex flex-col items-center justify-center relative border-[1.5px] rounded-[50%/10%] ${selected ? 'border-blue-500 shadow-[0_0_0_1px_rgba(59,130,246,0.5)]' : ''}`}
+    style={{ 
+      backgroundColor: data.bgColor || '#ffffff', 
+      borderColor: selected ? '#3b82f6' : (data.borderColor || '#000000'),
+      color: data.fontColor || '#000000',
+    }}
+  >
+    <div 
+      className="absolute top-0 w-full h-4 border-b-[1.5px] rounded-[50%]" 
+      style={{ borderColor: selected ? '#3b82f6' : (data.borderColor || '#000000') }}
+    />
+    <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-blue-500 !border-white !border-2 opacity-0 hover:opacity-100" />
+    <div 
+      className="select-none text-center mt-2 px-1"
+      style={{
+        fontWeight: data.bold ? 'bold' : 'normal',
+        fontStyle: data.italic ? 'italic' : 'normal',
+        textDecoration: data.underline ? 'underline' : 'none',
+        fontSize: `${data.fontSize || 12}px`,
+        fontFamily: data.fontFamily || 'Arial, sans-serif'
+      }}
+    >
+      {data.label}
     </div>
-    <Handle type="target" position={Position.Top} className="!bg-slate-400" />
-    <Handle type="source" position={Position.Bottom} className="!bg-slate-400" />
+    <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-blue-500 !border-white !border-2 opacity-0 hover:opacity-100" />
+  </div>
+);
+
+const TextNode = ({ data, selected }: NodeProps) => (
+  <div 
+    className={`px-2 py-1 ${selected ? 'ring-1 ring-blue-500' : ''}`}
+    style={{
+        color: data.fontColor || '#000000',
+        fontWeight: data.bold ? 'bold' : 'normal',
+        fontStyle: data.italic ? 'italic' : 'normal',
+        textDecoration: data.underline ? 'underline' : 'none',
+        fontSize: `${data.fontSize || 12}px`,
+        fontFamily: data.fontFamily || 'Arial, sans-serif'
+    }}
+  >
+    {data.label}
   </div>
 );
 
 const nodeTypes = {
-  process: (props: any) => <BaseNode {...props} color="#3b82f6" shape="rounded" />,
-  decision: DiamondNode,
-  terminal: (props: any) => <BaseNode {...props} color="#1e293b" data={{...props.data, bgColor: '#1e293b'}} className="text-white" />,
-  database: (props: any) => <BaseNode {...props} color="#10b981" shape="rounded" />,
-  cloud: CloudNode,
-  document: (props: any) => <BaseNode {...props} color="#f59e0b" shape="rect" />,
+  rect: (props: any) => <BaseNode {...props} shape="rect" />,
+  rounded: (props: any) => <BaseNode {...props} shape="rounded" />,
+  circle: (props: any) => <BaseNode {...props} shape="circle" />,
+  diamond: DiamondNode,
+  database: DatabaseNode,
+  text: TextNode
 };
 
-const CATEGORIES = [
-  { id: 'general', label: 'General', icons: [
-    { type: 'terminal', icon: <Circle />, label: 'Start/End' },
-    { type: 'process', icon: <Square />, label: 'Process' },
-    { type: 'decision', icon: <Diamond />, label: 'Decision' },
-  ]},
-  { id: 'flowchart', label: 'Flowchart', icons: [
-    { type: 'document', icon: <FileText />, label: 'Document' },
-    { type: 'database', icon: <Database />, label: 'Storage' },
-    { type: 'cloud', icon: <Cloud />, label: 'Network' },
-  ]},
-  { id: 'uml', label: 'UML/Advanced', icons: [
-    { type: 'process', icon: <Layers />, label: 'Actor' },
-    { type: 'process', icon: <Layout />, label: 'Package' },
-  ]}
+const SHAPES = [
+  { type: 'rect', label: '', outline: <div className="w-8 h-6 border-[1.5px] border-slate-600 bg-white" /> },
+  { type: 'rounded', label: '', outline: <div className="w-8 h-6 border-[1.5px] border-slate-600 rounded bg-white" /> },
+  { type: 'text', label: 'Text', outline: <div className="text-xs font-serif text-slate-600">Text</div> },
+  { type: 'text', label: 'Heading', outline: <div className="text-sm font-bold text-slate-600">Heading</div> },
+  { type: 'rect', label: '', outline: <div className="w-8 h-6 border-[1.5px] border-slate-600 bg-white relative"><div className="absolute inset-y-0 left-1 w-px bg-slate-600"/><div className="absolute inset-y-0 right-1 w-px bg-slate-600"/></div> },
+  { type: 'diamond', label: '', outline: <div className="w-6 h-6 border-[1.5px] border-slate-600 rotate-45 bg-white" /> },
+  { type: 'circle', label: '', outline: <div className="w-7 h-7 border-[1.5px] border-slate-600 rounded-full bg-white" /> },
+  { type: 'database', label: '', outline: <div className="w-6 h-8 border-[1.5px] border-slate-600 rounded-[50%/10%] relative bg-white"><div className="absolute top-0 w-full h-1.5 border-b-[1.5px] border-slate-600 rounded-[50%]"/></div> },
 ];
-
-// ── Main Component ──────────────────────────────────────────────────────────
 
 const DiagramSection = () => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
-  const [nodes, setNodes, onNodesChange] = useNodesState([{ id: '1', type: 'terminal', position: { x: 400, y: 50 }, data: { label: 'START' } }]);
+  const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState('general');
   const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const onConnect = useCallback(
     (params: Connection | Edge) => setEdges((eds) => addEdge({ 
       ...params, 
-      animated: true, 
-      markerEnd: { type: MarkerType.ArrowClosed, color: '#64748b' },
-      style: { stroke: '#64748b', strokeWidth: 2 } 
+      markerEnd: { type: MarkerType.ArrowClosed, color: '#000' },
+      style: { stroke: '#000', strokeWidth: 1.5 } 
     }, eds)),
     [setEdges]
   );
 
-  const onDragStart = (event: React.DragEvent, nodeType: string) => {
-    event.dataTransfer.setData('application/reactflow', nodeType);
+  const onDragStart = (event: React.DragEvent, nodeType: string, defaultLabel: string) => {
+    event.dataTransfer.setData('application/reactflow-type', nodeType);
+    event.dataTransfer.setData('application/reactflow-label', defaultLabel);
     event.dataTransfer.effectAllowed = 'move';
   };
 
   const onDrop = useCallback(
     (event: React.DragEvent) => {
       event.preventDefault();
-      const type = event.dataTransfer.getData('application/reactflow');
+      const type = event.dataTransfer.getData('application/reactflow-type');
+      const labelData = event.dataTransfer.getData('application/reactflow-label');
+      
       if (!type || !reactFlowInstance) return;
       const position = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+      
       const newNode: Node = {
-        id: `node_${nodes.length + 1}`,
+        id: `node_${nodes.length + 1}_${Date.now()}`,
         type,
         position,
-        data: { label: `${type.toUpperCase()}`, bgColor: '#ffffff', borderColor: '#3b82f6', fontSize: 11 },
+        data: { 
+          label: labelData || '', 
+          bgColor: '#ffffff', 
+          borderColor: '#000000', 
+          fontColor: '#000000',
+          fontSize: 12,
+          fontFamily: 'Arial',
+          bold: false,
+          italic: false,
+          underline: false
+        },
       };
       setNodes((nds) => nds.concat(newNode));
     },
     [reactFlowInstance, nodes]
   );
 
-  const updateNodeData = (field: string, value: any) => {
+  const updateSelectedNode = (field: string, value: any) => {
     if (!selectedNode) return;
     setNodes(nds => nds.map(n => n.id === selectedNode.id ? { ...n, data: { ...n.data, [field]: value } } : n));
   };
+
+  const toggleSelectedNodeStyle = (field: 'bold' | 'italic' | 'underline') => {
+    if (!selectedNode) return;
+    setNodes(nds => nds.map(n => n.id === selectedNode.id ? { ...n, data: { ...n.data, [field]: !n.data[field] } } : n));
+  };
+
+  const clearCanvas = () => {
+    if(window.confirm("Are you sure you want to clear the response?")) {
+        setNodes([]);
+        setEdges([]);
+    }
+  };
+
+  const onSelectionChange = useCallback(({ nodes }: { nodes: Node[] }) => {
+    if (nodes.length > 0) {
+      setSelectedNode(nodes[0]);
+    } else {
+      setSelectedNode(null);
+    }
+  }, []);
 
   const handleSubmit = async () => {
     if (!reactFlowWrapper.current) return;
@@ -186,170 +264,182 @@ const DiagramSection = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 font-sans overflow-hidden">
+    <div className="flex flex-col h-screen bg-[#f1f3f4] font-sans overflow-hidden">
       
-      {/* ── Top Enterprise Header ── */}
-      <header className="bg-white border-b px-8 py-4 flex justify-between items-center z-50">
+      {/* ── Mettl Top Navbar ── */}
+      <header className="bg-[#0b1b3d] text-white px-6 py-3 flex justify-between items-center z-50">
         <div className="flex items-center gap-4">
-          <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white">
-            <Activity size={20} />
-          </div>
-          <div>
-            <h1 className="text-lg font-black text-slate-800">System Architecture Design</h1>
-            <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Draw the logical flow accurately using the shape library</p>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center">
+              <span className="font-bold text-white tracking-widest">M</span>
+            </div>
+            <span className="font-semibold text-sm">Online Assessment</span>
           </div>
         </div>
 
-        <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white px-8 py-3 rounded-xl font-black text-xs uppercase tracking-widest shadow-2xl shadow-slate-200 disabled:opacity-50 transition-all"
-        >
-            {isSubmitting ? 'AI EVALUATING...' : (
-              <>
-                <Send size={14} />
-                Submit Assessment
-              </>
-            )}
-        </motion.button>
+        <div className="flex items-center gap-4">
+          <button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-1.5 rounded font-semibold text-sm transition-all"
+          >
+              {isSubmitting ? 'Submitting...' : 'OK'}
+          </button>
+        </div>
       </header>
 
-      {/* ── Mettl Shape Tabs ── */}
-      <div className="bg-slate-50 border-b flex items-center px-4 overflow-x-auto no-scrollbar z-40">
-        {CATEGORIES.map(cat => (
-          <button
-            key={cat.id}
-            onClick={() => setActiveTab(cat.id)}
-            className={`px-8 py-4 text-[9px] font-black uppercase tracking-[0.2em] whitespace-nowrap transition-all border-b-2 ${
-              activeTab === cat.id ? 'border-blue-600 text-blue-600' : 'border-transparent text-slate-400 hover:text-slate-600'
-            }`}
-          >
-            {cat.label}
-          </button>
-        ))}
+      {/* ── Mettl Secondary Header (Question details) ── */}
+      <div className="bg-white border-b px-6 py-3 flex justify-between items-center shadow-sm">
+         <div className="flex items-center gap-2">
+             <span className="font-bold text-blue-900 text-sm">Question 1</span>
+             <Flag size={14} className="text-blue-500" />
+         </div>
+         <button className="text-xs font-semibold text-slate-500 flex items-center gap-1 hover:text-slate-800">
+             <FileQuestion size={14} /> Revisit Later
+         </button>
       </div>
 
-      {/* ── Icon Palette ── */}
-      <div className="bg-white border-b p-3 flex gap-6 overflow-x-auto items-center no-scrollbar z-40 shadow-sm">
-        {CATEGORIES.find(c => c.id === activeTab)?.icons.map((item, idx) => (
-          <div
-            key={idx}
-            draggable
-            onDragStart={(e) => onDragStart(e, item.type)}
-            className="flex flex-col items-center gap-2 p-2 min-w-[80px] rounded-2xl border border-slate-50 hover:border-blue-200 hover:bg-blue-50/50 cursor-grab active:cursor-grabbing transition-all group"
-          >
-            <div className="text-slate-300 group-hover:text-blue-600 transition-colors">{item.icon}</div>
-            <span className="text-[8px] font-black text-slate-500 uppercase tracking-tighter">{item.label}</span>
-          </div>
-        ))}
-      </div>
+      <div className="flex-1 flex overflow-hidden p-4 gap-4 max-w-7xl mx-auto w-full">
+         
+         {/* ── Left Side: Question Prompt ── */}
+         <div className="w-1/3 flex flex-col gap-4">
+             <div className="bg-white border rounded shadow-sm p-4">
+                 <p className="text-sm text-slate-800 leading-relaxed font-serif">
+                     Build an activity diagram showing the requested logical flow. Use the Draw.io shapes provided in the canvas editor.
+                 </p>
+             </div>
+         </div>
 
-      <div className="flex-1 flex relative overflow-hidden">
-        {/* ── Canvas ── */}
-        <div className="flex-1 relative bg-slate-50" ref={reactFlowWrapper}>
-          <ReactFlow
-            nodes={nodes}
-            edges={edges}
-            onNodesChange={onNodesChange}
-            onEdgesChange={onEdgesChange}
-            onConnect={onConnect}
-            onInit={setReactFlowInstance}
-            onDrop={onDrop}
-            onDragOver={e => e.preventDefault()}
-            onNodeClick={(_, n) => setSelectedNode(n)}
-            nodeTypes={nodeTypes}
-            fitView
-            snapToGrid
-          >
-            <Background color="#cbd5e1" gap={20} size={1} />
-            <Controls />
-            <MiniMap />
+         {/* ── Right Side: Draw.io Embed Clone ── */}
+         <div className="w-2/3 bg-white border border-slate-300 rounded overflow-hidden shadow-sm flex flex-col">
             
-            <Panel position="bottom-center" className="mb-4">
-               <div className="bg-white/90 backdrop-blur-md px-6 py-2.5 rounded-full border shadow-xl flex items-center gap-4">
-                  <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <p className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em]">
-                    Drag shapes to canvas · Link handles to build logic
-                  </p>
-               </div>
-            </Panel>
-          </ReactFlow>
-        </div>
+            {/* Draw.io header inside iframe lookalike */}
+            <div className="bg-[#f8f9fa] border-b px-4 py-2 flex items-center justify-between">
+                <span className="text-xs font-semibold text-slate-600 flex items-center gap-2">
+                    <Eraser size={14} /> Draw Diagram Here
+                </span>
+                <button onClick={clearCanvas} className="text-xs text-slate-500 hover:text-red-500 flex items-center gap-1">
+                    <Trash2 size={12} /> Clear Response
+                </button>
+            </div>
 
-        {/* ── Floating Mettl Config Panel ── */}
-        <AnimatePresence>
-            {selectedNode && (
-              <motion.div 
-                initial={{ x: 400, opacity: 0 }}
-                animate={{ x: 0, opacity: 1 }}
-                exit={{ x: 400, opacity: 0 }}
-                className="absolute top-6 right-6 w-80 bg-white rounded-[32px] shadow-2xl border border-slate-100 p-8 z-50 overflow-y-auto max-h-[90%]"
-              >
-                <div className="flex items-center justify-between mb-8">
-                  <h3 className="text-[10px] font-black text-slate-900 uppercase tracking-[0.3em]">Element Style</h3>
-                  <button onClick={() => setSelectedNode(null)} className="text-slate-300 hover:text-slate-900 transition-colors">
-                    <X size={20} />
-                  </button>
+            {/* Draw.io Top Toolbar */}
+            <div className="flex items-center gap-2 px-3 py-1.5 border-b border-slate-200 bg-[#f8f9fa] overflow-x-auto">
+                <div className="flex items-center gap-1 pr-3 border-r border-slate-300">
+                <span className="text-xs font-medium px-2 text-slate-600">100%</span>
+                <button className="p-1.5 hover:bg-slate-200 rounded text-slate-600"><ZoomIn size={14} /></button>
+                <button className="p-1.5 hover:bg-slate-200 rounded text-slate-600"><ZoomOut size={14} /></button>
+                <button className="p-1.5 hover:bg-slate-200 rounded text-slate-600"><Undo size={14} /></button>
+                <button className="p-1.5 hover:bg-slate-200 rounded text-slate-600"><Redo size={14} /></button>
                 </div>
 
-                <div className="space-y-8">
-                  <div className="space-y-3">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Label Text</label>
-                    <textarea
-                      value={selectedNode.data.label}
-                      onChange={(e) => updateNodeData('label', e.target.value)}
-                      className="w-full bg-slate-50 border-none rounded-2xl px-5 py-4 text-sm font-bold text-slate-800 focus:ring-2 focus:ring-blue-600 outline-none transition-all min-h-[100px]"
-                    />
-                  </div>
+                {/* Formatting Tools */}
+                <div className={`flex items-center gap-1 pr-3 border-r border-slate-300 ${!selectedNode ? 'opacity-50 pointer-events-none' : ''}`}>
+                <select 
+                    className="text-xs border border-slate-300 rounded px-2 py-1 bg-white"
+                    value={selectedNode?.data?.fontFamily || 'Arial'}
+                    onChange={(e) => updateSelectedNode('fontFamily', e.target.value)}
+                >
+                    <option value="Arial">Arial</option>
+                    <option value="Helvetica">Helvetica</option>
+                </select>
+                <select 
+                    className="text-xs border border-slate-300 rounded px-2 py-1 bg-white w-14"
+                    value={selectedNode?.data?.fontSize || 12}
+                    onChange={(e) => updateSelectedNode('fontSize', parseInt(e.target.value))}
+                >
+                    {[8,10,12,14,18].map(s => <option key={s} value={s}>{s}</option>)}
+                </select>
+                
+                <button onClick={() => toggleSelectedNodeStyle('bold')} className={`p-1.5 rounded ml-1 ${selectedNode?.data?.bold ? 'bg-slate-300' : 'hover:bg-slate-200'}`}><Bold size={14} /></button>
+                <button onClick={() => toggleSelectedNodeStyle('italic')} className={`p-1.5 rounded ${selectedNode?.data?.italic ? 'bg-slate-300' : 'hover:bg-slate-200'}`}><Italic size={14} /></button>
+                <button onClick={() => toggleSelectedNodeStyle('underline')} className={`p-1.5 rounded ${selectedNode?.data?.underline ? 'bg-slate-300' : 'hover:bg-slate-200'}`}><Underline size={14} /></button>
+                </div>
 
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-3">
-                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Fill Color</label>
-                      <input 
-                        type="color" 
-                        value={selectedNode.data.bgColor} 
-                        onChange={(e) => updateNodeData('bgColor', e.target.value)}
-                        className="w-full h-12 rounded-2xl cursor-pointer border-none bg-transparent shadow-sm"
-                      />
+                <div className={`flex items-center gap-2 pr-3 border-r border-slate-300 ${!selectedNode ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <div className="flex items-center gap-1" title="Background Color">
+                        <input type="color" value={selectedNode?.data?.bgColor || '#ffffff'} onChange={(e) => updateSelectedNode('bgColor', e.target.value)} className="w-5 h-5 border-none p-0 cursor-pointer"/>
                     </div>
-                    <div className="space-y-3">
-                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Border</label>
-                      <input 
-                        type="color" 
-                        value={selectedNode.data.borderColor} 
-                        onChange={(e) => updateNodeData('borderColor', e.target.value)}
-                        className="w-full h-12 rounded-2xl cursor-pointer border-none bg-transparent shadow-sm"
-                      />
+                    <div className="flex items-center gap-1" title="Border Color">
+                        <input type="color" value={selectedNode?.data?.borderColor || '#000000'} onChange={(e) => updateSelectedNode('borderColor', e.target.value)} className="w-5 h-5 border-none p-0 cursor-pointer"/>
                     </div>
-                  </div>
+                </div>
 
-                  <div className="space-y-3">
-                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Font Size ({selectedNode.data.fontSize}px)</label>
-                    <input 
-                      type="range" min="8" max="24" 
-                      value={selectedNode.data.fontSize} 
-                      onChange={(e) => updateNodeData('fontSize', parseInt(e.target.value))}
-                      className="w-full h-1.5 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-slate-900"
-                    />
-                  </div>
-
-                  <button 
-                    onClick={() => {
-                      setNodes(nds => nds.filter(n => n.id !== selectedNode.id));
-                      setEdges(eds => eds.filter(e => e.source !== selectedNode.id && e.target !== selectedNode.id));
-                      setSelectedNode(null);
+                <div className="ml-auto flex items-center gap-2">
+                <button onClick={() => {
+                        if(selectedNode) {
+                            setNodes(nds => nds.filter(n => n.id !== selectedNode.id));
+                            setEdges(eds => eds.filter(e => e.source !== selectedNode.id && e.target !== selectedNode.id));
+                        }
                     }}
-                    className="w-full py-4 bg-red-50 text-red-600 text-[9px] font-black uppercase tracking-[0.2em] rounded-2xl hover:bg-red-100 transition-all flex items-center justify-center gap-2 mt-4"
-                  >
-                    <Trash2 size={16} />
-                    Delete Element
-                  </button>
+                    className={`p-1.5 hover:bg-slate-200 rounded text-slate-600 ${!selectedNode ? 'opacity-50' : ''}`}
+                >
+                    <Trash2 size={14} />
+                </button>
                 </div>
-              </motion.div>
-            )}
-        </AnimatePresence>
+            </div>
+
+            <div className="flex-1 flex overflow-hidden">
+                {/* Draw.io Sidebar */}
+                <div className="w-48 bg-[#f8f9fa] border-r border-slate-200 flex flex-col h-full overflow-y-auto">
+                    <div className="p-2 border-b border-slate-200">
+                        <div className="flex items-center gap-2 bg-white border border-slate-300 rounded px-2 py-1">
+                            <Search size={12} className="text-slate-400" />
+                            <input type="text" placeholder="Search Shapes" className="w-full text-[10px] outline-none" />
+                        </div>
+                    </div>
+
+                    <div className="flex flex-col">
+                        <button className="flex items-center gap-2 px-3 py-1.5 bg-[#e9ecef] border-b border-slate-200 w-full text-left">
+                            <ChevronDown size={12} className="text-slate-600" />
+                            <span className="text-[10px] font-semibold text-slate-700">General</span>
+                        </button>
+                        <div className="p-2 grid grid-cols-3 gap-1 bg-white">
+                            {SHAPES.map((shape, idx) => (
+                                <div key={idx} draggable onDragStart={(e) => onDragStart(e, shape.type, shape.label)} className="w-12 h-10 flex items-center justify-center hover:bg-slate-100 rounded cursor-grab active:cursor-grabbing border border-transparent hover:border-slate-300" title={shape.label || shape.type}>
+                                    {shape.outline}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Canvas */}
+                <div className="flex-1 relative bg-white" ref={reactFlowWrapper}>
+                    {selectedNode && selectedNode.type !== 'text' && (
+                        <div className="absolute top-2 right-2 z-10 bg-white border border-blue-400 rounded p-1 shadow flex items-center">
+                            <span className="text-[9px] text-slate-500 mr-2 uppercase">Label:</span>
+                            <input type="text" value={selectedNode.data.label || ''} onChange={(e) => updateSelectedNode('label', e.target.value)} className="text-[10px] border-b border-slate-300 outline-none px-1 py-0.5 focus:border-blue-500 w-24"/>
+                        </div>
+                    )}
+                    {selectedNode && selectedNode.type === 'text' && (
+                        <div className="absolute top-2 right-2 z-10 bg-white border border-blue-400 rounded p-1 shadow flex items-center">
+                            <span className="text-[9px] text-slate-500 mr-2 uppercase">Text:</span>
+                            <textarea value={selectedNode.data.label || ''} onChange={(e) => updateSelectedNode('label', e.target.value)} className="text-[10px] border border-slate-300 outline-none px-1 py-0.5 focus:border-blue-500 w-32 h-12 resize-none"/>
+                        </div>
+                    )}
+
+                <ReactFlow
+                    nodes={nodes}
+                    edges={edges}
+                    onNodesChange={onNodesChange}
+                    onEdgesChange={onEdgesChange}
+                    onConnect={onConnect}
+                    onInit={setReactFlowInstance}
+                    onDrop={onDrop}
+                    onDragOver={e => e.preventDefault()}
+                    onSelectionChange={onSelectionChange}
+                    nodeTypes={nodeTypes}
+                    fitView
+                    snapToGrid
+                    snapGrid={[10, 10]}
+                >
+                    <Background color="#e2e8f0" gap={10} size={1} />
+                    <Controls showInteractive={false} position="bottom-right" />
+                </ReactFlow>
+                </div>
+            </div>
+         </div>
       </div>
     </div>
   );
