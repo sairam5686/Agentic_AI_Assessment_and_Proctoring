@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router'
+import { toast } from 'react-toastify'
 import Editor from '@monaco-editor/react'
 import { useLocalPersist } from '../hooks/useLocalPersist'
 
@@ -206,6 +207,15 @@ const SqlSection = () => {
 
             const result = await response.json()
 
+            if (response.status === 429) {
+                toast.error("You are running queries too frequently. Please wait a few seconds.", {
+                    position: "top-right",
+                    theme: "colored"
+                });
+                setIsRunning(false);
+                return;
+            }
+
             if (!response.ok) {
                 const message =
                     result?.detail ||
@@ -290,6 +300,14 @@ const SqlSection = () => {
                     total_marks,
                 }),
             });
+
+            if (resp.status === 429) {
+                toast.error("Submission rate limit reached. Please try again in a moment.", {
+                    position: "top-right",
+                    theme: "colored"
+                });
+                return;
+            }
 
             if (!resp.ok) {
                 throw new Error("Failed to save SQL results");

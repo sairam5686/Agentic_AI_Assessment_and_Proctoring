@@ -37,6 +37,8 @@ from Backend.ResultStorer.ResultModelSchema import CodingSaveResultsRequest, MCQ
 from Backend.ResultStorer.SQLResultStorer import SQL_Storer
 from Backend.Auth.OCRHelper import decode_base64_image, extract_id_info, verify_candidate_name
 from Backend.routers.essay_router import router as essay_router
+from Backend.routers.diagram_router import router as diagram_router
+from Backend.Connection.RateLimiter import check_rate_limit
 from pydantic import BaseModel
 
 app = FastAPI()
@@ -69,6 +71,7 @@ app.add_middleware(
 
 # ── Feature routers ───────────────────────────────────────────────────────────
 app.include_router(essay_router, prefix="/api/essay", tags=["Essay Analyser"])
+app.include_router(diagram_router, prefix="/api/diagram", tags=["Diagram"])
 
 @sio.event
 async def connect(sid, environ):
@@ -199,6 +202,7 @@ async def get_assessment_questions(assessment_id: str):
 
 @app.post("/candidate/login")
 async def candidate_login(request: Request):
+    check_rate_limit(request, "auth")
     body = await request.json()
     identifier = body.get("identifier")
     assessment_id = body.get("assessment_id")
@@ -368,7 +372,8 @@ class FITBSaveResultsRequest(BaseModel):
     total_marks: float
 
 @app.post("/api/fitb/results")
-async def fitb_save_results(req: FITBSaveResultsRequest):
+async def fitb_save_results(req: FITBSaveResultsRequest, request: Request):
+    check_rate_limit(request, "submission")
     try:
         FITB_Results.insert_one({
             "assessment_id": req.assessment_id,
@@ -385,7 +390,8 @@ async def fitb_save_results(req: FITBSaveResultsRequest):
 
 
 @app.post("/api/mcq/results")
-async def mcq_save_results(req: MCQSaveResultsRequest):
+async def mcq_save_results(req: MCQSaveResultsRequest, request: Request):
+    check_rate_limit(request, "submission")
     try:
         MCQ_Results.insert_one({
             "assessment_id": req.assessment_id,
@@ -402,18 +408,21 @@ async def mcq_save_results(req: MCQSaveResultsRequest):
     
 
 @app.post("/api/coding/results")
-async def save_coding_results(req: CodingSaveResultsRequest):
+async def save_coding_results(req: CodingSaveResultsRequest, request: Request):
+    check_rate_limit(request, "submission")
     result = await Coding_store(req=req)
     return result
 
 @app.post("/api/sql/results")
-async def save_sql_results(req: SQLSaveResultsRequest):
+async def save_sql_results(req: SQLSaveResultsRequest, request: Request):
+    check_rate_limit(request, "submission")
     result = await SQL_Storer(req=req)
     return result
 
 
 @app.post("/run-code")
 async def run_code(request: Request):
+    check_rate_limit(request, "execution")
     body = await request.json()
 
     assessment_id = body.get("assessment_id")
@@ -426,6 +435,7 @@ async def run_code(request: Request):
 
 @app.post("/run-sql")
 async def run_sql(request: Request):
+    check_rate_limit(request, "execution")
     body = await request.json()
     assessment_id = body.get("assessment_id")
     question_id = body.get("question_id")

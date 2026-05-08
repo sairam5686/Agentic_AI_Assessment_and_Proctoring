@@ -154,8 +154,11 @@ export const useProctorStore = create<ProctorState>((set: any, get: any) => ({
                 return true;
             }
             return false;
-        } catch (error) {
+        } catch (error: any) {
             console.error("Login failed:", error);
+            if (error.response && error.response.status === 429) {
+                throw new Error("RATE_LIMIT_EXCEEDED");
+            }
             return false;
         }
     },

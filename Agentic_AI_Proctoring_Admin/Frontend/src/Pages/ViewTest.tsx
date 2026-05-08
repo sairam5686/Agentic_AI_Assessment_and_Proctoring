@@ -75,7 +75,7 @@ const ViewTest = () => {
     <div className="min-h-screen bg-[#F9FAFB] font-sans">
       <NavBar />
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-6 py-8 pt-24">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>

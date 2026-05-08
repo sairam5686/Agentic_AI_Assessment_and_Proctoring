@@ -223,7 +223,7 @@ const AssessmentDetails = () => {
         <div className="min-h-screen bg-[#F0F2F5] font-sans pb-12">
             <NavBar />
 
-            <div className="max-w-[1800px] mx-auto px-10 py-8">
+            <div className="max-w-[1800px] mx-auto px-10 py-8 pt-24">
                 {/* Header */}
                 <div className="flex justify-between items-center mb-8">
                     <div>

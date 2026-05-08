@@ -3,12 +3,13 @@ import json
 import re
 from datetime import datetime
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from dotenv import load_dotenv
 import google.generativeai as genai
 
 from Backend.Connection.Assessment_Connection_DB import CandidateData_DB, Admin_Assessments_DB
+from Backend.Connection.RateLimiter import check_rate_limit
 
 load_dotenv()
 
@@ -229,12 +230,13 @@ def _call_gemini(prompt: str) -> dict:
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @router.post("/evaluate")
-async def evaluate_essay(submission: EssaySubmission):
+async def evaluate_essay(submission: EssaySubmission, request: Request):
     """
     Receives an essay submission, fetches the admin-defined rubric from MongoDB,
     builds a dynamic Gemini prompt, evaluates the essay, saves to MongoDB, and
     returns the structured result with all 3 extra features.
     """
+    check_rate_limit(request, "execution")
     print(f"[ESSAY ROUTER] Received submission for candidate: {submission.email}, assessment: {submission.assessment_id}")
     
     if not GEMINI_API_KEY:

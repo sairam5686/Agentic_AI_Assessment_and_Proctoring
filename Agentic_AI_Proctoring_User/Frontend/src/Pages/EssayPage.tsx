@@ -190,6 +190,14 @@ const EssayPage = () => {
         body: JSON.stringify(payload),
       })
 
+      if (res.status === 429) {
+        toast.error("Submission rate limit reached. Please wait a moment before trying again.", {
+          position: "top-right",
+          theme: "colored"
+        });
+        return;
+      }
+
       if (!res.ok) {
         const err = await res.json().catch(() => ({ detail: 'Unknown server error' }))
         throw new Error(err.detail || `Server error ${res.status}`)

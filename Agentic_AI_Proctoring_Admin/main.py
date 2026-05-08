@@ -24,6 +24,7 @@ from Backend.Connection.Evdiences_log import Risk_Score_DB , Mobile_Risk_Score
 
 import os
 from dotenv import load_dotenv
+from Backend.Connection.RateLimiter import check_rate_limit
 
 load_dotenv()
 
@@ -121,8 +122,14 @@ async def create_test(
     Certification_Issuer: str = Form(None),
     Certification_Title: str = Form(None),
     Certification_Thresholds: str = Form(None),
-    Certification_Global_Threshold: str = Form(None)
+    Certification_Global_Threshold: str = Form(None),
+    Diagram_enabled: str = Form("false"),
+    Diagram_prompt: str = Form(None),
+    Diagram_master_json: str = Form(None),
+    request: Request = None
 ):
+    if request:
+        check_rate_limit(request, "submission")
     TestId = uuid.uuid4()
 
 
@@ -157,6 +164,9 @@ async def create_test(
                 "thresholds": json.loads(Certification_Thresholds) if Certification_Thresholds else {},
                 "global_threshold": int(Certification_Global_Threshold) if Certification_Global_Threshold else 60
             } if Category == "Certification" else None,
+            "diagram_enabled": Diagram_enabled.lower() == "true",
+            "diagram_prompt": Diagram_prompt if Diagram_enabled.lower() == "true" else None,
+            "diagram_master_json": json.loads(Diagram_master_json) if Diagram_master_json and Diagram_enabled.lower() == "true" else None,
             "created_at": datetime.now(),
             "status": "active"
         })
@@ -250,6 +260,15 @@ async def get_test_preview(assessment_id: str):
             "rubric": assessment_info.get("essay_rubric"),
         }
 
+    # Build diagram config
+    diagram = None
+    if assessment_info and assessment_info.get("diagram_enabled"):
+        diagram = {
+            "enabled": True,
+            "prompt": assessment_info.get("diagram_prompt", ""),
+            "master_json": assessment_info.get("diagram_master_json"),
+        }
+
     # 🔥 SERIALIZE EVERYTHING
     response = {
         "assessment_id": assessment_id,
@@ -261,6 +280,7 @@ async def get_test_preview(assessment_id: str):
         "Gaming": gaming,
         "FITB": serialize_mongo(fitb),
         "Essay": essay,
+        "Diagram": diagram,
         "TestCases": testcases,
         "category": assessment_info.get("category") if assessment_info else "Hiring",
         "certification_config": assessment_info.get("certification_config") if assessment_info else None
@@ -316,7 +336,8 @@ async def pipe_puzzle_action(session_id: str = Form(...), row: int = Form(...), 
     return {"tile": tile}
 
 @app.post("/game/pipe-puzzle/submit")
-async def submit_pipe_puzzle(session_id: str = Form(...)):
+async def submit_pipe_puzzle(request: Request, session_id: str = Form(...)):
+    check_rate_limit(request, "submission")
     session = Game_Sessions_DB.find_one({"session_id": session_id})
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -336,7 +357,8 @@ async def save_test(assessment_id: str = Form(...), file: UploadFile = File(...)
 
 
 @app.post("/initiate-test")
-async def initiate_test(assessment_id: str = Form(...)):
+async def initiate_test(request: Request, assessment_id: str = Form(...)):
+    check_rate_limit(request, "submission")
     enrollment = Enrollment_DB.find_one({"assessment_id": assessment_id})
     if not enrollment:
         raise HTTPException(status_code=404, detail="Enrollment data not found")
@@ -481,7 +503,8 @@ async def get_agora_rtm_token(userAccount: str):
         raise HTTPException(status_code=500, detail=f"Token Generation Failed: {str(e)}")
 
 @app.delete("/delete-test/{assessment_id}")
-async def delete_test(assessment_id: str):
+async def delete_test(request: Request, assessment_id: str):
+    check_rate_limit(request, "submission")
     try:
         from bson import ObjectId
         
@@ -683,9 +706,11 @@ async def assign_proctor(
 
 @app.post("/proctor/login")
 async def proctor_login(
+    request: Request,
     assessment_id: str = Form(...),
     passkey: str = Form(...)
 ):
+    check_rate_limit(request, "auth")
     assessment_id = assessment_id.strip()
     passkey = passkey.strip().upper()
     print(f"Login attempt: ID={assessment_id}, Passkey={passkey}")

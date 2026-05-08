@@ -36,11 +36,19 @@ export default function Login() {
         setLoading(true);
         setError('');
 
-        const success = await login(assessmentId, passkey);
-        if (success) {
-            navigate('/dashboard');
-        } else {
-            setError('Invalid Assessment ID or Passkey. Please check your credentials and try again.');
+        try {
+            const success = await login(assessmentId, passkey);
+            if (success) {
+                navigate('/dashboard');
+            } else {
+                setError('Invalid Assessment ID or Passkey. Please check your credentials and try again.');
+            }
+        } catch (err: any) {
+            if (err.message === "RATE_LIMIT_EXCEEDED") {
+                setError('Too many login attempts. Please wait a minute before trying again.');
+            } else {
+                setError('An unexpected error occurred. Please try again later.');
+            }
         }
         setLoading(false);
     };

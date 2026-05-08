@@ -228,6 +228,7 @@ const CandidateAnalytics = () => {
     // ── NEW: mobile risk state ──
     const [mobileRiskData, setMobileRiskData] = useState<any>(null);
     const [essayResult, setEssayResult]        = useState<any>(null);
+    const [diagramResult, setDiagramResult]    = useState<any>(null);
     const [showCertificate, setShowCertificate] = useState(false);
     
 
@@ -296,6 +297,20 @@ const CandidateAnalytics = () => {
             }
         } catch (err) {
             console.log('Essay result not found:', err);
+        }
+    };
+
+    const DiagramFetcher = async () => {
+        try {
+            const res = await fetch(`http://localhost:8001/api/diagram/results/${testId}`);
+            if (res.ok) {
+                const data = await res.json();
+                // Filter for this specific candidate
+                const candidateResult = data.find((r: any) => r.email === candidate.email);
+                setDiagramResult(candidateResult);
+            }
+        } catch (err) {
+            console.log('Diagram result error:', err);
         }
     };
 
@@ -465,7 +480,7 @@ const CandidateAnalytics = () => {
         fetchAnalytics();
     }, [testId, candidate]);
 
-    useEffect(() => { FetcherLogs(); CandidateResult(); EssayFetcher(); }, []);
+    useEffect(() => { FetcherLogs(); CandidateResult(); EssayFetcher(); DiagramFetcher(); }, []);
 
     if (!candidate) return (
         <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
@@ -514,7 +529,7 @@ const CandidateAnalytics = () => {
                 </div>
             )}
 
-            <div className="max-w-[1800px] mx-auto px-10 py-8">
+            <div className="max-w-[1800px] mx-auto px-10 py-8 pt-24">
 
                 {/* ── Header – unchanged ── */}
                 <div className="flex items-center justify-between mb-10">
@@ -1034,6 +1049,52 @@ const CandidateAnalytics = () => {
                                         </div>
                                     );
                                 })()}
+                                {diagramResult && (
+                                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-7 mt-8">
+                                        <div className="flex items-center gap-2.5 mb-7">
+                                            <div className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600">
+                                                <PenLine size={14} />
+                                            </div>
+                                            <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight">AI Diagram Analysis</h3>
+                                            <span className="ml-auto px-2.5 py-1 bg-gray-50 text-[9px] font-black text-gray-400 rounded-lg border border-gray-100 uppercase tracking-widest">
+                                                {diagramResult.submitted_at}
+                                            </span>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                            <div className="relative group">
+                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Submitted Diagram</p>
+                                                <div 
+                                                    className="aspect-video rounded-xl border border-gray-100 overflow-hidden bg-gray-50 cursor-pointer shadow-inner relative"
+                                                    onClick={() => setLightboxImg({ url: diagramResult.image_url, type: 'Diagram', time: diagramResult.submitted_at })}
+                                                >
+                                                    <img src={diagramResult.image_url} alt="Candidate Diagram" className="w-full h-full object-contain group-hover:scale-105 transition-transform" />
+                                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                                        <Eye className="text-white opacity-0 group-hover:opacity-100" />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-6">
+                                                <div className="bg-orange-50/50 rounded-xl p-5 border border-orange-100">
+                                                    <div className="flex items-center justify-between mb-4">
+                                                        <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest">AI Assessment Score</p>
+                                                        <span className="text-2xl font-black text-orange-600">{diagramResult.ai_evaluation?.score}/10</span>
+                                                    </div>
+                                                    <div className="h-2 bg-orange-100 rounded-full overflow-hidden">
+                                                        <motion.div initial={{ width: 0 }} animate={{ width: `${(diagramResult.ai_evaluation?.score / 10) * 100}%` }} className="h-full bg-orange-500 rounded-full" />
+                                                    </div>
+                                                </div>
+                                                <div>
+                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">AI Feedback</p>
+                                                    <div className="text-sm text-gray-700 leading-relaxed font-medium bg-gray-50 p-4 rounded-xl border border-gray-100 italic">
+                                                        "{diagramResult.ai_evaluation?.feedback}"
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
 
                                 {/* ── R5: Pipe Puzzle analytics ── */}
                                 {ds && ds.pipeMax > 0 && (

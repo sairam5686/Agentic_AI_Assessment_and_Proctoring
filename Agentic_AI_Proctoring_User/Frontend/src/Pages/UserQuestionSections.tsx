@@ -107,6 +107,14 @@ const UserQuestionSections = () => {
       sub: `Analytical Writing · ${QuestionsJson.Assessment_Info?.essay_topic || 'Standard Topic'}`,
       tag: 'Writing', tagColor: '#ec4899', tagBg: '#fdf2f8'
     }] : []),
+
+    // Only show Diagram if it's enabled
+    ...(QuestionsJson.Assessment_Info?.diagram_enabled ? [{
+      key: 'diagram',
+      label: 'System Design / Diagram',
+      sub: 'Visual Logic · Create a structural diagram',
+      tag: 'Architecture', tagColor: '#f97316', tagBg: '#fff7ed'
+    }] : []),
   ] : [];
 
   useEffect(() => {
