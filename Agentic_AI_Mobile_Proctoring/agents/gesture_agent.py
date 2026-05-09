@@ -49,7 +49,7 @@ class GestureAgent:
         self.hands_detector = vision.HandLandmarker.create_from_options(options)
 
         # Each flag must hold for N frames before being reported
-        self.persistence_required = 2
+        self.persistence_required = 5   # more frames needed before raising a flag
 
         self._counters = {
             "phone_in_hand": 0,
@@ -88,29 +88,29 @@ class GestureAgent:
     # ─────────────────────────────────────────────────────────────
 
     def _detect_phone_in_hand(self, lm) -> bool:
-        if lm[WRIST].y > 0.85:
+        # Hand must be raised (not resting on a desk) — wrist in upper 65% of frame
+        if lm[WRIST].y > 0.65:
             return False
         curl            = self._curl_ratio(lm)
         thumb_index_gap = self._dist(lm[THUMB_TIP], lm[INDEX_TIP])
         span            = self._hand_span(lm)
-        return (0.25 < curl < 0.70 and thumb_index_gap > 0.07 and span > 0.08)
+        # Tighter curl range + larger pinch gap avoids resting/relaxed hand
+        return (0.35 < curl < 0.62 and thumb_index_gap > 0.12 and span > 0.10)
 
     def _detect_reaching_down(self, lm) -> bool:
-        if lm[WRIST].y < 0.88:
+        # Only flag when wrist is near the very bottom of the frame (truly reaching down)
+        if lm[WRIST].y < 0.92:
             return False
         tips_below = sum(
             1 for tip in [INDEX_TIP, MIDDLE_TIP, RING_TIP, PINKY_TIP]
             if lm[tip].y > lm[WRIST].y
         )
-        return tips_below >= 2
+        # Require 3 of 4 fingertips to be below wrist (not just 2)
+        return tips_below >= 3
 
     def _detect_earbud_on_ear(self, lm) -> bool:
-        if lm[WRIST].y > 0.55:
-            return False
-        pinch_dist    = self._dist(lm[THUMB_TIP], lm[INDEX_TIP])
-        middle_curled = not self._finger_extended(lm, MIDDLE_TIP, MIDDLE_MCP)
-        ring_curled   = not self._finger_extended(lm, RING_TIP,   RING_MCP)
-        return pinch_dist < 0.055 and middle_curled and ring_curled
+        # Disabled — too many false positives with natural hand gestures near face
+        return False
 
     def _detect_hand_to_face(self, lm) -> bool:
         if lm[WRIST].y > 0.55:
