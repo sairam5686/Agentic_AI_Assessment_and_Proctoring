@@ -212,6 +212,23 @@ async def submit_diagram(data: DiagramSubmission, request: Request):
         print(f"Diagram Submission Error: {e}")
         raise HTTPException(status_code=500, detail=f"AI Evaluation failed: {str(e)}")
 
+@router.get("/metadata/{assessment_id}")
+async def get_diagram_metadata(assessment_id: str, request: Request):
+    """Fetch diagram question prompt and config from shared Admin DB."""
+    check_rate_limit(request, "execution")
+    if Diagram_Questions is None:
+        raise HTTPException(status_code=503, detail="Database unavailable")
+    
+    question = Diagram_Questions.find_one({"test_id": assessment_id}, {"_id": 0})
+    if not question:
+        raise HTTPException(status_code=404, detail="Assessment not found")
+    
+    return {
+        "diagram_enabled": question.get("diagram_enabled", False),
+        "diagram_prompt": question.get("diagram_prompt", ""),
+        "diagram_master_image": question.get("diagram_master_image")
+    }
+
 @router.get("/results/{assessment_id}")
 async def get_diagram_results(assessment_id: str, request: Request):
     """Fetch all diagram submissions for an assessment along with master info."""

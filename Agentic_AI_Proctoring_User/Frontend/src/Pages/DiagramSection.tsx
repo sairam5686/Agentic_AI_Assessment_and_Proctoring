@@ -193,17 +193,18 @@ const DiagramSection = () => {
       const email = localStorage.getItem('candidate_email');
       
       try {
-        // 1. Fetch Question Metadata
-        const qResp = await fetch(`http://localhost:8000/admin/test/${assessmentId}/Preview`);
+        // 1. Fetch Question Metadata from User Backend (Port 8000)
+        // Since User Backend now has access to the shared MongoDB, we hit its metadata endpoint.
+        const qResp = await fetch(`http://localhost:8000/api/diagram/metadata/${assessmentId}`);
         if (qResp.ok) {
           const data = await qResp.json();
-          if (data.Diagram?.enabled) {
-            setDiagramPrompt(data.Diagram.prompt);
+          if (data.diagram_enabled) {
+            setDiagramPrompt(data.diagram_prompt);
           }
         }
 
-        // 2. Fetch Existing Progress
-        const pResp = await fetch(`http://localhost:8001/api/diagram/results/${assessmentId}`);
+        // 2. Fetch Existing Progress from User Backend (Port 8000)
+        const pResp = await fetch(`http://localhost:8000/api/diagram/results/${assessmentId}`);
         if (pResp.ok) {
           const results = await pResp.json();
           const myResult = results.find((r: any) => r.email === email);
@@ -368,7 +369,7 @@ const DiagramSection = () => {
         student_json: { nodes, edges }
       };
 
-      await fetch('http://localhost:8001/api/diagram/save-progress', {
+      await fetch('http://localhost:8000/api/diagram/save-progress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -403,7 +404,7 @@ const DiagramSection = () => {
         image_base64: dataUrl
       };
 
-      const response = await fetch('http://localhost:8001/api/diagram/submit', {
+      const response = await fetch('http://localhost:8000/api/diagram/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
