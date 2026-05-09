@@ -272,87 +272,6 @@ const DiagramSection = () => {
 
   // ── Core Handlers ─────────────────────────────────────────────────────────
 
-  const onConnect = useCallback(
-    (params: Connection | Edge) => setEdges((eds) => addEdge({ 
-      ...params, 
-      type: 'straight',
-      markerEnd: { type: MarkerType.ArrowClosed, color: '#000' },
-      style: { stroke: '#000', strokeWidth: 1.5 } 
-    }, eds)),
-    [setEdges]
-  );
-
-  const onPaneClick = useCallback((event: React.MouseEvent) => {
-    if (activeTool === 'selection' || activeTool === 'arrow') {
-      setSelectedNodeId(null);
-      return;
-    }
-    
-    if (!reactFlowInstance) return;
-    const position = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
-    
-    const newNode: Node = {
-      id: `node_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-      type: activeTool,
-      position,
-      data: { 
-        label: activeTool === 'text' ? 'Text' : '', 
-        bgColor: '#ffffff', 
-        borderColor: '#000000', 
-        fontColor: '#000000',
-        fontSize: 12,
-        fontFamily: 'Arial',
-        bold: false,
-        italic: false,
-        underline: false
-      },
-    };
-    setNodes((nds) => nds.concat(newNode));
-    setActiveTool('selection');
-  }, [activeTool, reactFlowInstance, setNodes]);
-
-  const updateSelectedNode = useCallback((field: string, value: any) => {
-    if (!selectedNodeId) return;
-    setNodes(nds => nds.map(n => n.id === selectedNodeId ? { ...n, data: { ...n.data, [field]: value } } : n));
-  }, [selectedNodeId, setNodes]);
-
-  const toggleSelectedNodeStyle = useCallback((field: 'bold' | 'italic' | 'underline') => {
-    if (!selectedNodeId) return;
-    setNodes(nds => nds.map(n => n.id === selectedNodeId ? { ...n, data: { ...n.data, [field]: !n.data[field] } } : n));
-  }, [selectedNodeId, setNodes]);
-
-  const [showClearModal, setShowClearModal] = useState(false);
-
-  // ── Autosave Logic ───────────────────────────────────────────────────────
-  const lastSavedRef = useRef<string>('');
-  
-  const saveProgress = useCallback(async () => {
-    const currentData = JSON.stringify({ nodes, edges });
-    if (currentData === lastSavedRef.current) return;
-    
-    try {
-      const payload = {
-        assessment_id: localStorage.getItem('assessment_id'),
-        email: localStorage.getItem('candidate_email'),
-        student_json: { nodes, edges }
-      };
-
-      await fetch('http://localhost:8001/api/diagram/save-progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      lastSavedRef.current = currentData;
-    } catch (err) {
-      console.error("Autosave failed", err);
-    }
-  }, [nodes, edges]);
-
-  useEffect(() => {
-    const timer = setTimeout(saveProgress, 3000);
-    return () => clearTimeout(timer);
-  }, [nodes, edges, saveProgress]);
-
   // ── Core Handlers ─────────────────────────────────────────────────────────
 
   const onConnect = useCallback(
@@ -404,6 +323,8 @@ const DiagramSection = () => {
     setNodes(nds => nds.map(n => n.id === selectedNodeId ? { ...n, data: { ...n.data, [field]: !n.data[field] } } : n));
   }, [selectedNodeId, setNodes]);
 
+  const [showClearModal, setShowClearModal] = useState(false);
+
   const handleClearCanvas = () => {
     setNodes([]);
     setEdges([]);
@@ -433,6 +354,36 @@ const DiagramSection = () => {
   const handleZoomIn = useCallback(() => reactFlowInstance?.zoomIn(), [reactFlowInstance]);
   const handleZoomOut = useCallback(() => reactFlowInstance?.zoomOut(), [reactFlowInstance]);
 
+  // ── Autosave Logic ───────────────────────────────────────────────────────
+  const lastSavedRef = useRef<string>('');
+  
+  const saveProgress = useCallback(async () => {
+    const currentData = JSON.stringify({ nodes, edges });
+    if (currentData === lastSavedRef.current) return;
+    
+    try {
+      const payload = {
+        assessment_id: localStorage.getItem('assessment_id'),
+        email: localStorage.getItem('candidate_email'),
+        student_json: { nodes, edges }
+      };
+
+      await fetch('http://localhost:8001/api/diagram/save-progress', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      lastSavedRef.current = currentData;
+    } catch (err) {
+      console.error("Autosave failed", err);
+    }
+  }, [nodes, edges]);
+
+  useEffect(() => {
+    const timer = setTimeout(saveProgress, 3000);
+    return () => clearTimeout(timer);
+  }, [nodes, edges, saveProgress]);
+
   // ── Submit ────────────────────────────────────────────────────────────────
 
   const handleSubmit = async () => {
@@ -441,10 +392,7 @@ const DiagramSection = () => {
     try {
       const dataUrl = await toPng(reactFlowWrapper.current, { 
         backgroundColor: '#f8f8f8',
-        filter: (node) => {
-          // Filter out UI elements from the screenshot
-          return !node.classList?.contains('z-10');
-        }
+        filter: (node) => !node.classList?.contains('z-10')
       });
       
       const payload = {
@@ -481,207 +429,209 @@ const DiagramSection = () => {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#f1f3f4] font-sans overflow-hidden">
-      
-      {/* ── Top Navbar ── */}
-      <header className="bg-white border-b border-gray-200 px-6 py-2.5 flex justify-between items-center z-50 sticky top-0">
-        <div className="flex items-center gap-6">
-          <img src="/virtusa-logo.svg" alt="Virtusa" className="h-7" />
-          <div className="h-6 w-px bg-gray-200"></div>
-          <div className="flex flex-col">
-            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-none mb-1">Assessment Section</span>
-            <span className="text-sm font-bold text-gray-800 leading-none">System Design / Diagram</span>
+    <>
+      <div className="flex flex-col h-screen bg-[#f1f3f4] font-sans overflow-hidden">
+        
+        {/* ── Top Navbar ── */}
+        <header className="bg-white border-b border-gray-200 px-6 py-2.5 flex justify-between items-center z-50 sticky top-0">
+          <div className="flex items-center gap-6">
+            <img src="/virtusa-logo.svg" alt="Virtusa" className="h-7" />
+            <div className="h-6 w-px bg-gray-200"></div>
+            <div className="flex flex-col">
+              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-none mb-1">Assessment Section</span>
+              <span className="text-sm font-bold text-gray-800 leading-none">System Design / Diagram</span>
+            </div>
           </div>
-        </div>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-            <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-tight">Autosave Active</span>
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+              <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-tight">Autosave Active</span>
+            </div>
+            <button
+                onClick={handleSubmit}
+                disabled={isSubmitting}
+                className="bg-gray-900 hover:bg-gray-800 text-white px-6 py-2 rounded-lg font-bold text-sm transition-all shadow-sm active:scale-95 disabled:opacity-50"
+            >
+                {isSubmitting ? 'Evaluating...' : 'Finish Section'}
+            </button>
           </div>
-          <button
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-              className="bg-gray-900 hover:bg-gray-800 text-white px-6 py-2 rounded-lg font-bold text-sm transition-all shadow-sm active:scale-95 disabled:opacity-50"
-          >
-              {isSubmitting ? 'Evaluating...' : 'Finish Section'}
-          </button>
-        </div>
-      </header>
+        </header>
 
-      <div className="flex-1 flex overflow-hidden p-4 gap-4 max-w-[1600px] mx-auto w-full">
-         
-         {/* ── Left Side: Question Prompt ── */}
-         <div className="w-1/4 flex flex-col gap-4">
-             <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 flex-1 overflow-y-auto">
-                 <div className="flex items-center justify-between mb-6">
-                    <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 uppercase tracking-wide">
-                      <div className="w-2 h-2 rounded-full bg-orange-500"></div>
-                      Problem Statement
-                    </h3>
-                    <span className="text-[10px] font-bold bg-orange-50 text-orange-600 px-2 py-0.5 rounded uppercase">Required</span>
-                 </div>
-                 
-                 <div className="prose prose-sm prose-slate max-w-none">
-                    <p className="text-[0.95rem] text-gray-600 leading-relaxed font-medium mb-4">
-                        {diagramPrompt}
-                    </p>
-                    <ul className="text-sm text-gray-500 space-y-2 list-disc pl-4">
-                        <li>Use appropriate shapes for each component.</li>
-                        <li>Ensure all flows are connected logically.</li>
-                        <li>Double-click any shape to edit its label.</li>
-                        <li>Your work is saved automatically every 3 seconds.</li>
-                    </ul>
-                 </div>
+        <div className="flex-1 flex overflow-hidden p-4 gap-4 max-w-[1600px] mx-auto w-full">
+           
+           {/* ── Left Side: Question Prompt ── */}
+           <div className="w-1/4 flex flex-col gap-4">
+               <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-6 flex-1 overflow-y-auto">
+                   <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2 uppercase tracking-wide">
+                        <div className="w-2 h-2 rounded-full bg-orange-500"></div>
+                        Problem Statement
+                      </h3>
+                      <span className="text-[10px] font-bold bg-orange-50 text-orange-600 px-2 py-0.5 rounded uppercase">Required</span>
+                   </div>
+                   
+                   <div className="prose prose-sm prose-slate max-w-none">
+                      <p className="text-[0.95rem] text-gray-600 leading-relaxed font-medium mb-4">
+                          {diagramPrompt}
+                      </p>
+                      <ul className="text-sm text-gray-500 space-y-2 list-disc pl-4">
+                          <li>Use appropriate shapes for each component.</li>
+                          <li>Ensure all flows are connected logically.</li>
+                          <li>Double-click any shape to edit its label.</li>
+                          <li>Your work is saved automatically every 3 seconds.</li>
+                      </ul>
+                   </div>
 
-                 <div className="mt-8 pt-6 border-t border-gray-100">
-                    <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">
-                        <Flag size={12} /> Options
+                   <div className="mt-8 pt-6 border-t border-gray-100">
+                      <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">
+                          <Flag size={12} /> Options
+                      </div>
+                      <button className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors text-sm font-semibold text-gray-600">
+                          Mark for Revisit
+                          <div className="w-2 h-2 rounded-full bg-gray-300"></div>
+                      </button>
+                   </div>
+               </div>
+           </div>
+
+           {/* ── Right Side: Canvas Area ── */}
+           <div className="flex-1 bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm flex flex-col relative" ref={reactFlowWrapper}>
+              
+              {/* ── Floating Action Bar ── */}
+              <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl px-2.5 py-2 shadow-xl ring-1 ring-black/5">
+                <ToolButton title="Selection" tool="selection" icon={<MousePointer2 size={19} />} active={activeTool === 'selection'} onClick={() => setActiveTool('selection')} />
+                <div className="w-px h-6 bg-gray-200 mx-1.5"></div>
+                <ToolButton title="Arrow" tool="arrow" icon={<ArrowRight size={19} />} active={activeTool === 'arrow'} onClick={() => setActiveTool('arrow')} />
+                <ToolButton title="Rectangle" tool="rect" icon={<Square size={19} />} active={activeTool === 'rect'} onClick={() => setActiveTool('rect')} />
+                <ToolButton title="Rounded" tool="rounded" icon={<div className="w-[19px] h-[19px] border-[2.5px] border-current rounded-[6px]" />} active={activeTool === 'rounded'} onClick={() => setActiveTool('rounded')} />
+                <ToolButton title="Circle" tool="circle" icon={<Circle size={19} />} active={activeTool === 'circle'} onClick={() => setActiveTool('circle')} />
+                <ToolButton title="Diamond" tool="diamond" icon={<div className="w-4 h-4 border-[2.5px] border-current rotate-45" />} active={activeTool === 'diamond'} onClick={() => setActiveTool('diamond')} />
+                <ToolButton title="Database" tool="database" icon={<Database size={19} />} active={activeTool === 'database'} onClick={() => setActiveTool('database')} />
+                <ToolButton title="Text" tool="text" icon={<Type size={19} />} active={activeTool === 'text'} onClick={() => setActiveTool('text')} />
+              </div>
+
+              {/* ── Floating Format Bar ── */}
+              {selectedNode && (
+                <div className="absolute top-24 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-white border border-gray-200 rounded-xl px-2.5 py-2 shadow-lg ring-1 ring-black/5 animate-in fade-in zoom-in duration-200">
+                  <select className="text-xs font-bold text-gray-700 border-none outline-none bg-transparent cursor-pointer px-2" value={selectedNode.data?.fontFamily || 'Arial'} onChange={(e) => updateSelectedNode('fontFamily', e.target.value)}>
+                    <option value="Arial">Arial</option>
+                    <option value="Helvetica">Helvetica</option>
+                    <option value="Inter">Inter</option>
+                  </select>
+                  <div className="w-px h-4 bg-gray-200 mx-1.5"></div>
+                  <select className="text-xs font-bold text-gray-700 border-none outline-none bg-transparent cursor-pointer pl-1 pr-2" value={selectedNode.data?.fontSize || 12} onChange={(e) => updateSelectedNode('fontSize', parseInt(e.target.value))}>
+                    {[10,12,14,18,24,32].map(s => <option key={s} value={s}>{s}px</option>)}
+                  </select>
+                  <div className="w-px h-4 bg-gray-200 mx-1.5"></div>
+                  <button onClick={() => toggleSelectedNodeStyle('bold')} className={`p-2 rounded-lg ${selectedNode.data?.bold ? 'bg-orange-50 text-orange-600' : 'text-gray-500 hover:bg-gray-50'}`}><Bold size={15} /></button>
+                  <button onClick={() => toggleSelectedNodeStyle('italic')} className={`p-2 rounded-lg ${selectedNode.data?.italic ? 'bg-orange-50 text-orange-600' : 'text-gray-500 hover:bg-gray-50'}`}><Italic size={15} /></button>
+                  <button onClick={() => toggleSelectedNodeStyle('underline')} className={`p-2 rounded-lg ${selectedNode.data?.underline ? 'bg-orange-50 text-orange-600' : 'text-gray-500 hover:bg-gray-50'}`}><Underline size={15} /></button>
+                  <div className="w-px h-4 bg-gray-200 mx-1.5"></div>
+                  <div className="flex items-center gap-3 px-2">
+                    <div className="relative w-6 h-6 rounded-lg overflow-hidden border-2 border-gray-200 shadow-inner" title="Background">
+                      <input type="color" value={selectedNode.data?.bgColor || '#ffffff'} onChange={(e) => updateSelectedNode('bgColor', e.target.value)} className="absolute -top-3 -left-3 w-12 h-12 cursor-pointer"/>
                     </div>
-                    <button className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors text-sm font-semibold text-gray-600">
-                        Mark for Revisit
-                        <div className="w-2 h-2 rounded-full bg-gray-300"></div>
-                    </button>
-                 </div>
-             </div>
-         </div>
-
-         {/* ── Right Side: Canvas Area ── */}
-         <div className="flex-1 bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm flex flex-col relative" ref={reactFlowWrapper}>
-            
-            {/* ── Floating Action Bar ── */}
-            <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl px-2.5 py-2 shadow-xl ring-1 ring-black/5">
-              <ToolButton title="Selection" tool="selection" icon={<MousePointer2 size={19} />} active={activeTool === 'selection'} onClick={() => setActiveTool('selection')} />
-              <div className="w-px h-6 bg-gray-200 mx-1.5"></div>
-              <ToolButton title="Arrow" tool="arrow" icon={<ArrowRight size={19} />} active={activeTool === 'arrow'} onClick={() => setActiveTool('arrow')} />
-              <ToolButton title="Rectangle" tool="rect" icon={<Square size={19} />} active={activeTool === 'rect'} onClick={() => setActiveTool('rect')} />
-              <ToolButton title="Rounded" tool="rounded" icon={<div className="w-[19px] h-[19px] border-[2.5px] border-current rounded-[6px]" />} active={activeTool === 'rounded'} onClick={() => setActiveTool('rounded')} />
-              <ToolButton title="Circle" tool="circle" icon={<Circle size={19} />} active={activeTool === 'circle'} onClick={() => setActiveTool('circle')} />
-              <ToolButton title="Diamond" tool="diamond" icon={<div className="w-4 h-4 border-[2.5px] border-current rotate-45" />} active={activeTool === 'diamond'} onClick={() => setActiveTool('diamond')} />
-              <ToolButton title="Database" tool="database" icon={<Database size={19} />} active={activeTool === 'database'} onClick={() => setActiveTool('database')} />
-              <ToolButton title="Text" tool="text" icon={<Type size={19} />} active={activeTool === 'text'} onClick={() => setActiveTool('text')} />
-            </div>
-
-            {/* ── Floating Format Bar ── */}
-            {selectedNode && (
-              <div className="absolute top-24 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-white border border-gray-200 rounded-xl px-2.5 py-2 shadow-lg ring-1 ring-black/5 animate-in fade-in zoom-in duration-200">
-                <select className="text-xs font-bold text-gray-700 border-none outline-none bg-transparent cursor-pointer px-2" value={selectedNode.data?.fontFamily || 'Arial'} onChange={(e) => updateSelectedNode('fontFamily', e.target.value)}>
-                  <option value="Arial">Arial</option>
-                  <option value="Helvetica">Helvetica</option>
-                  <option value="Inter">Inter</option>
-                </select>
-                <div className="w-px h-4 bg-gray-200 mx-1.5"></div>
-                <select className="text-xs font-bold text-gray-700 border-none outline-none bg-transparent cursor-pointer pl-1 pr-2" value={selectedNode.data?.fontSize || 12} onChange={(e) => updateSelectedNode('fontSize', parseInt(e.target.value))}>
-                  {[10,12,14,18,24,32].map(s => <option key={s} value={s}>{s}px</option>)}
-                </select>
-                <div className="w-px h-4 bg-gray-200 mx-1.5"></div>
-                <button onClick={() => toggleSelectedNodeStyle('bold')} className={`p-2 rounded-lg ${selectedNode.data?.bold ? 'bg-orange-50 text-orange-600' : 'text-gray-500 hover:bg-gray-50'}`}><Bold size={15} /></button>
-                <button onClick={() => toggleSelectedNodeStyle('italic')} className={`p-2 rounded-lg ${selectedNode.data?.italic ? 'bg-orange-50 text-orange-600' : 'text-gray-500 hover:bg-gray-50'}`}><Italic size={15} /></button>
-                <button onClick={() => toggleSelectedNodeStyle('underline')} className={`p-2 rounded-lg ${selectedNode.data?.underline ? 'bg-orange-50 text-orange-600' : 'text-gray-500 hover:bg-gray-50'}`}><Underline size={15} /></button>
-                <div className="w-px h-4 bg-gray-200 mx-1.5"></div>
-                <div className="flex items-center gap-3 px-2">
-                  <div className="relative w-6 h-6 rounded-lg overflow-hidden border-2 border-gray-200 shadow-inner" title="Background">
-                    <input type="color" value={selectedNode.data?.bgColor || '#ffffff'} onChange={(e) => updateSelectedNode('bgColor', e.target.value)} className="absolute -top-3 -left-3 w-12 h-12 cursor-pointer"/>
+                    <div className="relative w-6 h-6 rounded-lg overflow-hidden border-2 border-gray-200 shadow-inner" title="Border">
+                      <div className="absolute inset-0 m-auto w-2 h-2 rounded-full bg-white z-10 pointer-events-none border border-gray-100 shadow-sm"></div>
+                      <input type="color" value={selectedNode.data?.borderColor || '#000000'} onChange={(e) => updateSelectedNode('borderColor', e.target.value)} className="absolute -top-3 -left-3 w-12 h-12 cursor-pointer"/>
+                    </div>
                   </div>
-                  <div className="relative w-6 h-6 rounded-lg overflow-hidden border-2 border-gray-200 shadow-inner" title="Border">
-                    <div className="absolute inset-0 m-auto w-2 h-2 rounded-full bg-white z-10 pointer-events-none border border-gray-100 shadow-sm"></div>
-                    <input type="color" value={selectedNode.data?.borderColor || '#000000'} onChange={(e) => updateSelectedNode('borderColor', e.target.value)} className="absolute -top-3 -left-3 w-12 h-12 cursor-pointer"/>
-                  </div>
+                  <div className="w-px h-4 bg-gray-200 mx-1.5"></div>
+                  <button onClick={deleteSelected} className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-lg transition-colors"><Trash2 size={16} /></button>
                 </div>
-                <div className="w-px h-4 bg-gray-200 mx-1.5"></div>
-                <button onClick={deleteSelected} className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-lg transition-colors"><Trash2 size={16} /></button>
-              </div>
-            )}
+              )}
 
-            {/* ── Control Panel (Bottom Left) ── */}
-            <div className="absolute bottom-6 left-6 z-10 flex gap-4">
-              <div className="flex items-center bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden ring-1 ring-black/5">
-                <button onClick={handleZoomOut} className="p-3 hover:bg-gray-50 text-gray-500 transition-colors"><ZoomOut size={17} /></button>
-                <span className="text-xs font-bold px-3 min-w-[50px] text-center text-gray-600 bg-gray-50/50 py-3">{zoomLevel}%</span>
-                <button onClick={handleZoomIn} className="p-3 hover:bg-gray-50 text-gray-500 transition-colors"><ZoomIn size={17} /></button>
-              </div>
-              <div className="flex items-center bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden ring-1 ring-black/5">
-                <button onClick={undo} className={`p-3 hover:bg-gray-50 text-gray-500 transition-colors ${!canUndo ? 'opacity-30' : ''}`}><Undo size={17} /></button>
-                <button onClick={redo} className={`p-3 hover:bg-gray-50 text-gray-500 transition-colors ${!canRedo ? 'opacity-30' : ''}`}><Redo size={17} /></button>
-                <div className="w-px h-6 bg-gray-100 mx-1"></div>
-                <button onClick={() => setShowClearModal(true)} className="p-3 hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors" title="Clear Canvas"><Eraser size={17} /></button>
-              </div>
-            </div>
-
-            {/* ── Label Editor ── */}
-            {selectedNode && selectedNode.type !== 'text' && (
-              <div className="absolute top-6 right-6 z-10 bg-white border border-gray-200 rounded-xl p-3 shadow-xl ring-1 ring-black/5 flex items-center gap-3 animate-in slide-in-from-right-4 duration-300">
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Label</span>
-                <input ref={editInputRef} type="text" value={selectedNode.data.label || ''} onChange={(e) => updateSelectedNode('label', e.target.value)} className="text-sm font-bold text-gray-700 border-2 border-gray-50 outline-none focus:border-orange-200 focus:bg-orange-50/30 rounded-lg px-3 py-1.5 w-40 transition-all" placeholder="Enter name..."/>
-              </div>
-            )}
-            {selectedNode && selectedNode.type === 'text' && (
-              <div className="absolute top-6 right-6 z-10 bg-white border border-gray-200 rounded-xl p-3 shadow-xl ring-1 ring-black/5 flex flex-col gap-2 animate-in slide-in-from-right-4 duration-300">
-                <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Text Content</span>
-                <textarea ref={editTextareaRef} value={selectedNode.data.label || ''} onChange={(e) => updateSelectedNode('label', e.target.value)} className="text-sm font-bold text-gray-700 border-2 border-gray-50 outline-none focus:border-orange-200 focus:bg-orange-50/30 rounded-lg px-3 py-2 w-56 h-24 resize-none transition-all" placeholder="Enter text..."/>
-              </div>
-            )}
-
-            <div className={`w-full h-full ${activeTool !== 'selection' ? 'cursor-crosshair' : ''} ${activeTool === 'arrow' ? '[&_.react-flow__handle]:!opacity-100 [&_.react-flow__handle]:!w-4 [&_.react-flow__handle]:!h-4 [&_.react-flow__handle]:!-ml-2 [&_.react-flow__handle]:!-mt-2' : ''}`}>
-              <ReactFlow
-                  nodes={nodes}
-                  edges={edges}
-                  onNodesChange={onNodesChange}
-                  onEdgesChange={onEdgesChange}
-                  onConnect={onConnect}
-                  onInit={setReactFlowInstance}
-                  onPaneClick={onPaneClick}
-                  onSelectionChange={onSelectionChange}
-                  onNodeDoubleClick={onNodeDoubleClick}
-                  onMoveEnd={(_, viewport) => setZoomLevel(Math.round(viewport.zoom * 100))}
-                  nodeTypes={nodeTypes}
-                  connectionLineType={ConnectionLineType.Straight}
-                  defaultEdgeOptions={{ 
-                    type: 'straight',
-                    markerEnd: { type: MarkerType.ArrowClosed, color: '#000' },
-                    style: { stroke: '#000', strokeWidth: 1.5 }
-                  }}
-                  connectionMode={ConnectionMode.Loose}
-                  fitView
-                  snapToGrid
-                  snapGrid={[10, 10]}
-                  deleteKeyCode="Delete"
-              >
-                  <Background color="#f1f5f9" gap={25} size={1} />
-                  <Controls showInteractive={false} className="hidden" />
-              </ReactFlow>
-            </div>
-         </div>
-      </div>
-
-      {/* ── Custom Modal: Clear Response ── */}
-      {showClearModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-200">
-            <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200">
-                <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center text-red-500 mb-4">
-                    <Eraser size={24} />
+              {/* ── Control Panel (Bottom Left) ── */}
+              <div className="absolute bottom-6 left-6 z-10 flex gap-4">
+                <div className="flex items-center bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden ring-1 ring-black/5">
+                  <button onClick={handleZoomOut} className="p-3 hover:bg-gray-50 text-gray-500 transition-colors"><ZoomOut size={17} /></button>
+                  <span className="text-xs font-bold px-3 min-w-[50px] text-center text-gray-600 bg-gray-50/50 py-3">{zoomLevel}%</span>
+                  <button onClick={handleZoomIn} className="p-3 hover:bg-gray-50 text-gray-500 transition-colors"><ZoomIn size={17} /></button>
                 </div>
-                <h3 className="text-lg font-bold text-gray-900 mb-2">Clear entire response?</h3>
-                <p className="text-sm text-gray-500 mb-6 leading-relaxed">
-                    This action will permanently delete all shapes and connections from your canvas. This cannot be undone.
-                </p>
-                <div className="flex gap-3">
-                    <button 
-                        onClick={() => setShowClearModal(false)}
-                        className="flex-1 px-4 py-2.5 text-sm font-bold text-gray-500 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
-                    >
-                        Keep Work
-                    </button>
-                    <button 
-                        onClick={handleClearCanvas}
-                        className="flex-1 px-4 py-2.5 text-sm font-bold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-colors shadow-lg shadow-red-200"
-                    >
-                        Clear All
-                    </button>
+                <div className="flex items-center bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden ring-1 ring-black/5">
+                  <button onClick={undo} className={`p-3 hover:bg-gray-50 text-gray-500 transition-colors ${!canUndo ? 'opacity-30' : ''}`}><Undo size={17} /></button>
+                  <button onClick={redo} className={`p-3 hover:bg-gray-50 text-gray-500 transition-colors ${!canRedo ? 'opacity-30' : ''}`}><Redo size={17} /></button>
+                  <div className="w-px h-6 bg-gray-100 mx-1"></div>
+                  <button onClick={() => setShowClearModal(true)} className="p-3 hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors" title="Clear Canvas"><Eraser size={17} /></button>
                 </div>
-            </div>
+              </div>
+
+              {/* ── Label Editor ── */}
+              {selectedNode && selectedNode.type !== 'text' && (
+                <div className="absolute top-6 right-6 z-10 bg-white border border-gray-200 rounded-xl p-3 shadow-xl ring-1 ring-black/5 flex items-center gap-3 animate-in slide-in-from-right-4 duration-300">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Label</span>
+                  <input ref={editInputRef} type="text" value={selectedNode.data.label || ''} onChange={(e) => updateSelectedNode('label', e.target.value)} className="text-sm font-bold text-gray-700 border-2 border-gray-50 outline-none focus:border-orange-200 focus:bg-orange-50/30 rounded-lg px-3 py-1.5 w-40 transition-all" placeholder="Enter name..."/>
+                </div>
+              )}
+              {selectedNode && selectedNode.type === 'text' && (
+                <div className="absolute top-6 right-6 z-10 bg-white border border-gray-200 rounded-xl p-3 shadow-xl ring-1 ring-black/5 flex flex-col gap-2 animate-in slide-in-from-right-4 duration-300">
+                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Text Content</span>
+                  <textarea ref={editTextareaRef} value={selectedNode.data.label || ''} onChange={(e) => updateSelectedNode('label', e.target.value)} className="text-sm font-bold text-gray-700 border-2 border-gray-50 outline-none focus:border-orange-200 focus:bg-orange-50/30 rounded-lg px-3 py-2 w-56 h-24 resize-none transition-all" placeholder="Enter text..."/>
+                </div>
+              )}
+
+              <div className={`w-full h-full ${activeTool !== 'selection' ? 'cursor-crosshair' : ''} ${activeTool === 'arrow' ? '[&_.react-flow__handle]:!opacity-100 [&_.react-flow__handle]:!w-4 [&_.react-flow__handle]:!h-4 [&_.react-flow__handle]:!-ml-2 [&_.react-flow__handle]:!-mt-2' : ''}`}>
+                <ReactFlow
+                    nodes={nodes}
+                    edges={edges}
+                    onNodesChange={onNodesChange}
+                    onEdgesChange={onEdgesChange}
+                    onConnect={onConnect}
+                    onInit={setReactFlowInstance}
+                    onPaneClick={onPaneClick}
+                    onSelectionChange={onSelectionChange}
+                    onNodeDoubleClick={onNodeDoubleClick}
+                    onMoveEnd={(_, viewport) => setZoomLevel(Math.round(viewport.zoom * 100))}
+                    nodeTypes={nodeTypes}
+                    connectionLineType={ConnectionLineType.Straight}
+                    defaultEdgeOptions={{ 
+                      type: 'straight',
+                      markerEnd: { type: MarkerType.ArrowClosed, color: '#000' },
+                      style: { stroke: '#000', strokeWidth: 1.5 }
+                    }}
+                    connectionMode={ConnectionMode.Loose}
+                    fitView
+                    snapToGrid
+                    snapGrid={[10, 10]}
+                    deleteKeyCode="Delete"
+                >
+                    <Background color="#f1f5f9" gap={25} size={1} />
+                    <Controls showInteractive={false} className="hidden" />
+                </ReactFlow>
+              </div>
+           </div>
         </div>
-      )}
 
+        {/* ── Custom Modal: Clear Response ── */}
+        {showClearModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+              <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-in zoom-in-95 duration-200">
+                  <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center text-red-500 mb-4">
+                      <Eraser size={24} />
+                  </div>
+                  <h3 className="text-lg font-bold text-gray-900 mb-2">Clear entire response?</h3>
+                  <p className="text-sm text-gray-500 mb-6 leading-relaxed">
+                      This action will permanently delete all shapes and connections from your canvas. This cannot be undone.
+                  </p>
+                  <div className="flex gap-3">
+                      <button 
+                          onClick={() => setShowClearModal(false)}
+                          className="flex-1 px-4 py-2.5 text-sm font-bold text-gray-500 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors"
+                      >
+                          Keep Work
+                      </button>
+                      <button 
+                          onClick={handleClearCanvas}
+                          className="flex-1 px-4 py-2.5 text-sm font-bold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-colors shadow-lg shadow-red-200"
+                      >
+                          Clear All
+                      </button>
+                  </div>
+              </div>
+          </div>
+        )}
+      </div>
+    </>
   );
 };
 

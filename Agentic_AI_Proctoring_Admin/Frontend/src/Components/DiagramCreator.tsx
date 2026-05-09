@@ -163,53 +163,13 @@ const DiagramCreator: React.FC<any> = ({ onSave, initialData }) => {
   const [zoomLevel, setZoomLevel] = useState(100);
   const editInputRef = useRef<HTMLInputElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
-
   const [activeTool, setActiveTool] = useState<string>('selection');
+  const [isCapturing, setIsCapturing] = useState(false);
 
   const selectedNode = useMemo(
     () => nodes.find(n => n.id === selectedNodeId) || null,
     [nodes, selectedNodeId]
   );
-
-  const [isCapturing, setIsCapturing] = useState(false);
-
-  const handleCaptureAndSave = async () => {
-    if (!reactFlowWrapper.current) return;
-    setIsCapturing(true);
-    try {
-      const dataUrl = await toPng(reactFlowWrapper.current, { 
-        backgroundColor: '#f8f8f8',
-        filter: (node) => !node.classList?.contains('z-10')
-      });
-      if (onSave) onSave({ nodes, edges, master_image: dataUrl });
-    } catch (err) {
-      console.error("Failed to capture master image", err);
-      if (onSave) onSave({ nodes, edges });
-    } finally {
-      setIsCapturing(false);
-    }
-  };
-
-  // Replace debounced save with manual save or keep both
-  // Given it's a creator, manual save is often better for capturing image
-  
-  return (
-    <div className="flex flex-col h-full bg-white border border-[#e7e6f7] rounded-xl overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.05)] font-sans text-slate-800">
-      
-      {/* ── Header with Save Button ── */}
-      <div className="bg-gray-50 border-b border-gray-100 px-4 py-2 flex justify-between items-center">
-        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Diagram Master Designer</span>
-        <button 
-          onClick={handleCaptureAndSave}
-          disabled={isCapturing}
-          className="flex items-center gap-2 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all active:scale-95 disabled:opacity-50"
-        >
-          <Save size={14} /> {isCapturing ? 'Capturing...' : 'Set as Master Solution'}
-        </button>
-      </div>
-
-      {/* ── Canvas Area ── */}
-      <div className="flex-1 relative bg-[#f8f8f8]" ref={reactFlowWrapper}>
 
   // ── Undo / Redo ──────────────────────────────────────────────────────────
   const historyRef = useRef<{nodes: Node[], edges: Edge[]}[]>([]);
@@ -279,6 +239,23 @@ const DiagramCreator: React.FC<any> = ({ onSave, initialData }) => {
   }, [undo, redo]);
 
   // ── Core Handlers ─────────────────────────────────────────────────────────
+
+  const handleCaptureAndSave = async () => {
+    if (!reactFlowWrapper.current) return;
+    setIsCapturing(true);
+    try {
+      const dataUrl = await toPng(reactFlowWrapper.current, { 
+        backgroundColor: '#f8f8f8',
+        filter: (node) => !node.classList?.contains('z-10')
+      });
+      if (onSave) onSave({ nodes, edges, master_image: dataUrl });
+    } catch (err) {
+      console.error("Failed to capture master image", err);
+      if (onSave) onSave({ nodes, edges });
+    } finally {
+      setIsCapturing(false);
+    }
+  };
 
   const onConnect = useCallback(
     (params: Connection | Edge) => setEdges((eds) => addEdge({ 
@@ -371,6 +348,18 @@ const DiagramCreator: React.FC<any> = ({ onSave, initialData }) => {
   return (
     <div className="flex flex-col h-full bg-white border border-[#e7e6f7] rounded-xl overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.05)] font-sans text-slate-800">
       
+      {/* ── Header with Save Button ── */}
+      <div className="bg-gray-50 border-b border-gray-100 px-4 py-2 flex justify-between items-center z-10">
+        <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Diagram Master Designer</span>
+        <button 
+          onClick={handleCaptureAndSave}
+          disabled={isCapturing}
+          className="flex items-center gap-2 px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-widest rounded-lg transition-all active:scale-95 disabled:opacity-50"
+        >
+          <Save size={14} /> {isCapturing ? 'Capturing...' : 'Set as Master Solution'}
+        </button>
+      </div>
+
       {/* ── Canvas Area ── */}
       <div className="flex-1 relative bg-[#f8f8f8]" ref={reactFlowWrapper}>
         
