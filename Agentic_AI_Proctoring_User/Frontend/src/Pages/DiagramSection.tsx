@@ -17,7 +17,7 @@ import { toast } from 'react-toastify';
 import { 
   Bold, Italic, Underline,
   Undo, Redo, ZoomIn, ZoomOut, Trash2, Eraser, Flag, FileQuestion,
-  Square, Circle, Database, Type, MousePointer2
+  Square, Circle, Database, Type, MousePointer2, ArrowRight
 } from 'lucide-react';
 
 // ── Custom Nodes ────────────────────────────────────────────────────────────
@@ -240,6 +240,7 @@ const DiagramSection = () => {
   const onConnect = useCallback(
     (params: Connection | Edge) => setEdges((eds) => addEdge({ 
       ...params, 
+      type: 'straight',
       markerEnd: { type: MarkerType.ArrowClosed, color: '#000' },
       style: { stroke: '#000', strokeWidth: 1.5 } 
     }, eds)),
@@ -410,6 +411,7 @@ const DiagramSection = () => {
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-white border border-[#e7e6f7] rounded-xl px-2 py-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
               <ToolButton title="Selection" tool="selection" icon={<MousePointer2 size={18} />} active={activeTool === 'selection'} onClick={() => setActiveTool('selection')} />
               <div className="w-px h-6 bg-slate-200 mx-1"></div>
+              <ToolButton title="Arrow" tool="arrow" icon={<ArrowRight size={18} />} active={activeTool === 'arrow'} onClick={() => setActiveTool('arrow')} />
               <ToolButton title="Rectangle" tool="rect" icon={<Square size={18} />} active={activeTool === 'rect'} onClick={() => setActiveTool('rect')} />
               <ToolButton title="Rounded" tool="rounded" icon={<div className="w-[18px] h-[18px] border-[2px] border-current rounded-[6px]" />} active={activeTool === 'rounded'} onClick={() => setActiveTool('rounded')} />
               <ToolButton title="Circle" tool="circle" icon={<Circle size={18} />} active={activeTool === 'circle'} onClick={() => setActiveTool('circle')} />
@@ -478,7 +480,7 @@ const DiagramSection = () => {
               </div>
             )}
 
-            <div className={`w-full h-full ${activeTool !== 'selection' ? 'cursor-crosshair' : ''}`}>
+            <div className={`w-full h-full ${activeTool !== 'selection' ? 'cursor-crosshair' : ''} ${activeTool === 'arrow' ? '[&_.react-flow__handle]:!opacity-100' : ''}`}>
               <ReactFlow
                   nodes={nodes}
                   edges={edges}
