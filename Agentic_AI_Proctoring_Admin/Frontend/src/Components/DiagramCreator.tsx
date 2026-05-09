@@ -13,12 +13,12 @@ import ReactFlow, {
 import type { Connection, Edge, Node, NodeProps } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { 
-  Search, Bold, Italic, Underline,
-  Undo, Redo, ZoomIn, ZoomOut, Trash2, ChevronDown, Eraser
+  Bold, Italic, Underline,
+  Undo, Redo, ZoomIn, ZoomOut, Trash2, Eraser,
+  Square, Circle, Database, Type, MousePointer2
 } from 'lucide-react';
 
-// ── Draw.io Style Custom Nodes (STABLE — defined outside component) ─────────
-
+// ── Custom Nodes ────────────────────────────────────────────────────────────
 const BaseNode = ({ data, selected, shape = 'rect' }: any) => {
   let borderRadius = '0px';
   if (shape === 'rounded') borderRadius = '8px';
@@ -26,10 +26,10 @@ const BaseNode = ({ data, selected, shape = 'rect' }: any) => {
   
   return (
     <div 
-      className={`relative flex items-center justify-center border-[1.5px] ${selected ? 'border-blue-500 shadow-[0_0_0_1px_rgba(59,130,246,0.5)]' : ''}`}
+      className={`relative flex items-center justify-center border-[1.5px] transition-shadow ${selected ? 'border-[#6965db] shadow-[0_0_0_2px_rgba(105,101,219,0.3)]' : ''}`}
       style={{ 
         backgroundColor: data.bgColor || '#ffffff', 
-        borderColor: selected ? '#3b82f6' : (data.borderColor || '#000000'),
+        borderColor: selected ? '#6965db' : (data.borderColor || '#000000'),
         borderRadius,
         minWidth: '100px',
         minHeight: '40px',
@@ -41,27 +41,27 @@ const BaseNode = ({ data, selected, shape = 'rect' }: any) => {
         fontFamily: data.fontFamily || 'Arial, sans-serif'
       }}
     >
-      <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-blue-500 !border-white !border-2 opacity-0 hover:opacity-100" />
-      <div className="px-2 py-1 select-none">
+      <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100" />
+      <div className="px-2 py-1 select-none whitespace-pre-wrap text-center">
         {data.label || <span className="text-gray-300 text-[10px] italic">double-click</span>}
       </div>
-      <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-blue-500 !border-white !border-2 opacity-0 hover:opacity-100" />
-      <Handle type="source" position={Position.Left} className="!w-2 !h-2 !bg-blue-500 !border-white !border-2 opacity-0 hover:opacity-100" />
-      <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-blue-500 !border-white !border-2 opacity-0 hover:opacity-100" />
+      <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100" />
+      <Handle type="source" position={Position.Left} className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100" />
+      <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100" />
     </div>
   );
 };
 
 const DiamondNode = ({ data, selected }: NodeProps) => (
   <div 
-    className={`w-20 h-20 flex items-center justify-center rotate-45 border-[1.5px] ${selected ? 'border-blue-500 shadow-[0_0_0_1px_rgba(59,130,246,0.5)]' : ''}`}
+    className={`w-20 h-20 flex items-center justify-center rotate-45 border-[1.5px] transition-shadow ${selected ? 'border-[#6965db] shadow-[0_0_0_2px_rgba(105,101,219,0.3)]' : ''}`}
     style={{ 
       backgroundColor: data.bgColor || '#ffffff', 
-      borderColor: selected ? '#3b82f6' : (data.borderColor || '#000000'),
+      borderColor: selected ? '#6965db' : (data.borderColor || '#000000'),
       color: data.fontColor || '#000000',
     }}
   >
-    <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-blue-500 !border-white !border-2 opacity-0 hover:opacity-100 !-rotate-45" />
+    <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100 !-rotate-45" />
     <div 
       className="-rotate-45 select-none text-center leading-tight px-1"
       style={{
@@ -74,26 +74,26 @@ const DiamondNode = ({ data, selected }: NodeProps) => (
     >
       {data.label || <span className="text-gray-300 text-[8px] italic">edit</span>}
     </div>
-    <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-blue-500 !border-white !border-2 opacity-0 hover:opacity-100 !-rotate-45" />
-    <Handle type="source" position={Position.Left} className="!w-2 !h-2 !bg-blue-500 !border-white !border-2 opacity-0 hover:opacity-100 !-rotate-45" />
-    <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-blue-500 !border-white !border-2 opacity-0 hover:opacity-100 !-rotate-45" />
+    <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100 !-rotate-45" />
+    <Handle type="source" position={Position.Left} className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100 !-rotate-45" />
+    <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100 !-rotate-45" />
   </div>
 );
 
 const DatabaseNode = ({ data, selected }: NodeProps) => (
   <div 
-    className={`w-16 h-20 flex flex-col items-center justify-center relative border-[1.5px] rounded-[50%/10%] ${selected ? 'border-blue-500 shadow-[0_0_0_1px_rgba(59,130,246,0.5)]' : ''}`}
+    className={`w-16 h-20 flex flex-col items-center justify-center relative border-[1.5px] rounded-[50%/10%] transition-shadow ${selected ? 'border-[#6965db] shadow-[0_0_0_2px_rgba(105,101,219,0.3)]' : ''}`}
     style={{ 
       backgroundColor: data.bgColor || '#ffffff', 
-      borderColor: selected ? '#3b82f6' : (data.borderColor || '#000000'),
+      borderColor: selected ? '#6965db' : (data.borderColor || '#000000'),
       color: data.fontColor || '#000000',
     }}
   >
     <div 
       className="absolute top-0 w-full h-4 border-b-[1.5px] rounded-[50%]" 
-      style={{ borderColor: selected ? '#3b82f6' : (data.borderColor || '#000000') }}
+      style={{ borderColor: selected ? '#6965db' : (data.borderColor || '#000000') }}
     />
-    <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-blue-500 !border-white !border-2 opacity-0 hover:opacity-100" />
+    <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100" />
     <div 
       className="select-none text-center mt-2 px-1"
       style={{
@@ -106,13 +106,13 @@ const DatabaseNode = ({ data, selected }: NodeProps) => (
     >
       {data.label || <span className="text-gray-300 text-[8px] italic">edit</span>}
     </div>
-    <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-blue-500 !border-white !border-2 opacity-0 hover:opacity-100" />
+    <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100" />
   </div>
 );
 
 const TextNode = ({ data, selected }: NodeProps) => (
   <div 
-    className={`px-2 py-1 ${selected ? 'ring-1 ring-blue-500' : ''}`}
+    className={`px-2 py-1 ${selected ? 'ring-2 ring-[#6965db] rounded bg-[#e0dfff] bg-opacity-30' : ''}`}
     style={{
         color: data.fontColor || '#000000',
         fontWeight: data.bold ? 'bold' : 'normal',
@@ -126,7 +126,6 @@ const TextNode = ({ data, selected }: NodeProps) => (
   </div>
 );
 
-// ── Stable node type wrappers (prevents ReactFlow remounting nodes on re-render) ──
 const RectNode = (props: any) => <BaseNode {...props} shape="rect" />;
 const RoundedNode = (props: any) => <BaseNode {...props} shape="rounded" />;
 const CircleNode = (props: any) => <BaseNode {...props} shape="circle" />;
@@ -140,20 +139,17 @@ const nodeTypes = {
   text: TextNode
 };
 
-// ── Shape Palette Data ──────────────────────────────────────────────────────
+// ── Components ──────────────────────────────────────────────────────────────
 
-const SHAPES = [
-  { type: 'rect', label: 'Rectangle', outline: <div className="w-8 h-6 border-[1.5px] border-slate-600 bg-white" /> },
-  { type: 'rounded', label: 'Rounded', outline: <div className="w-8 h-6 border-[1.5px] border-slate-600 rounded bg-white" /> },
-  { type: 'text', label: 'Text', outline: <div className="text-xs font-serif text-slate-600">Text</div> },
-  { type: 'text', label: 'Heading', outline: <div className="text-sm font-bold text-slate-600">Heading</div> },
-  { type: 'rect', label: 'Container', outline: <div className="w-8 h-6 border-[1.5px] border-slate-600 bg-white relative"><div className="absolute inset-y-0 left-1 w-px bg-slate-600"/><div className="absolute inset-y-0 right-1 w-px bg-slate-600"/></div> },
-  { type: 'diamond', label: 'Diamond', outline: <div className="w-6 h-6 border-[1.5px] border-slate-600 rotate-45 bg-white" /> },
-  { type: 'circle', label: 'Circle', outline: <div className="w-7 h-7 border-[1.5px] border-slate-600 rounded-full bg-white" /> },
-  { type: 'database', label: 'Database', outline: <div className="w-6 h-8 border-[1.5px] border-slate-600 rounded-[50%/10%] relative bg-white"><div className="absolute top-0 w-full h-1.5 border-b-[1.5px] border-slate-600 rounded-[50%]"/></div> },
-];
-
-// ── Main Component ──────────────────────────────────────────────────────────
+const ToolButton = ({ icon, active, onClick, title }: any) => (
+  <button 
+    onClick={onClick} 
+    title={title}
+    className={`w-9 h-9 flex items-center justify-center rounded-lg transition-colors ${active ? 'bg-[#e0dfff] text-[#6965db]' : 'text-slate-600 hover:bg-[#f0efff]'}`}
+  >
+    {icon}
+  </button>
+);
 
 const DiagramCreator: React.FC<any> = ({ onSave, initialData }) => {
   const reactFlowWrapper = useRef<HTMLDivElement>(null);
@@ -161,12 +157,12 @@ const DiagramCreator: React.FC<any> = ({ onSave, initialData }) => {
   const [edges, setEdges, onEdgesChange] = useEdgesState(initialData?.edges || []);
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
   const [zoomLevel, setZoomLevel] = useState(100);
   const editInputRef = useRef<HTMLInputElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
 
-  // Derive selectedNode from current nodes (fixes stale state issue)
+  const [activeTool, setActiveTool] = useState<string>('selection');
+
   const selectedNode = useMemo(
     () => nodes.find(n => n.id === selectedNodeId) || null,
     [nodes, selectedNodeId]
@@ -179,7 +175,6 @@ const DiagramCreator: React.FC<any> = ({ onSave, initialData }) => {
   const [canUndo, setCanUndo] = useState(false);
   const [canRedo, setCanRedo] = useState(false);
 
-  // Record initial state
   useEffect(() => {
     if (historyRef.current.length === 0) {
       historyRef.current.push({
@@ -190,12 +185,8 @@ const DiagramCreator: React.FC<any> = ({ onSave, initialData }) => {
     }
   }, []);
 
-  // Auto-record state changes (debounced)
   useEffect(() => {
-    if (isRestoringRef.current) {
-      isRestoringRef.current = false;
-      return;
-    }
+    if (isRestoringRef.current) { isRestoringRef.current = false; return; }
     const timer = window.setTimeout(() => {
       const snap = {
         nodes: nodes.map(n => ({ ...n, data: { ...n.data } })),
@@ -235,7 +226,6 @@ const DiagramCreator: React.FC<any> = ({ onSave, initialData }) => {
     }
   }, [setNodes, setEdges]);
 
-  // Keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'z' && !e.shiftKey) { e.preventDefault(); undo(); }
@@ -256,41 +246,34 @@ const DiagramCreator: React.FC<any> = ({ onSave, initialData }) => {
     [setEdges]
   );
 
-  const onDragStart = (event: React.DragEvent, nodeType: string, defaultLabel: string) => {
-    event.dataTransfer.setData('application/reactflow-type', nodeType);
-    event.dataTransfer.setData('application/reactflow-label', defaultLabel);
-    event.dataTransfer.effectAllowed = 'move';
-  };
-
-  const onDrop = useCallback(
-    (event: React.DragEvent) => {
-      event.preventDefault();
-      const type = event.dataTransfer.getData('application/reactflow-type');
-      const labelData = event.dataTransfer.getData('application/reactflow-label');
-      
-      if (!type || !reactFlowInstance) return;
-      const position = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
-      
-      const newNode: Node = {
-        id: `node_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-        type,
-        position,
-        data: { 
-          label: labelData || '', 
-          bgColor: '#ffffff', 
-          borderColor: '#000000', 
-          fontColor: '#000000',
-          fontSize: 12,
-          fontFamily: 'Arial',
-          bold: false,
-          italic: false,
-          underline: false
-        },
-      };
-      setNodes((nds) => nds.concat(newNode));
-    },
-    [reactFlowInstance, setNodes]
-  );
+  const onPaneClick = useCallback((event: React.MouseEvent) => {
+    if (activeTool === 'selection') {
+      setSelectedNodeId(null);
+      return;
+    }
+    
+    if (!reactFlowInstance) return;
+    const position = reactFlowInstance.screenToFlowPosition({ x: event.clientX, y: event.clientY });
+    
+    const newNode: Node = {
+      id: `node_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      type: activeTool,
+      position,
+      data: { 
+        label: activeTool === 'text' ? 'Text' : '', 
+        bgColor: '#ffffff', 
+        borderColor: '#000000', 
+        fontColor: '#000000',
+        fontSize: 12,
+        fontFamily: 'Arial',
+        bold: false,
+        italic: false,
+        underline: false
+      },
+    };
+    setNodes((nds) => nds.concat(newNode));
+    setActiveTool('selection');
+  }, [activeTool, reactFlowInstance, setNodes]);
 
   const updateSelectedNode = useCallback((field: string, value: any) => {
     if (!selectedNodeId) return;
@@ -316,12 +299,10 @@ const DiagramCreator: React.FC<any> = ({ onSave, initialData }) => {
     setSelectedNodeId(null);
   }, [selectedNodeId, setNodes, setEdges]);
 
-  // Selection change → store ID only
   const onSelectionChange = useCallback(({ nodes: sel }: { nodes: Node[] }) => {
     setSelectedNodeId(sel.length > 0 ? sel[0].id : null);
   }, []);
 
-  // Double-click to focus edit input
   const onNodeDoubleClick = useCallback((_: any, node: Node) => {
     setSelectedNodeId(node.id);
     setTimeout(() => {
@@ -330,182 +311,98 @@ const DiagramCreator: React.FC<any> = ({ onSave, initialData }) => {
     }, 50);
   }, []);
 
-  // Zoom handlers
   const handleZoomIn = useCallback(() => reactFlowInstance?.zoomIn(), [reactFlowInstance]);
   const handleZoomOut = useCallback(() => reactFlowInstance?.zoomOut(), [reactFlowInstance]);
-
-  // Search filter
-  const filteredShapes = useMemo(() => {
-    if (!searchQuery.trim()) return SHAPES;
-    const q = searchQuery.toLowerCase();
-    return SHAPES.filter(s => s.type.includes(q) || s.label.toLowerCase().includes(q));
-  }, [searchQuery]);
 
   // Debounced save to parent
   const saveTimerRef = useRef<number | null>(null);
   useEffect(() => {
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = window.setTimeout(() => {
-      onSave({ nodes, edges });
+      if (onSave) onSave({ nodes, edges });
     }, 300);
     return () => { if (saveTimerRef.current) clearTimeout(saveTimerRef.current); };
-  }, [nodes, edges]);
+  }, [nodes, edges, onSave]);
 
   return (
-    <div className="flex flex-col h-full bg-white border border-slate-300 rounded overflow-hidden shadow-sm font-sans text-slate-800">
+    <div className="flex flex-col h-full bg-white border border-[#e7e6f7] rounded-xl overflow-hidden shadow-[0_1px_4px_rgba(0,0,0,0.05)] font-sans text-slate-800">
       
-      {/* ── Top Toolbar ── */}
-      <div className="flex items-center gap-2 px-3 py-1.5 border-b border-slate-200 bg-[#f8f9fa] overflow-x-auto">
-        <div className="flex items-center gap-1 pr-3 border-r border-slate-300">
-          <button onClick={undo} className={`p-1.5 hover:bg-slate-200 rounded text-slate-600 ${!canUndo ? 'opacity-30' : ''}`} title="Undo (Ctrl+Z)"><Undo size={14} /></button>
-          <button onClick={redo} className={`p-1.5 hover:bg-slate-200 rounded text-slate-600 ${!canRedo ? 'opacity-30' : ''}`} title="Redo (Ctrl+Y)"><Redo size={14} /></button>
-        </div>
+      {/* ── Canvas Area ── */}
+      <div className="flex-1 relative bg-[#f8f8f8]" ref={reactFlowWrapper}>
         
-        <div className="flex items-center gap-1 pr-3 border-r border-slate-300">
-          <button onClick={handleZoomOut} className="p-1.5 hover:bg-slate-200 rounded text-slate-600" title="Zoom Out"><ZoomOut size={14} /></button>
-          <span className="text-xs font-medium px-2 min-w-[40px] text-center">{zoomLevel}%</span>
-          <button onClick={handleZoomIn} className="p-1.5 hover:bg-slate-200 rounded text-slate-600" title="Zoom In"><ZoomIn size={14} /></button>
+        {/* ── Floating Action Bar ── */}
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-white border border-[#e7e6f7] rounded-xl px-2 py-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+          <ToolButton title="Selection" tool="selection" icon={<MousePointer2 size={18} />} active={activeTool === 'selection'} onClick={() => setActiveTool('selection')} />
+          <div className="w-px h-6 bg-slate-200 mx-1"></div>
+          <ToolButton title="Rectangle" tool="rect" icon={<Square size={18} />} active={activeTool === 'rect'} onClick={() => setActiveTool('rect')} />
+          <ToolButton title="Rounded" tool="rounded" icon={<div className="w-[18px] h-[18px] border-[2px] border-current rounded-[6px]" />} active={activeTool === 'rounded'} onClick={() => setActiveTool('rounded')} />
+          <ToolButton title="Circle" tool="circle" icon={<Circle size={18} />} active={activeTool === 'circle'} onClick={() => setActiveTool('circle')} />
+          <ToolButton title="Diamond" tool="diamond" icon={<div className="w-4 h-4 border-[2px] border-current rotate-45" />} active={activeTool === 'diamond'} onClick={() => setActiveTool('diamond')} />
+          <ToolButton title="Database" tool="database" icon={<Database size={18} />} active={activeTool === 'database'} onClick={() => setActiveTool('database')} />
+          <ToolButton title="Text" tool="text" icon={<Type size={18} />} active={activeTool === 'text'} onClick={() => setActiveTool('text')} />
         </div>
 
-        {/* Formatting Tools */}
-        <div className={`flex items-center gap-1 pr-3 border-r border-slate-300 ${!selectedNode ? 'opacity-50 pointer-events-none' : ''}`}>
-          <select 
-            className="text-xs border border-slate-300 rounded px-2 py-1 bg-white"
-            value={selectedNode?.data?.fontFamily || 'Arial'}
-            onChange={(e) => updateSelectedNode('fontFamily', e.target.value)}
-          >
-            <option value="Arial">Arial</option>
-            <option value="Helvetica">Helvetica</option>
-            <option value="Times New Roman">Times New Roman</option>
-          </select>
-          <select 
-            className="text-xs border border-slate-300 rounded px-2 py-1 bg-white w-14"
-            value={selectedNode?.data?.fontSize || 12}
-            onChange={(e) => updateSelectedNode('fontSize', parseInt(e.target.value))}
-          >
-            {[8,9,10,11,12,14,18,24,36].map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-          
-          <button 
-            onClick={() => toggleSelectedNodeStyle('bold')}
-            className={`p-1.5 rounded ml-1 ${selectedNode?.data?.bold ? 'bg-slate-300' : 'hover:bg-slate-200'}`}
-          ><Bold size={14} /></button>
-          <button 
-            onClick={() => toggleSelectedNodeStyle('italic')}
-            className={`p-1.5 rounded ${selectedNode?.data?.italic ? 'bg-slate-300' : 'hover:bg-slate-200'}`}
-          ><Italic size={14} /></button>
-          <button 
-            onClick={() => toggleSelectedNodeStyle('underline')}
-            className={`p-1.5 rounded ${selectedNode?.data?.underline ? 'bg-slate-300' : 'hover:bg-slate-200'}`}
-          ><Underline size={14} /></button>
-        </div>
-
-        <div className={`flex items-center gap-2 pr-3 border-r border-slate-300 ${!selectedNode ? 'opacity-50 pointer-events-none' : ''}`}>
-            <div className="flex items-center gap-1">
-                <span className="text-[10px] uppercase text-slate-500">Bg</span>
-                <input type="color" value={selectedNode?.data?.bgColor || '#ffffff'} onChange={(e) => updateSelectedNode('bgColor', e.target.value)} className="w-5 h-5 border-none p-0 cursor-pointer" />
-            </div>
-            <div className="flex items-center gap-1">
-                <span className="text-[10px] uppercase text-slate-500">Line</span>
-                <input type="color" value={selectedNode?.data?.borderColor || '#000000'} onChange={(e) => updateSelectedNode('borderColor', e.target.value)} className="w-5 h-5 border-none p-0 cursor-pointer" />
-            </div>
-            <div className="flex items-center gap-1">
-                <span className="text-[10px] uppercase text-slate-500">Text</span>
-                <input type="color" value={selectedNode?.data?.fontColor || '#000000'} onChange={(e) => updateSelectedNode('fontColor', e.target.value)} className="w-5 h-5 border-none p-0 cursor-pointer" />
-            </div>
-        </div>
-
-        <div className="ml-auto flex items-center gap-2">
-           <button 
-             onClick={deleteSelected}
-             className={`p-1.5 hover:bg-slate-200 rounded text-slate-600 flex items-center gap-1 ${!selectedNode ? 'opacity-50' : ''}`}
-           >
-              <Trash2 size={14} /> <span className="text-xs">Delete</span>
-           </button>
-           <button onClick={clearCanvas} className="flex items-center gap-1 px-3 py-1 text-xs text-slate-600 hover:bg-slate-200 rounded">
-             <Eraser size={12} /> Clear Response
-           </button>
-        </div>
-      </div>
-
-      <div className="flex-1 flex overflow-hidden">
-        
-        {/* ── Left Sidebar (Shape Library) ── */}
-        <div className="w-56 bg-[#f8f9fa] border-r border-slate-200 flex flex-col h-full overflow-y-auto">
-           <div className="p-2 border-b border-slate-200">
-              <div className="flex items-center gap-2 bg-white border border-slate-300 rounded px-2 py-1">
-                 <Search size={14} className="text-slate-400" />
-                 <input 
-                   type="text" 
-                   placeholder="Search Shapes" 
-                   className="w-full text-xs outline-none" 
-                   value={searchQuery}
-                   onChange={(e) => setSearchQuery(e.target.value)}
-                 />
+        {/* ── Floating Format Bar ── */}
+        {selectedNode && (
+          <div className="absolute top-20 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-white border border-[#e7e6f7] rounded-lg px-2 py-1.5 shadow-[0_2px_8px_rgba(0,0,0,0.08)]">
+            <select className="text-xs font-medium text-slate-700 border-none outline-none bg-transparent cursor-pointer px-2" value={selectedNode.data?.fontFamily || 'Arial'} onChange={(e) => updateSelectedNode('fontFamily', e.target.value)}>
+              <option value="Arial">Arial</option>
+              <option value="Helvetica">Helvetica</option>
+              <option value="Times New Roman">Times</option>
+            </select>
+            <div className="w-px h-4 bg-slate-200 mx-1"></div>
+            <select className="text-xs font-medium text-slate-700 border-none outline-none bg-transparent cursor-pointer pl-1 pr-2" value={selectedNode.data?.fontSize || 12} onChange={(e) => updateSelectedNode('fontSize', parseInt(e.target.value))}>
+              {[10,12,14,18,24,32].map(s => <option key={s} value={s}>{s}</option>)}
+            </select>
+            <div className="w-px h-4 bg-slate-200 mx-1"></div>
+            <button onClick={() => toggleSelectedNodeStyle('bold')} className={`p-1.5 rounded ${selectedNode.data?.bold ? 'bg-[#e0dfff] text-[#6965db]' : 'text-slate-600 hover:bg-[#f0efff]'}`}><Bold size={14} /></button>
+            <button onClick={() => toggleSelectedNodeStyle('italic')} className={`p-1.5 rounded ${selectedNode.data?.italic ? 'bg-[#e0dfff] text-[#6965db]' : 'text-slate-600 hover:bg-[#f0efff]'}`}><Italic size={14} /></button>
+            <button onClick={() => toggleSelectedNodeStyle('underline')} className={`p-1.5 rounded ${selectedNode.data?.underline ? 'bg-[#e0dfff] text-[#6965db]' : 'text-slate-600 hover:bg-[#f0efff]'}`}><Underline size={14} /></button>
+            <div className="w-px h-4 bg-slate-200 mx-1"></div>
+            <div className="flex items-center gap-2 px-2">
+              <div className="relative w-5 h-5 rounded-full overflow-hidden border border-slate-300 shadow-sm" title="Background">
+                <input type="color" value={selectedNode.data?.bgColor || '#ffffff'} onChange={(e) => updateSelectedNode('bgColor', e.target.value)} className="absolute -top-2 -left-2 w-10 h-10 cursor-pointer"/>
               </div>
-           </div>
-
-           {/* General Category */}
-           <div className="flex flex-col">
-              <button className="flex items-center gap-2 px-3 py-2 bg-[#e9ecef] border-b border-slate-200 hover:bg-[#dee2e6] transition-colors w-full text-left">
-                 <ChevronDown size={14} className="text-slate-600" />
-                 <span className="text-xs font-semibold text-slate-700">General</span>
-              </button>
-              <div className="p-3 grid grid-cols-4 gap-2 bg-white">
-                 {filteredShapes.map((shape, idx) => (
-                    <div
-                       key={idx}
-                       draggable
-                       onDragStart={(e) => onDragStart(e, shape.type, shape.label)}
-                       className="w-10 h-10 flex items-center justify-center hover:bg-slate-100 rounded cursor-grab active:cursor-grabbing border border-transparent hover:border-slate-300"
-                       title={shape.label || shape.type}
-                    >
-                       {shape.outline}
-                    </div>
-                 ))}
-                 {filteredShapes.length === 0 && (
-                   <div className="col-span-4 text-xs text-slate-400 text-center py-2">No shapes found</div>
-                 )}
+              <div className="relative w-5 h-5 rounded-full overflow-hidden border border-slate-300 shadow-sm" title="Border">
+                <div className="absolute inset-0 m-auto w-2 h-2 rounded-full bg-white z-10 pointer-events-none"></div>
+                <input type="color" value={selectedNode.data?.borderColor || '#000000'} onChange={(e) => updateSelectedNode('borderColor', e.target.value)} className="absolute -top-2 -left-2 w-10 h-10 cursor-pointer"/>
               </div>
-           </div>
+            </div>
+            <div className="w-px h-4 bg-slate-200 mx-1"></div>
+            <button onClick={deleteSelected} className="p-1.5 hover:bg-red-50 text-slate-500 hover:text-red-500 rounded transition-colors"><Trash2 size={14} /></button>
+          </div>
+        )}
 
-           {/* Other categories */}
-           {['Misc', 'Advanced', 'Basic', 'Arrows', 'Flowchart', 'UML'].map(cat => (
-              <button key={cat} className="flex items-center gap-2 px-3 py-2 bg-[#f8f9fa] border-b border-slate-200 hover:bg-[#e9ecef] transition-colors w-full text-left">
-                 <ChevronDown size={14} className="text-slate-400 -rotate-90" />
-                 <span className="text-xs text-slate-600">{cat}</span>
-              </button>
-           ))}
+        {/* ── Control Panel (Bottom Left) ── */}
+        <div className="absolute bottom-4 left-4 z-10 flex gap-3">
+          <div className="flex items-center bg-white border border-[#e7e6f7] rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.08)] overflow-hidden">
+            <button onClick={handleZoomOut} className="p-2.5 hover:bg-[#f0efff] text-slate-600 transition-colors"><ZoomOut size={16} /></button>
+            <span className="text-xs font-medium px-2 min-w-[44px] text-center text-slate-700">{zoomLevel}%</span>
+            <button onClick={handleZoomIn} className="p-2.5 hover:bg-[#f0efff] text-slate-600 transition-colors"><ZoomIn size={16} /></button>
+          </div>
+          <div className="flex items-center bg-white border border-[#e7e6f7] rounded-lg shadow-[0_2px_8px_rgba(0,0,0,0.08)] overflow-hidden">
+            <button onClick={undo} className={`p-2.5 hover:bg-[#f0efff] text-slate-600 transition-colors ${!canUndo ? 'opacity-40' : ''}`}><Undo size={16} /></button>
+            <button onClick={redo} className={`p-2.5 hover:bg-[#f0efff] text-slate-600 transition-colors ${!canRedo ? 'opacity-40' : ''}`}><Redo size={16} /></button>
+            <div className="w-px h-5 bg-slate-200 mx-0.5"></div>
+            <button onClick={clearCanvas} className="p-2.5 hover:bg-red-50 text-slate-500 hover:text-red-500 transition-colors" title="Clear Canvas"><Eraser size={16} /></button>
+          </div>
         </div>
 
-        {/* ── Canvas Area ── */}
-        <div className="flex-1 relative bg-white" ref={reactFlowWrapper}>
-            {/* Label edit overlay */}
-            {selectedNode && selectedNode.type !== 'text' && (
-                <div className="absolute top-2 right-2 z-10 bg-white border border-blue-400 rounded p-1 shadow flex items-center">
-                    <span className="text-[10px] text-slate-500 mr-2 uppercase">Edit Label:</span>
-                    <input 
-                        ref={editInputRef}
-                        type="text" 
-                        value={selectedNode.data.label || ''} 
-                        onChange={(e) => updateSelectedNode('label', e.target.value)}
-                        className="text-xs border-b border-slate-300 outline-none px-1 py-0.5 focus:border-blue-500 w-32"
-                        placeholder="Type text..."
-                    />
-                </div>
-            )}
-            {selectedNode && selectedNode.type === 'text' && (
-                 <div className="absolute top-2 right-2 z-10 bg-white border border-blue-400 rounded p-1 shadow flex items-center">
-                    <span className="text-[10px] text-slate-500 mr-2 uppercase">Edit Text:</span>
-                    <textarea 
-                        ref={editTextareaRef}
-                        value={selectedNode.data.label || ''} 
-                        onChange={(e) => updateSelectedNode('label', e.target.value)}
-                        className="text-xs border border-slate-300 outline-none px-1 py-0.5 focus:border-blue-500 w-48 h-16 resize-none"
-                    />
-                </div>
-            )}
+        {/* ── Label Editor ── */}
+        {selectedNode && selectedNode.type !== 'text' && (
+          <div className="absolute top-4 right-4 z-10 bg-white border border-[#e7e6f7] rounded-lg p-2 shadow-[0_2px_8px_rgba(0,0,0,0.08)] flex items-center">
+            <span className="text-[10px] font-semibold text-slate-400 mr-2 uppercase tracking-wide">Label</span>
+            <input ref={editInputRef} type="text" value={selectedNode.data.label || ''} onChange={(e) => updateSelectedNode('label', e.target.value)} className="text-sm text-slate-700 border-none outline-none focus:ring-2 focus:ring-[#e0dfff] rounded px-2 py-1 w-32 bg-slate-50" placeholder="Type..."/>
+          </div>
+        )}
+        {selectedNode && selectedNode.type === 'text' && (
+          <div className="absolute top-4 right-4 z-10 bg-white border border-[#e7e6f7] rounded-lg p-2 shadow-[0_2px_8px_rgba(0,0,0,0.08)] flex items-center">
+            <span className="text-[10px] font-semibold text-slate-400 mr-2 uppercase tracking-wide">Text</span>
+            <textarea ref={editTextareaRef} value={selectedNode.data.label || ''} onChange={(e) => updateSelectedNode('label', e.target.value)} className="text-sm text-slate-700 border-none outline-none focus:ring-2 focus:ring-[#e0dfff] rounded px-2 py-1 w-48 h-16 resize-none bg-slate-50"/>
+          </div>
+        )}
 
+        <div className={`w-full h-full ${activeTool !== 'selection' ? 'cursor-crosshair' : ''}`}>
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -513,8 +410,7 @@ const DiagramCreator: React.FC<any> = ({ onSave, initialData }) => {
             onEdgesChange={onEdgesChange}
             onConnect={onConnect}
             onInit={setReactFlowInstance}
-            onDrop={onDrop}
-            onDragOver={e => e.preventDefault()}
+            onPaneClick={onPaneClick}
             onSelectionChange={onSelectionChange}
             onNodeDoubleClick={onNodeDoubleClick}
             onMoveEnd={(_, viewport) => setZoomLevel(Math.round(viewport.zoom * 100))}
@@ -524,8 +420,9 @@ const DiagramCreator: React.FC<any> = ({ onSave, initialData }) => {
             snapGrid={[10, 10]}
             deleteKeyCode="Delete"
           >
-            <Background color="#e2e8f0" gap={10} size={1} />
-            <Controls showInteractive={false} position="bottom-right" />
+            {/* Reduced dot intensity for excalidraw aesthetic */}
+            <Background color="#ccc" gap={20} size={1} />
+            <Controls showInteractive={false} className="hidden" />
           </ReactFlow>
         </div>
 
