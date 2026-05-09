@@ -9,7 +9,8 @@ import ReactFlow, {
   Handle,
   Position,
   MarkerType,
-  ConnectionLineType
+  ConnectionLineType,
+  ConnectionMode
 } from 'reactflow';
 import type { Connection, Edge, Node, NodeProps } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -44,13 +45,13 @@ const BaseNode = ({ data, selected, shape = 'rect' }: any) => {
         fontFamily: data.fontFamily || 'Arial, sans-serif'
       }}
     >
-      <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100" />
+      <Handle type="source" position={Position.Top} id="top" className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100" />
       <div className="px-2 py-1 select-none whitespace-pre-wrap text-center">
         {data.label || <span className="text-gray-300 text-[10px] italic">double-click</span>}
       </div>
-      <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100" />
-      <Handle type="source" position={Position.Left} className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100" />
-      <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100" />
+      <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100" />
+      <Handle type="source" position={Position.Left} id="left" className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100" />
+      <Handle type="source" position={Position.Right} id="right" className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100" />
     </div>
   );
 };
@@ -64,7 +65,7 @@ const DiamondNode = ({ data, selected }: NodeProps) => (
       color: data.fontColor || '#000000',
     }}
   >
-    <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100 !-rotate-45" />
+    <Handle type="source" position={Position.Top} id="top" className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100 !-rotate-45" />
     <div 
       className="-rotate-45 select-none text-center leading-tight px-1"
       style={{
@@ -77,9 +78,9 @@ const DiamondNode = ({ data, selected }: NodeProps) => (
     >
       {data.label || <span className="text-gray-300 text-[8px] italic">edit</span>}
     </div>
-    <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100 !-rotate-45" />
-    <Handle type="source" position={Position.Left} className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100 !-rotate-45" />
-    <Handle type="source" position={Position.Right} className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100 !-rotate-45" />
+    <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100 !-rotate-45" />
+    <Handle type="source" position={Position.Left} id="left" className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100 !-rotate-45" />
+    <Handle type="source" position={Position.Right} id="right" className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100 !-rotate-45" />
   </div>
 );
 
@@ -96,7 +97,7 @@ const DatabaseNode = ({ data, selected }: NodeProps) => (
       className="absolute top-0 w-full h-4 border-b-[1.5px] rounded-[50%]" 
       style={{ borderColor: selected ? '#6965db' : (data.borderColor || '#000000') }}
     />
-    <Handle type="target" position={Position.Top} className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100" />
+    <Handle type="source" position={Position.Top} id="top" className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100" />
     <div 
       className="select-none text-center mt-2 px-1"
       style={{
@@ -109,7 +110,7 @@ const DatabaseNode = ({ data, selected }: NodeProps) => (
     >
       {data.label || <span className="text-gray-300 text-[8px] italic">edit</span>}
     </div>
-    <Handle type="source" position={Position.Bottom} className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100" />
+    <Handle type="source" position={Position.Bottom} id="bottom" className="!w-2 !h-2 !bg-[#6965db] !border-white !border-2 opacity-0 hover:opacity-100" />
   </div>
 );
 
@@ -249,7 +250,7 @@ const DiagramSection = () => {
   );
 
   const onPaneClick = useCallback((event: React.MouseEvent) => {
-    if (activeTool === 'selection') {
+    if (activeTool === 'selection' || activeTool === 'arrow') {
       setSelectedNodeId(null);
       return;
     }
@@ -500,6 +501,7 @@ const DiagramSection = () => {
                     markerEnd: { type: MarkerType.ArrowClosed, color: '#000' },
                     style: { stroke: '#000', strokeWidth: 1.5 }
                   }}
+                  connectionMode={ConnectionMode.Loose}
                   fitView
                   snapToGrid
                   snapGrid={[10, 10]}
