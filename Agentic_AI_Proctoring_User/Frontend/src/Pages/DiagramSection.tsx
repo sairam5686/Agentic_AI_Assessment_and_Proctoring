@@ -8,7 +8,8 @@ import ReactFlow, {
   ReactFlowProvider,
   Handle,
   Position,
-  MarkerType
+  MarkerType,
+  ConnectionLineType
 } from 'reactflow';
 import type { Connection, Edge, Node, NodeProps } from 'reactflow';
 import 'reactflow/dist/style.css';
@@ -480,7 +481,7 @@ const DiagramSection = () => {
               </div>
             )}
 
-            <div className={`w-full h-full ${activeTool !== 'selection' ? 'cursor-crosshair' : ''} ${activeTool === 'arrow' ? '[&_.react-flow__handle]:!opacity-100' : ''}`}>
+            <div className={`w-full h-full ${activeTool !== 'selection' ? 'cursor-crosshair' : ''} ${activeTool === 'arrow' ? '[&_.react-flow__handle]:!opacity-100 [&_.react-flow__handle]:!w-4 [&_.react-flow__handle]:!h-4 [&_.react-flow__handle]:!-ml-2 [&_.react-flow__handle]:!-mt-2' : ''}`}>
               <ReactFlow
                   nodes={nodes}
                   edges={edges}
@@ -493,6 +494,12 @@ const DiagramSection = () => {
                   onNodeDoubleClick={onNodeDoubleClick}
                   onMoveEnd={(_, viewport) => setZoomLevel(Math.round(viewport.zoom * 100))}
                   nodeTypes={nodeTypes}
+                  connectionLineType={ConnectionLineType.Straight}
+                  defaultEdgeOptions={{ 
+                    type: 'straight',
+                    markerEnd: { type: MarkerType.ArrowClosed, color: '#000' },
+                    style: { stroke: '#000', strokeWidth: 1.5 }
+                  }}
                   fitView
                   snapToGrid
                   snapGrid={[10, 10]}
