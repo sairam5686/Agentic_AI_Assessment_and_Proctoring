@@ -126,6 +126,7 @@ async def create_test(
     Diagram_enabled: str = Form("false"),
     Diagram_prompt: str = Form(None),
     Diagram_master_json: str = Form(None),
+    Diagram_master_image: str = Form(None),
     request: Request = None
 ):
     if request:
@@ -167,6 +168,7 @@ async def create_test(
             "diagram_enabled": Diagram_enabled.lower() == "true",
             "diagram_prompt": Diagram_prompt if Diagram_enabled.lower() == "true" else None,
             "diagram_master_json": json.loads(Diagram_master_json) if Diagram_master_json and Diagram_enabled.lower() == "true" else None,
+            "diagram_master_image": Diagram_master_image if Diagram_master_image and Diagram_enabled.lower() == "true" else None,
             "created_at": datetime.now(),
             "status": "active"
         })
@@ -267,6 +269,7 @@ async def get_test_preview(assessment_id: str):
             "enabled": True,
             "prompt": assessment_info.get("diagram_prompt", ""),
             "master_json": assessment_info.get("diagram_master_json"),
+            "master_image": assessment_info.get("diagram_master_image"),
         }
 
     # 🔥 SERIALIZE EVERYTHING

@@ -105,6 +105,7 @@ const TestCreator: React.FC = () => {
   const [diagramEnabled, setDiagramEnabled] = useState<boolean>(false);
   const [diagramPrompt, setDiagramPrompt] = useState<string>('');
   const [masterJson, setMasterJson] = useState<any>(null);
+  const [masterImage, setMasterImage] = useState<string | null>(null);
   const [isDiagramModalOpen, setIsDiagramModalOpen] = useState<boolean>(false);
 
   const DEFAULT_RUBRIC: RubricSection[] = [
@@ -282,6 +283,7 @@ const TestCreator: React.FC = () => {
     if (diagramEnabled) {
       formData.append("Diagram_prompt", diagramPrompt);
       formData.append("Diagram_master_json", JSON.stringify(masterJson));
+      if (masterImage) formData.append("Diagram_master_image", masterImage);
     }
 
     try {
@@ -766,7 +768,13 @@ const TestCreator: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex-1 overflow-hidden">
-                      <DiagramCreator onSave={(data) => setMasterJson(data)} initialData={masterJson} />
+                      <DiagramCreator 
+                        onSave={(data: any) => {
+                          setMasterJson({ nodes: data.nodes, edges: data.edges });
+                          if (data.master_image) setMasterImage(data.master_image);
+                        }} 
+                        initialData={masterJson} 
+                      />
                     </div>
                   </div>
                 </div>

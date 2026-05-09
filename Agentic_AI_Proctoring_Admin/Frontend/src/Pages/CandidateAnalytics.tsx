@@ -1055,18 +1055,22 @@ const CandidateAnalytics = () => {
                                             <div className="w-7 h-7 rounded-lg bg-orange-50 flex items-center justify-center text-orange-600">
                                                 <PenLine size={14} />
                                             </div>
-                                            <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight">AI Diagram Analysis</h3>
+                                            <h3 className="text-sm font-black text-gray-900 uppercase tracking-tight">AI Diagram Verification (Audit Proof)</h3>
                                             <span className="ml-auto px-2.5 py-1 bg-gray-50 text-[9px] font-black text-gray-400 rounded-lg border border-gray-100 uppercase tracking-widest">
-                                                {diagramResult.submitted_at}
+                                                Submitted: {diagramResult.submitted_at}
                                             </span>
                                         </div>
 
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+                                            {/* Candidate Answer */}
                                             <div className="relative group">
-                                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Submitted Diagram</p>
+                                                <div className="flex justify-between items-center mb-3">
+                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Candidate Submission</p>
+                                                    <span className="text-[9px] font-bold text-orange-500 bg-orange-50 px-2 py-0.5 rounded border border-orange-100 uppercase">Input Image</span>
+                                                </div>
                                                 <div 
-                                                    className="aspect-video rounded-xl border border-gray-100 overflow-hidden bg-gray-50 cursor-pointer shadow-inner relative"
-                                                    onClick={() => setLightboxImg({ url: diagramResult.image_url, type: 'Diagram', time: diagramResult.submitted_at })}
+                                                    className="aspect-video rounded-xl border border-gray-100 overflow-hidden bg-white cursor-pointer shadow-sm relative group"
+                                                    onClick={() => setLightboxImg({ url: diagramResult.image_url, type: 'Candidate Diagram', time: diagramResult.submitted_at })}
                                                 >
                                                     <img src={diagramResult.image_url} alt="Candidate Diagram" className="w-full h-full object-contain group-hover:scale-105 transition-transform" />
                                                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
@@ -1075,7 +1079,33 @@ const CandidateAnalytics = () => {
                                                 </div>
                                             </div>
 
-                                            <div className="space-y-6">
+                                            {/* Master Proof */}
+                                            <div className="relative group">
+                                                <div className="flex justify-between items-center mb-3">
+                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Master Solution Logic</p>
+                                                    <span className="text-[9px] font-bold text-emerald-500 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 uppercase">Reference Proof</span>
+                                                </div>
+                                                <div 
+                                                    className="aspect-video rounded-xl border border-dashed border-emerald-200 overflow-hidden bg-emerald-50/30 cursor-pointer shadow-sm relative group"
+                                                    onClick={() => setLightboxImg({ url: diagramResult.master_info?.master_image_url || 'https://via.placeholder.com/800x450?text=No+Master+Image', type: 'Master Solution', time: 'Reference' })}
+                                                >
+                                                    {diagramResult.master_info?.master_image_url ? (
+                                                        <img src={diagramResult.master_info.master_image_url} alt="Master Solution" className="w-full h-full object-contain group-hover:scale-105 transition-transform" />
+                                                    ) : (
+                                                        <div className="w-full h-full flex flex-col items-center justify-center text-emerald-400 opacity-50">
+                                                            <Database size={32} />
+                                                            <span className="text-[10px] font-black uppercase mt-2">Logic Stored in JSON</span>
+                                                        </div>
+                                                    )}
+                                                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                                                        <Eye className="text-white opacity-0 group-hover:opacity-100" />
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                            <div className="md:col-span-1 space-y-4">
                                                 <div className="bg-orange-50/50 rounded-xl p-5 border border-orange-100">
                                                     <div className="flex items-center justify-between mb-4">
                                                         <p className="text-[10px] font-black text-orange-400 uppercase tracking-widest">AI Assessment Score</p>
@@ -1085,12 +1115,35 @@ const CandidateAnalytics = () => {
                                                         <motion.div initial={{ width: 0 }} animate={{ width: `${(diagramResult.ai_evaluation?.score / 10) * 100}%` }} className="h-full bg-orange-500 rounded-full" />
                                                     </div>
                                                 </div>
+                                                <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Visual Originality</p>
+                                                    <p className={`text-xs font-black uppercase ${diagramResult.ai_evaluation?.originality === 'high' ? 'text-emerald-600' : 'text-orange-600'}`}>
+                                                        {diagramResult.ai_evaluation?.originality || 'N/A'} Detection
+                                                    </p>
+                                                </div>
+                                            </div>
+
+                                            <div className="md:col-span-2 space-y-4">
                                                 <div>
-                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">AI Feedback</p>
+                                                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Executive Summary</p>
                                                     <div className="text-sm text-gray-700 leading-relaxed font-medium bg-gray-50 p-4 rounded-xl border border-gray-100 italic">
                                                         "{diagramResult.ai_evaluation?.feedback}"
                                                     </div>
                                                 </div>
+                                                
+                                                {diagramResult.ai_evaluation?.areas_of_improvement && diagramResult.ai_evaluation.areas_of_improvement.length > 0 && (
+                                                    <div>
+                                                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Critical Logic Improvements</p>
+                                                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                            {diagramResult.ai_evaluation.areas_of_improvement.map((point: string, idx: number) => (
+                                                                <div key={idx} className="flex items-start gap-2 bg-red-50/50 p-2.5 rounded-lg border border-red-100/50">
+                                                                    <AlertCircle size={12} className="text-red-400 mt-0.5 shrink-0" />
+                                                                    <span className="text-[11px] font-bold text-red-700 leading-tight">{point}</span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     </div>
