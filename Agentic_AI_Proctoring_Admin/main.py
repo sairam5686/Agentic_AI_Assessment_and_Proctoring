@@ -597,6 +597,7 @@ async def get_candidate_results(assessment_id: str, candidate_email: str):
     SQL_results = list(SQL_Results_DB.find(query))
     FITB_results = list(FITB_Results_DB.find(query))
     Pipe_Puzzle_results = list(Piped_Puzzle_DB.find(query))
+    Diagram_results = list(Diagram_Results_DB.find(query))
 
     # Essay results use email and assessment_id
     essay_result = None
@@ -612,8 +613,9 @@ async def get_candidate_results(assessment_id: str, candidate_email: str):
         "MCQ": MCQ_results,
         "Coding": Coding_results,
         "SQL": SQL_results,
-        "FITB": FITB_results,
-        "Pipe_Puzzle": Pipe_Puzzle_results,
+        "FITB": serialize_mongo(FITB_results),
+        "Gaming": serialize_mongo(Pipe_Puzzle_results),
+        "Diagram": serialize_mongo(Diagram_results),
         "Essay": essay_result,
         "summary": {
             "total_MCQ": len(MCQ_results),

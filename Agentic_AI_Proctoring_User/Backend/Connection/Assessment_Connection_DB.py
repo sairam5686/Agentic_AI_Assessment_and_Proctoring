@@ -37,6 +37,7 @@ try:
     SQL_Results = CandidateData_DB["SQL_Results"]
     MCQ_Results = CandidateData_DB["MCQ_Results"]
     FITB_Results = CandidateData_DB["FITB_Results"]
+    Diagram_Results = CandidateData_DB["Diagram_Results"]
     
     # Note: Pipe_Puzzle_Results_DB has been moved to Candidate_Connection_DB
     

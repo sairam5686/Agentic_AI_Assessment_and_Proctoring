@@ -7,16 +7,19 @@ from pydantic import BaseModel
 import cloudinary
 import cloudinary.uploader
 import google.generativeai as genai
-from Backend.Connection.Assessment_Connection_DB import CandidateData_DB, Admin_Assessments_DB
+from Backend.Connection.Assessment_Connection_DB import CandidateData_DB, Admin_Assessments_DB, Diagram_Results
 from Backend.Connection.RateLimiter import check_rate_limit
+from dotenv import load_dotenv
+
+load_dotenv()
 
 router = APIRouter()
 
 # --- Cloudinary Config ---
 cloudinary.config(
-    cloud_name=os.getenv("CLOUDINARY_LAPTOP_CLOUD_NAME"),
-    api_key=os.getenv("CLOUDINARY_LAPTOP_API_KEY"),
-    api_secret=os.getenv("CLOUDINARY_LAPTOP_API_SECRET")
+    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_API_SECRET")
 )
 
 # --- Gemini Config ---
@@ -24,7 +27,7 @@ genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 # --- DB Collections ---
 Diagram_Questions = Admin_Assessments_DB # Uses the main assessment collection
-Diagram_Submissions = CandidateData_DB["diagram_submissions"] if CandidateData_DB is not None else None
+Diagram_Submissions = Diagram_Results
 
 # --- Schemas ---
 class DiagramQuestionCreate(BaseModel):

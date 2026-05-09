@@ -21,6 +21,7 @@ try:
     Piped_Puzzle_DB  = Candidate_DB["Pipe_Puzzle_Results"]
     FITB_Results_DB = Candidate_DB["FITB_Results"]
     Essay_Results_DB = Candidate_DB["essay_results"]
+    Diagram_Results_DB = Candidate_DB["Diagram_Results"]
 
 
     # Fro Admin Assessments DB
