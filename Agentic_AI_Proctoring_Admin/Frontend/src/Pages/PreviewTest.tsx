@@ -146,7 +146,13 @@ interface AssessmentData {
     rubric?: { 
       sections: Record<string, { name: string; max_marks: number; criteria: string[] }> 
     } | null 
-  } | null
+  } | null;
+  Diagram: {
+    enabled: boolean;
+    prompt: string;
+    master_json: any;
+    master_image: string | null;
+  } | null;
 }
 
 const difficultyColors: Record<string, string> = {
@@ -190,7 +196,7 @@ const PreviewTest = () => {
   const [data, setData] = useState<AssessmentData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'coding' | 'mcq' | 'sql' | 'gaming' | 'fitb' | 'essay' | null>(null)
+  const [activeTab, setActiveTab] = useState<'coding' | 'mcq' | 'sql' | 'gaming' | 'fitb' | 'essay' | 'diagram' | null>(null)
   const [expandedQuestion, setExpandedQuestion] = useState<string | number | null>(null)
   const [showStopModal, setShowStopModal] = useState(false)
 
@@ -217,6 +223,7 @@ const PreviewTest = () => {
       else if (json.Coding && json.Coding.total_questions > 0) setActiveTab('coding')
       else if (json.SQL && json.SQL.total_questions > 0) setActiveTab('sql')
       else if (json.FITB && json.FITB.total_questions > 0) setActiveTab('fitb')
+      else if (json.Diagram && json.Diagram.enabled) setActiveTab('diagram')
     } catch (err) {
       console.error(err)
       setError('Failed to load assessment data.')
@@ -274,6 +281,7 @@ const PreviewTest = () => {
   const hasFITB = !!(data?.FITB?.sections?.length)
   const hasGaming = !!(data?.Gaming && data?.Gaming?.games?.[0]?.enabled)
   const hasEssay = !!(data?.Essay?.enabled)
+  const hasDiagram = !!(data?.Diagram?.enabled)
 
   // ── Render guards ──────────────────────────────────────────────────────────
 
@@ -396,6 +404,12 @@ const PreviewTest = () => {
               color: 'violet',
               show: hasEssay
             },
+            {
+              label: 'Diagram Question',
+              value: '10 marks',
+              color: 'orange',
+              show: hasDiagram
+            },
           ].filter(card => card.show).map(({ label, value, color }) => (
             <div key={label} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
               <p className="text-sm text-gray-500">{label}</p>
@@ -470,6 +484,17 @@ const PreviewTest = () => {
                 }`}
             >
               📝 Essay
+            </button>
+          )}
+          {hasDiagram && (
+            <button
+              onClick={() => setActiveTab('diagram')}
+              className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'diagram'
+                ? 'bg-orange-600 text-white shadow'
+                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                }`}
+            >
+              🎨 Diagram
             </button>
           )}
         </div>
@@ -981,126 +1006,97 @@ const PreviewTest = () => {
           </>
         )}
 
-        {/* ── Essay Tab ── */}
-        {activeTab === 'essay' && hasEssay && data.Essay && (() => {
-          const rubricSections = data.Essay.rubric?.sections
-            ? Object.entries(data.Essay.rubric.sections as Record<string, { name: string; max_marks: number; criteria: string[] }>)
-            : null;
-          const totalMarks = rubricSections
-            ? rubricSections.reduce((sum, [, s]) => sum + (s.max_marks || 0), 0)
-            : 50;
-          const sectionColors = [
-            'bg-indigo-50 border-indigo-100 text-indigo-700',
-            'bg-blue-50 border-blue-100 text-blue-700',
-            'bg-orange-50 border-orange-100 text-orange-700',
-            'bg-purple-50 border-purple-100 text-purple-700',
-            'bg-emerald-50 border-emerald-100 text-emerald-700',
-          ];
-          const sectionIcons = ['📖', '🏭', '📊', '🔭', '🏁', '🧠', '🔍', '💡'];
-          return (
-            <div className="space-y-4">
-              <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-8">
-                <div className="flex items-center gap-3 mb-6">
-                  <div className="w-12 h-12 bg-violet-100 rounded-xl flex items-center justify-center text-2xl">📝</div>
-                  <div>
-                    <h3 className="font-bold text-gray-800">Essay / Long Answer Section</h3>
-                    <p className="text-xs text-gray-500">AI-evaluated with dynamic rubric · {totalMarks} marks total</p>
-                  </div>
-                  {data.Essay.duration && (
-                    <div className="ml-auto flex items-center gap-1.5 bg-violet-50 text-violet-700 px-3 py-1.5 rounded-lg text-sm">
-                      ⏱ {formatDuration(String(data.Essay.duration))}
+        {/* ── Diagram Tab ── */}
+        {activeTab === 'diagram' && hasDiagram && data.Diagram && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-14 h-14 bg-orange-100 rounded-2xl flex items-center justify-center text-3xl shadow-sm">🎨</div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">System Design / Diagram Preview</h3>
+                  <p className="text-sm text-gray-500 font-medium">Visual high-fidelity master solution & requirements</p>
+                </div>
+                <div className="ml-auto flex items-center gap-2">
+                  <span className="px-3 py-1 bg-orange-50 text-orange-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-orange-100">
+                    Master Solution
+                  </span>
+                </div>
+              </div>
+
+              {/* Question Text */}
+              <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 mb-8">
+                <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-orange-500"></div>
+                  Problem Statement / Prompt
+                </div>
+                <p className="text-base font-semibold text-gray-800 leading-relaxed">
+                  {data.Diagram.prompt || "No prompt provided for this diagram question."}
+                </p>
+              </div>
+
+              {/* Master Diagram Image */}
+              <div className="relative group">
+                <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">
+                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
+                  Master Solution PNG Snapshot
+                </div>
+                
+                <div className="bg-white border-2 border-dashed border-gray-200 rounded-3xl p-4 min-h-[400px] flex items-center justify-center overflow-hidden transition-all group-hover:border-indigo-200 group-hover:bg-indigo-50/10">
+                  {data.Diagram.master_image ? (
+                    <img 
+                      src={data.Diagram.master_image} 
+                      alt="Master Diagram Solution" 
+                      className="max-w-full max-h-[600px] object-contain rounded-xl shadow-lg transition-transform duration-500 group-hover:scale-[1.02]"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/800x450?text=Diagram+Image+Load+Failed';
+                      }}
+                    />
+                  ) : (
+                    <div className="text-center">
+                      <div className="text-4xl mb-4 opacity-20">🖼️</div>
+                      <p className="text-sm font-bold text-gray-400">No master diagram image found.</p>
+                      <p className="text-xs text-gray-300 mt-1 uppercase tracking-widest font-black">Admin must capture & save the diagram first</p>
                     </div>
                   )}
                 </div>
 
-                <div className="bg-violet-50 border border-violet-100 rounded-xl px-6 py-5 mb-4">
-                  <p className="text-[10px] font-black text-violet-400 uppercase tracking-widest mb-1">Essay Topic / Prompt</p>
-                  <p className="text-base font-semibold text-gray-800 leading-relaxed">{data.Essay.topic || '—'}</p>
-                </div>
-
-                {data.metadata?.essay_instructions && (
-                  <div className="bg-white border border-gray-100 rounded-xl px-6 py-5 mb-6 shadow-sm">
-                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Instructions / Question Description</p>
-                    <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-line">{data.metadata.essay_instructions}</p>
+                {/* Overlay Badge */}
+                {data.Diagram.master_image && (
+                  <div className="absolute top-12 right-6 px-4 py-2 bg-black/60 backdrop-blur-md text-white rounded-xl text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                    High Fidelity Preview
                   </div>
                 )}
+              </div>
 
-                <div>
-                  <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">
-                    {rubricSections ? 'Admin-Defined Rubric Sections' : 'Default Rubric Breakdown'}
+              {/* Metadata Stats */}
+              <div className="mt-10 grid grid-cols-4 gap-4">
+                <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 leading-none">Max Marks</p>
+                  <p className="text-lg font-black text-gray-800 leading-none">10 Marks</p>
+                </div>
+                <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 leading-none">Node Count</p>
+                  <p className="text-lg font-black text-gray-800 leading-none">
+                    {data.Diagram.master_json?.nodes?.length || 0} Nodes
                   </p>
-                  {rubricSections ? (
-                    <div className="space-y-3">
-                      {rubricSections.map(([key, sec], idx) => (
-                        <div key={key} className={`rounded-xl border px-5 py-4 ${sectionColors[idx % sectionColors.length]}`}>
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-lg">{sectionIcons[idx % sectionIcons.length]}</span>
-                              <p className="text-sm font-black">{sec.name}</p>
-                            </div>
-                            <span className="text-xl font-black">{sec.max_marks} <span className="text-xs font-bold opacity-60">marks</span></span>
-                          </div>
-                          {sec.criteria?.length > 0 && (
-                            <ul className="mt-1 space-y-0.5">
-                              {sec.criteria.map((c, ci) => (
-                                <li key={ci} className="flex items-start gap-1.5 text-[10px] opacity-80">
-                                  <span className="mt-0.5 shrink-0">•</span>{c}
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                      {[
-                        { label: 'Introduction',        marks: 10, color: 'bg-indigo-50 border-indigo-100 text-indigo-700',   icon: '📖' },
-                        { label: 'Industry Overview',   marks: 10, color: 'bg-blue-50 border-blue-100 text-blue-700',         icon: '🏭' },
-                        { label: 'Impact Analysis',     marks: 10, color: 'bg-orange-50 border-orange-100 text-orange-700',   icon: '📊' },
-                        { label: 'Future Predictions',  marks: 10, color: 'bg-purple-50 border-purple-100 text-purple-700',   icon: '🔭' },
-                        { label: 'Conclusion',          marks: 10, color: 'bg-emerald-50 border-emerald-100 text-emerald-700',icon: '🏁' },
-                      ].map((r) => (
-                        <div key={r.label} className={`rounded-xl border px-4 py-4 flex flex-col gap-2 ${r.color}`}>
-                          <span className="text-xl">{r.icon}</span>
-                          <p className="text-xs font-bold leading-snug">{r.label}</p>
-                          <p className="text-2xl font-black">{r.marks}</p>
-                          <p className="text-[10px] font-bold uppercase tracking-widest opacity-60">marks</p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
                 </div>
-
-                <div className="mt-6 grid grid-cols-3 gap-3">
-                  {[
-                    { label: 'Total Marks', value: `${totalMarks} marks` },
-                    { label: 'Min. Word Count', value: '200 words' },
-                    { label: 'Evaluation Engine', value: 'Google Gemini 1.5 Flash' },
-                  ].map((k) => (
-                    <div key={k.label} className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                      <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">{k.label}</p>
-                      <p className="text-xs font-bold text-gray-700">{k.value}</p>
-                    </div>
-                  ))}
+                <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 leading-none">Edge Count</p>
+                  <p className="text-lg font-black text-gray-800 leading-none">
+                    {data.Diagram.master_json?.edges?.length || 0} Links
+                  </p>
                 </div>
-
-                {/* Feature badges */}
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {[
-                    { icon: '💡', label: 'Per-section improvement suggestions' },
-                    { icon: '🔍', label: 'Originality & generic-writing detection' },
-                    { icon: '✨', label: 'Strength highlights per section' },
-                  ].map(f => (
-                    <span key={f.label} className="flex items-center gap-1.5 px-3 py-1.5 bg-violet-50 border border-violet-100 rounded-lg text-[10px] font-bold text-violet-700">
-                      <span>{f.icon}</span>{f.label}
-                    </span>
-                  ))}
+                <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 leading-none">Evaluation</p>
+                  <p className="text-lg font-black text-indigo-600 leading-none flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                    AI Assisted
+                  </p>
                 </div>
               </div>
             </div>
-          );
-        })()}
+          </div>
+        )}
 
       </div>
 

@@ -194,6 +194,10 @@ async def submit_diagram(data: DiagramSubmission, request: Request):
             "student_json": data.student_json,
             "image_url": image_url,
             "ai_evaluation": ai_eval,
+            "master_info": {
+                "master_image_url": question.get("diagram_master_image"),
+                "master_json": master_json
+            },
             "submitted_at": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"),
             "status": "completed"
         }

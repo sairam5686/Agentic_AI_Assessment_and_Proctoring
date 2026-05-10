@@ -25,6 +25,8 @@ from Backend.Connection.Evdiences_log import Risk_Score_DB , Mobile_Risk_Score
 import os
 from dotenv import load_dotenv
 from Backend.Connection.RateLimiter import check_rate_limit
+import cloudinary
+import cloudinary.uploader
 
 load_dotenv()
 
@@ -32,6 +34,13 @@ load_dotenv()
 AGORA_APP_ID = os.getenv("AGORA_APP_ID", "").replace('"', '').strip()
 # IMPORTANT: Replace with your actual App Certificate from Agora Console
 AGORA_APP_CERTIFICATE = os.getenv("AGORA_APP_CERTIFICATE", "").replace('"', '').strip() 
+
+# Cloudinary Configuration
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_LAPTOP_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_LAPTOP_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_LAPTOP_API_SECRET")
+)
 
 
 
@@ -143,6 +152,25 @@ async def create_test(
             MCQ_duration=MCQ_duration
         )
     
+    # Handle Diagram Master Image Upload to Cloudinary
+    final_master_image_url = None
+    if Diagram_enabled.lower() == "true" and Diagram_master_image:
+        try:
+            image_data = Diagram_master_image
+            if "," in image_data:
+                image_data = image_data.split(",")[1]
+            
+            upload_result = cloudinary.uploader.upload(
+                f"data:image/png;base64,{image_data}",
+                folder=f"assessments/{str(TestId)}/master",
+                public_id=f"master_{datetime.now().timestamp()}"
+            )
+            final_master_image_url = upload_result.get("secure_url")
+            print(f"Diagram Master Image uploaded to Cloudinary: {final_master_image_url}")
+        except Exception as e:
+            print(f"Cloudinary Upload Error: {e}")
+            final_master_image_url = Diagram_master_image # Fallback to base64 if upload fails
+
     Admin_Assessments_DB.insert_one({
             "admin_id": Admin_id,
             "test_id": str(TestId),
@@ -168,7 +196,7 @@ async def create_test(
             "diagram_enabled": Diagram_enabled.lower() == "true",
             "diagram_prompt": Diagram_prompt if Diagram_enabled.lower() == "true" else None,
             "diagram_master_json": json.loads(Diagram_master_json) if Diagram_master_json and Diagram_enabled.lower() == "true" else None,
-            "diagram_master_image": Diagram_master_image if Diagram_master_image and Diagram_enabled.lower() == "true" else None,
+            "diagram_master_image": final_master_image_url if Diagram_enabled.lower() == "true" else None,
             "created_at": datetime.now(),
             "status": "active"
         })
