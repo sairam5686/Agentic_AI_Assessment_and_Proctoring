@@ -6,7 +6,8 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 import cloudinary
 import cloudinary.uploader
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from Backend.Connection.Assessment_Connection_DB import CandidateData_DB, Admin_Assessments_DB, Diagram_Results
 from Backend.Connection.RateLimiter import check_rate_limit
 from dotenv import load_dotenv
@@ -17,13 +18,13 @@ router = APIRouter()
 
 # --- Cloudinary Config ---
 cloudinary.config(
-    cloud_name=os.getenv("CLOUDINARY_CLOUD_NAME"),
-    api_key=os.getenv("CLOUDINARY_API_KEY"),
-    api_secret=os.getenv("CLOUDINARY_API_SECRET")
+    cloud_name=os.getenv("CLOUDINARY_LAPTOP_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_LAPTOP_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_LAPTOP_API_SECRET")
 )
 
 # --- Gemini Config ---
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
 
 # --- DB Collections ---
 Diagram_Questions = Admin_Assessments_DB # Uses the main assessment collection
@@ -122,8 +123,10 @@ async def submit_diagram(data: DiagramSubmission, request: Request):
         raise HTTPException(status_code=503, detail="Database unavailable")
 
     try:
+        print(f"Starting Diagram Submission for {data.email}...")
+        
         # 1. Upload image to Cloudinary
-        # Handle data:image/png;base64, prefix if present
+        print("Uploading diagram to Cloudinary...")
         image_data = data.image_base64
         if "," in image_data:
             image_data = image_data.split(",")[1]
@@ -134,8 +137,10 @@ async def submit_diagram(data: DiagramSubmission, request: Request):
             public_id=f"{data.email.replace('@', '_').replace('.', '_')}_{datetime.now().timestamp()}"
         )
         image_url = upload_result.get("secure_url")
+        print(f"Cloudinary Upload Complete: {image_url}")
 
         # 2. Fetch Master Question from Admin_Assessments_DB
+        print("Fetching master question data...")
         question = Diagram_Questions.find_one({"test_id": data.assessment_id})
         if not question:
              raise HTTPException(status_code=404, detail="Question not found")
@@ -144,7 +149,7 @@ async def submit_diagram(data: DiagramSubmission, request: Request):
         max_marks = 10 # Default for diagram
 
         # 3. AI Evaluation using Gemini 1.5 Flash (Multi-modal)
-        model = genai.GenerativeModel("gemini-1.5-flash")
+        print("Invoking Gemini 1.5 Flash for evaluation...")
         
         # Prepare image part for Gemini
         image_bytes = base64.b64decode(image_data)
@@ -152,6 +157,8 @@ async def submit_diagram(data: DiagramSubmission, request: Request):
             "mime_type": "image/png",
             "data": image_bytes
         }
+
+        print("Waiting for Gemini response...")
 
         prompt = f"""
         You are an expert technical examiner. Evaluate the student's diagram (provided as an image and JSON) against the master solution logic.
@@ -181,10 +188,41 @@ async def submit_diagram(data: DiagramSubmission, request: Request):
         }}
         """
         
-        response = model.generate_content([prompt, image_part])
-        # Clean response text
-        clean_json = response.text.replace("```json", "").replace("```", "").strip()
-        ai_eval = json.loads(clean_json)
+        try:
+            response = client.models.generate_content(
+                model="gemini-1.5-flash",
+                contents=[
+                    types.Content(
+                        role="user",
+                        parts=[
+                            types.Part.from_text(text=prompt),
+                            types.Part.from_bytes(data=image_bytes, mime_type="image/png")
+                        ]
+                    )
+                ]
+            )
+            
+            # Clean response text
+            response_text = response.text
+            if not response_text:
+                raise Exception("Gemini returned an empty response.")
+                
+            clean_json = response_text.replace("```json", "").replace("```", "").strip()
+            ai_eval = json.loads(clean_json)
+            
+        except Exception as gem_e:
+            err_detail = str(gem_e)
+            print(f"Gemini API Error: {err_detail}")
+            # Identify common issues
+            if "429" in err_detail:
+                msg = "Gemini API Rate Limit Exceeded. Please try again in 1 minute."
+            elif "404" in err_detail:
+                msg = f"Gemini Model Not Found. The requested model is not available for this API key."
+            elif "quota" in err_detail.lower():
+                msg = "Gemini API Quota reached."
+            else:
+                msg = f"Gemini Evaluation Failed: {err_detail}"
+            raise HTTPException(status_code=500, detail=msg)
 
         # 4. Save final result
         submission_doc = {

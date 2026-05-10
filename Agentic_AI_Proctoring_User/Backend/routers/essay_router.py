@@ -6,8 +6,8 @@ from datetime import datetime
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from dotenv import load_dotenv
-import google.generativeai as genai
-
+from google import genai
+from google.genai import types
 from Backend.Connection.Assessment_Connection_DB import CandidateData_DB, Admin_Assessments_DB
 from Backend.Connection.RateLimiter import check_rate_limit
 
@@ -15,8 +15,7 @@ load_dotenv()
 
 # ── Gemini setup ──────────────────────────────────────────────────────────────
 GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
-if GEMINI_API_KEY:
-    genai.configure(api_key=GEMINI_API_KEY)
+client = genai.Client(api_key=GEMINI_API_KEY) if GEMINI_API_KEY else None
 
 router = APIRouter()
 
@@ -220,11 +219,29 @@ def _clean_and_parse(raw: str) -> dict:
 
 def _call_gemini(prompt: str) -> dict:
     """Call Gemini and attempt to parse the JSON response. Returns parsed dict."""
-    # Using gemini-flash-latest for best compatibility and availability
-    model = genai.GenerativeModel("gemini-flash-latest")
-    response = model.generate_content(prompt)
-    raw_text = response.text.strip()
-    return _clean_and_parse(raw_text)
+    if client is None:
+        raise ValueError("Gemini Client not initialized.")
+        
+    # Using gemini-1.5-flash for best compatibility
+    try:
+        response = client.models.generate_content(
+            model="gemini-1.5-flash",
+            contents=[types.Part.from_text(text=prompt)]
+        )
+        raw_text = response.text.strip()
+        if not raw_text:
+            raise Exception("Gemini returned an empty response.")
+        return _clean_and_parse(raw_text)
+    except Exception as e:
+        err_detail = str(e)
+        print(f"Gemini API Error (Essay): {err_detail}")
+        if "429" in err_detail:
+            msg = "Gemini API Rate Limit Exceeded."
+        elif "404" in err_detail:
+            msg = "Gemini Model Not Found for this API Key."
+        else:
+            msg = f"Gemini Evaluation Failed: {err_detail}"
+        raise HTTPException(status_code=500, detail=msg)
 
 
 # ── Routes ────────────────────────────────────────────────────────────────────

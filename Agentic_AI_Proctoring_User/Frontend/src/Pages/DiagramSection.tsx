@@ -21,6 +21,7 @@ import {
   Undo, Redo, ZoomIn, ZoomOut, Trash2, Eraser, Flag, FileQuestion,
   Square, Circle, Database, Type, MousePointer2, ArrowRight
 } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 // ── Custom Nodes ────────────────────────────────────────────────────────────
 const BaseNode = ({ data, selected, shape = 'rect' }: any) => {
@@ -166,6 +167,11 @@ const DiagramSection = () => {
   const editInputRef = useRef<HTMLInputElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
 
+  const navigate = useNavigate();
+  const location = useLocation();
+  const assessmentState = location.state || {};
+  const [showFinishConfirm, setShowFinishConfirm] = useState(false);
+
   const [activeTool, setActiveTool] = useState<string>('selection');
 
   const selectedNode = useMemo(
@@ -195,7 +201,7 @@ const DiagramSection = () => {
       try {
         // 1. Fetch Question Metadata from User Backend (Port 8001)
         // Since User Backend now has access to the shared MongoDB, we hit its metadata endpoint.
-        const qResp = await fetch(`http://localhost:8001/api/diagram/metadata/${assessmentId}`);
+        const qResp = await fetch(`http://localhost:8000/api/diagram/metadata/${assessmentId}`);
         if (qResp.ok) {
           const data = await qResp.json();
           if (data.diagram_enabled) {
@@ -204,7 +210,7 @@ const DiagramSection = () => {
         }
 
         // 2. Fetch Existing Progress from User Backend (Port 8001)
-        const pResp = await fetch(`http://localhost:8001/api/diagram/results/${assessmentId}`);
+        const pResp = await fetch(`http://localhost:8000/api/diagram/results/${assessmentId}`);
         if (pResp.ok) {
           const results = await pResp.json();
           const myResult = results.find((r: any) => r.email === email);
@@ -369,7 +375,7 @@ const DiagramSection = () => {
         student_json: { nodes, edges }
       };
 
-      await fetch('http://localhost:8001/api/diagram/save-progress', {
+      await fetch('http://localhost:8000/api/diagram/save-progress', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -385,14 +391,34 @@ const DiagramSection = () => {
     return () => clearTimeout(timer);
   }, [nodes, edges, saveProgress]);
 
+  // ── Navigation ──────────────────────────────────────────────────────────
+  const handleNextFlow = () => {
+    localStorage.setItem('diagram_completed', 'true');
+    
+    const enabledSectionsRaw = localStorage.getItem('enabled_sections');
+    if (enabledSectionsRaw) {
+      const enabledSections = JSON.parse(enabledSectionsRaw);
+      const currentIdx = enabledSections.findIndex((s: any) => s.key === 'diagram');
+      
+      if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
+        const nextSection = enabledSections[currentIdx + 1];
+        navigate(`/section/${nextSection.key}`, { state: assessmentState });
+        return;
+      }
+    }
+    navigate('/submission');
+  };
+
   // ── Submit ────────────────────────────────────────────────────────────────
 
-  const handleSubmit = async () => {
+  const handleSubmit = async (isFinal = false) => {
     if (!reactFlowWrapper.current) return;
     setIsSubmitting(true);
     try {
       const dataUrl = await toPng(reactFlowWrapper.current, { 
-        backgroundColor: '#f8f8f8',
+        backgroundColor: '#ffffff',
+        quality: 0.6,
+        pixelRatio: 1,
         filter: (node) => !node.classList?.contains('z-10')
       });
       
@@ -404,7 +430,7 @@ const DiagramSection = () => {
         image_base64: dataUrl
       };
 
-      const response = await fetch('http://localhost:8001/api/diagram/submit', {
+      const response = await fetch('http://localhost:8000/api/diagram/submit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -426,6 +452,9 @@ const DiagramSection = () => {
       toast.error(err.message);
     } finally {
       setIsSubmitting(false);
+      if (isFinal) {
+        handleNextFlow();
+      }
     }
   };
 
@@ -449,11 +478,17 @@ const DiagramSection = () => {
               <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-tight">Autosave Active</span>
             </div>
             <button
-                onClick={handleSubmit}
+                onClick={() => handleSubmit(false)}
                 disabled={isSubmitting}
-                className="bg-gray-900 hover:bg-gray-800 text-white px-6 py-2 rounded-lg font-bold text-sm transition-all shadow-sm active:scale-95 disabled:opacity-50"
+                className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-6 py-2 rounded-lg font-bold text-sm transition-all border border-indigo-200 shadow-sm active:scale-95 disabled:opacity-50"
             >
-                {isSubmitting ? 'Evaluating...' : 'Finish Section'}
+                {isSubmitting ? 'Evaluating...' : 'Submit'}
+            </button>
+            <button
+                onClick={() => setShowFinishConfirm(true)}
+                className="bg-[#E31B23] hover:bg-[#c4151c] text-white px-6 py-2 rounded-lg font-bold text-sm transition-all shadow-sm active:scale-95 uppercase tracking-wide"
+            >
+                Finish Assessment
             </button>
           </div>
         </header>
@@ -629,6 +664,36 @@ const DiagramSection = () => {
                       </button>
                   </div>
               </div>
+          </div>
+        )}
+
+        {/* ── Confirm Modal: Finish Assessment ── */}
+        {showFinishConfirm && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] px-6">
+            <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl border border-gray-100">
+              <div className="h-4" />
+              <h3 className="text-xl font-bold text-gray-900 text-center mb-2">Finish Entire Assessment?</h3>
+              <p className="text-sm text-gray-500 text-center mb-6 leading-relaxed">
+                You are about to conclude all sections. This will submit your current work and end the assessment. This action cannot be undone.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowFinishConfirm(false)}
+                  className="flex-1 py-3 border border-gray-200 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-50 transition-all cursor-pointer uppercase tracking-wide"
+                >
+                  No, Continue
+                </button>
+                <button
+                  onClick={() => {
+                    setShowFinishConfirm(false);
+                    handleSubmit(true);
+                  }}
+                  className="flex-1 py-3 bg-[#E31B23] text-white text-sm font-bold rounded-xl hover:bg-[#c4151c] active:scale-95 transition-all cursor-pointer uppercase tracking-wide shadow-md shadow-red-100"
+                >
+                  Yes, Finish
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </div>
