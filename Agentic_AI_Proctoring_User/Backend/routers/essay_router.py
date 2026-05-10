@@ -222,10 +222,10 @@ def _call_gemini(prompt: str) -> dict:
     if client is None:
         raise ValueError("Gemini Client not initialized.")
         
-    # Using gemini-1.5-flash for best compatibility
+    # Using gemini-2.5-flash for best performance and availability
     try:
         response = client.models.generate_content(
-            model="gemini-1.5-flash",
+            model="gemini-2.5-flash",
             contents=[types.Part.from_text(text=prompt)]
         )
         raw_text = response.text.strip()

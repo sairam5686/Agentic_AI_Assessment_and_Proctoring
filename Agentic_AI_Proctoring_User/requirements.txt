@@ -10,4 +10,4 @@ pymongo
 easyocr
 opencv-python
 numpy
-google-generativeai
+google-genai

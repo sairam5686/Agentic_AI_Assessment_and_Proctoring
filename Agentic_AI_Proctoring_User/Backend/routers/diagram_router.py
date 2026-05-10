@@ -148,8 +148,8 @@ async def submit_diagram(data: DiagramSubmission, request: Request):
         master_json = question.get("diagram_master_json")
         max_marks = 10 # Default for diagram
 
-        # 3. AI Evaluation using Gemini 1.5 Flash (Multi-modal)
-        print("Invoking Gemini 1.5 Flash for evaluation...")
+        # 3. AI Evaluation using Gemini 2.5 Flash (Multi-modal)
+        print("Invoking Gemini 2.5 Flash for evaluation...")
         
         # Prepare image part for Gemini
         image_bytes = base64.b64decode(image_data)
@@ -190,7 +190,7 @@ async def submit_diagram(data: DiagramSubmission, request: Request):
         
         try:
             response = client.models.generate_content(
-                model="gemini-1.5-flash",
+                model="gemini-2.5-flash",
                 contents=[
                     types.Content(
                         role="user",
