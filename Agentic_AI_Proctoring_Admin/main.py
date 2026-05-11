@@ -19,7 +19,7 @@ from Backend.Workers.Pipe_Puzzle_Logic import PipePuzzleLogic
 import time
 from agora_token_builder import RtcTokenBuilder, RtmTokenBuilder
 from Backend.Connection.Evdiences_log import Coding_collection, violation_logs_collection, Mobile_logs_collection
-from Backend.Connection.Assessment_Connection import MCQ_Results_DB, Coding_results_DB, SQL_Results_DB, Piped_Puzzle_DB, FITB_Results_DB, Essay_Results_DB
+from Backend.Connection.Assessment_Connection import MCQ_Results_DB, Coding_results_DB, SQL_Results_DB, Piped_Puzzle_DB, FITB_Results_DB, Essay_Results_DB, Diagram_Results_DB
 from Backend.Connection.Evdiences_log import Risk_Score_DB , Mobile_Risk_Score
 
 import os
@@ -477,7 +477,61 @@ async def get_assessment_candidates(assessment_id: str):
     enrollment = Enrollment_DB.find_one({"assessment_id": assessment_id})
     if not enrollment:
         return []
-    return serialize_mongo(enrollment.get("candidates", []))
+        
+    candidates = enrollment.get("candidates", [])
+    
+    # Check test metadata for rubrics/max marks
+    test_info = Admin_Assessments_DB.find_one({"test_id": assessment_id})
+    
+    for cand in candidates:
+        email = cand.get("email")
+        query = {"assessment_id": assessment_id, "email": email}
+        
+        total_score = 0
+        
+        # MCQ
+        mcq_results = list(MCQ_Results_DB.find(query))
+        if mcq_results:
+            best_mcq = max(mcq_results, key=lambda x: x.get("user_total_marks", 0))
+            total_score += best_mcq.get("user_total_marks", 0)
+            
+        # Coding
+        cod_results = list(Coding_results_DB.find(query))
+        if cod_results:
+            best_cod = max(cod_results, key=lambda x: x.get("total_marks", 0))
+            total_score += best_cod.get("total_marks", 0)
+            
+        # SQL
+        sql_results = list(SQL_Results_DB.find(query))
+        if sql_results:
+            best_sql = max(sql_results, key=lambda x: x.get("total_marks", 0))
+            total_score += best_sql.get("total_marks", 0)
+            
+        # FITB
+        fitb_results = list(FITB_Results_DB.find(query))
+        if fitb_results:
+            best_fitb = max(fitb_results, key=lambda x: x.get("user_total_marks", 0))
+            total_score += best_fitb.get("user_total_marks", 0)
+            
+        # Essay
+        if Essay_Results_DB is not None:
+            essay_res = Essay_Results_DB.find_one(query)
+            if essay_res:
+                ev = essay_res.get("result") or essay_res.get("evaluation") or {}
+                total_score += float(ev.get("total_score") or ev.get("score") or 0)
+                
+        # Confidence/Trust Score
+        risk_doc = Risk_Score_DB.find_one(query)
+        if risk_doc:
+            vid_trust = risk_doc.get("video_proctoring", {}).get("trust_score", 0)
+            code_trust = risk_doc.get("code_analysis", {}).get("trust_score", 0)
+            cand["confidence_score"] = round((vid_trust + code_trust) / 2)
+                
+        # Attach to candidate if they have any score or if they've started
+        if total_score > 0 or cand.get("status") in ["Joined", "Completed"]:
+            cand["total_score"] = round(total_score, 2)
+            
+    return serialize_mongo(candidates)
 
 @app.get("/admin/test/{assessment_id}/candidate/{candidate_id}/analytics")
 async def get_candidate_analytics(assessment_id: str, candidate_id: str):

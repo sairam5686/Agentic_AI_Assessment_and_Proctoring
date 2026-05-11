@@ -1,4 +1,3 @@
-import React from 'react';
 import { useNavigate } from 'react-router';
 
 const NavBar = () => {
@@ -17,7 +16,7 @@ const NavBar = () => {
         w-full max-w-[900px]
         transition-all duration-300
       ">
-        
+
         {/* Logo Section */}
         <div className="flex items-center">
           <img
@@ -29,8 +28,8 @@ const NavBar = () => {
 
         {/* Navigation Links */}
         <div className="flex items-center gap-8">
-              <h1 onClick={() => navigator("/")}
-              className="
+          <h1 onClick={() => navigator("/")}
+            className="
               cursor-pointer
                 text-sm font-semibold text-gray-800 
                 relative py-1
@@ -39,11 +38,11 @@ const NavBar = () => {
                 after:transition-all after:duration-300 
                 hover:after:w-full hover:text-[#02F576]
               ">
-                Home
-            </h1>
+            Home
+          </h1>
 
-            <h1 onClick={() => navigator("/test-creater")}
-              className="
+          <h1 onClick={() => navigator("/test-creater")}
+            className="
               cursor-pointer
                 text-sm font-semibold text-gray-800 
                 relative py-1
@@ -52,16 +51,16 @@ const NavBar = () => {
                 after:transition-all after:duration-300 
                 hover:after:w-full hover:text-[#02F576]
               ">
-                Create Assessment
-            </h1>
+            Create Assessment
+          </h1>
 
 
 
-         
 
 
-             <h1 onClick={() => navigator("/assessments")}
-              className="
+
+          <h1 onClick={() => navigator("/assessments")}
+            className="
               cursor-pointer
                 text-sm font-semibold text-gray-800 
                 relative py-1
@@ -70,13 +69,13 @@ const NavBar = () => {
                 after:transition-all after:duration-300 
                 hover:after:w-full hover:text-[#02F576]
               ">
-                My Assessments
-            </h1>
+            My Assessments
+          </h1>
 
 
 
-             <h1 onClick={() => navigator("/about-us")}
-              className="
+          <h1 onClick={() => navigator("/about-us")}
+            className="
               cursor-pointer
                 text-sm font-semibold text-gray-800 
                 relative py-1
@@ -85,13 +84,13 @@ const NavBar = () => {
                 after:transition-all after:duration-300 
                 hover:after:w-full hover:text-[#02F576]
               ">
-                About us
-            </h1>
+            About us
+          </h1>
 
 
 
-              <h1 onClick={() => navigator("/contact-us")}
-              className="
+          <h1 onClick={() => navigator("/contact-us")}
+            className="
               cursor-pointer
                 text-sm font-semibold text-gray-800 
                 relative py-1
@@ -100,14 +99,14 @@ const NavBar = () => {
                 after:transition-all after:duration-300 
                 hover:after:w-full hover:text-[#02F576]
               ">
-                Contact us
-            </h1>
+            Contact us
+          </h1>
 
 
-     
+
         </div>
 
-      
+
       </nav>
     </div>
   );

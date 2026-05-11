@@ -63,10 +63,10 @@ const AssessmentDetails = () => {
                 ]);
                 const previewData = await previewRes.json();
                 const candidatesData = await candidatesRes.json();
-                
+
                 setFullTestData(previewData);
                 setCandidates(candidatesData);
-                
+
                 await Promise.all([fetchProctors(), fetchUnassigned()]);
             } catch (error) {
                 console.error("Failed to fetch assessment details:", error);
@@ -143,7 +143,7 @@ const AssessmentDetails = () => {
 
         // FITB
         if (fullTestData?.FITB && fullTestData.FITB.total_questions > 0) {
-            const totalMarks = (fullTestData.FITB.sections || []).reduce((acc: number, s: any) => 
+            const totalMarks = (fullTestData.FITB.sections || []).reduce((acc: number, s: any) =>
                 acc + (s.questions?.reduce((qAcc: number, q: any) => qAcc + (q.marks || 0), 0) || 0), 0
             );
             sections.push({
@@ -151,6 +151,26 @@ const AssessmentDetails = () => {
                 questions: fullTestData.FITB.total_questions,
                 duration: fullTestData.FITB.fitb_duration || '--',
                 marks: totalMarks || '--'
+            });
+        }
+
+        // Essay
+        if (fullTestData?.Essay?.enabled) {
+            sections.push({
+                name: 'Essay Section',
+                questions: 1,
+                duration: fullTestData.Essay.duration || '--',
+                marks: '--'
+            });
+        }
+
+        // Diagram
+        if (fullTestData?.Diagram?.enabled) {
+            sections.push({
+                name: 'Diagram Section',
+                questions: 1,
+                duration: '--',
+                marks: '--'
             });
         }
 
@@ -274,7 +294,7 @@ const AssessmentDetails = () => {
                                             </div>
                                         </div>
                                     )}
-                                    
+
                                     {sectionsInfo.map((section, idx) => (
                                         <div key={idx} className="space-y-3">
                                             <h3 className="text-[11px] font-black text-indigo-500 uppercase tracking-[0.15em]">{section.name}</h3>
@@ -381,55 +401,68 @@ const AssessmentDetails = () => {
 
                                 <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden text-slate-800">
                                     <div className="overflow-x-auto">
-                                        <table className="w-full text-left">
-                                            <thead>
-                                                <tr className="bg-gray-50/50 border-b border-gray-100">
-                                                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Candidate</th>
-                                                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Registration Number</th>
-                                                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
-                                                    <th className="px-8 py-5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Action</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="divide-y divide-gray-50">
-                                                {candidates.filter(c =>
-                                                    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                                    c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                                    c.reg_no.toLowerCase().includes(searchTerm.toLowerCase())
-                                                ).map((candidate, idx) => (
-                                                    <tr key={idx} className="hover:bg-gray-50/30 transition-colors group">
-                                                        <td className="px-8 py-5">
-                                                            <div className="flex items-center gap-4">
-                                                                <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 font-black">
-                                                                    {(candidate.name || '').charAt(0)}
-                                                                </div>
-                                                                <div>
-                                                                    <p className="text-sm font-black text-gray-900 leading-none mb-1">{candidate.name}</p>
-                                                                    <p className="text-[11px] font-bold text-gray-400">{candidate.email}</p>
-                                                                </div>
-                                                            </div>
-                                                        </td>
-                                                        <td className="px-8 py-5">
-                                                            <span className="text-sm font-bold text-gray-600">{candidate.reg_no}</span>
-                                                        </td>
-                                                        <td className="px-8 py-5">
-                                                            <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border ${candidate.status === 'Completed' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-blue-50 text-blue-700 border-blue-100'
-                                                                }`}>
-                                                                {candidate.status.replace(/_/g, ' ')}
-                                                            </span>
-                                                        </td>
-                                                        <td className="px-8 py-5 text-right">
-                                                            <button
-                                                                onClick={() => navigate('/candidate-analytics', { state: { candidate, testId: testData?.test_id } })}
-                                                                className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-md active:scale-95"
-                                                            >
-                                                                View Analytics
-                                                                <ChevronRight size={14} />
-                                                            </button>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
+                                         <table className="w-full text-left">
+                                             <thead>
+                                                 <tr className="bg-gray-50/50 border-b border-gray-100">
+                                                     <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Candidate</th>
+                                                     <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Registration Number</th>
+                                                     <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                                                     <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Score</th>
+                                                     <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Confidence</th>
+                                                     <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Action</th>
+                                                 </tr>
+                                             </thead>
+                                             <tbody className="divide-y divide-gray-50">
+                                                 {candidates.filter(c =>
+                                                     c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                                     c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                                                     c.reg_no.toLowerCase().includes(searchTerm.toLowerCase())
+                                                 ).map((candidate, idx) => (
+                                                     <tr key={idx} className="hover:bg-gray-50/30 transition-colors group">
+                                                         <td className="px-4 py-4">
+                                                             <div className="flex items-center gap-4">
+                                                                 <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 font-black">
+                                                                     {(candidate.name || '').charAt(0)}
+                                                                 </div>
+                                                                 <div>
+                                                                     <p className="text-sm font-black text-gray-900 leading-none mb-1">{candidate.name}</p>
+                                                                     <p className="text-[11px] font-bold text-gray-400">{candidate.email}</p>
+                                                                 </div>
+                                                             </div>
+                                                         </td>
+                                                         <td className="px-4 py-4">
+                                                             <span className="text-sm font-bold text-gray-600">{candidate.reg_no}</span>
+                                                         </td>
+                                                         <td className="px-4 py-4">
+                                                             <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border whitespace-nowrap ${candidate.status === 'Completed' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-blue-50 text-blue-700 border-blue-100'
+                                                                 }`}>
+                                                                 {candidate.status.replace(/_/g, ' ')}
+                                                             </span>
+                                                         </td>
+                                                         <td className="px-4 py-4">
+                                                             <span className="text-sm font-black text-gray-900">
+                                                                 {candidate.total_score !== undefined ? candidate.total_score : '--'}
+                                                             </span>
+                                                         </td>
+                                                         <td className="px-4 py-4">
+                                                             <span className={`text-sm font-black ${candidate.confidence_score !== undefined && candidate.confidence_score !== null ? (candidate.confidence_score >= 70 ? 'text-green-600' : candidate.confidence_score >= 40 ? 'text-yellow-600' : 'text-red-600') : 'text-gray-900'}`}>
+                                                                 {candidate.confidence_score !== undefined && candidate.confidence_score !== null ? `${candidate.confidence_score}%` : '--'}
+                                                             </span>
+                                                         </td>
+                                                         <td className="px-4 py-4 text-right">
+                                                             <button
+                                                                 onClick={() => navigate('/candidate-analytics', { state: { candidate, testId: testData?.test_id } })}
+                                                                 className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-md active:scale-95 whitespace-nowrap"
+                                                             >
+                                                                 View Analytics
+                                                                 <ChevronRight size={14} />
+                                                             </button>
+                                                         </td>
+                                                     </tr>
+                                                 ))}
+                                             </tbody>
+                                         </table>
+
                                     </div>
                                 </div>
                             </div>
@@ -465,7 +498,7 @@ const AssessmentDetails = () => {
                                                         required
                                                         placeholder="e.g. John Doe"
                                                         value={proctorForm.name}
-                                                        onChange={(e) => setProctorForm({...proctorForm, name: e.target.value})}
+                                                        onChange={(e) => setProctorForm({ ...proctorForm, name: e.target.value })}
                                                         className="w-full pl-10 pr-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm font-bold"
                                                     />
                                                 </div>
@@ -480,7 +513,7 @@ const AssessmentDetails = () => {
                                                         required
                                                         placeholder="proctor@example.com"
                                                         value={proctorForm.email}
-                                                        onChange={(e) => setProctorForm({...proctorForm, email: e.target.value})}
+                                                        onChange={(e) => setProctorForm({ ...proctorForm, email: e.target.value })}
                                                         className="w-full pl-10 pr-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm font-bold"
                                                     />
                                                 </div>
@@ -502,7 +535,7 @@ const AssessmentDetails = () => {
                                                         value={proctorForm.candidateCount}
                                                         onChange={(e) => {
                                                             const val = e.target.value;
-                                                            setProctorForm({...proctorForm, candidateCount: val === '' ? '' : parseInt(val)});
+                                                            setProctorForm({ ...proctorForm, candidateCount: val === '' ? '' : parseInt(val) });
                                                         }}
                                                         className="w-full pl-10 pr-4 py-3 bg-gray-50/50 border border-gray-100 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm font-bold"
                                                     />
@@ -533,9 +566,8 @@ const AssessmentDetails = () => {
                                             <button
                                                 type="submit"
                                                 disabled={assigning || unassignedCandidates.length === 0}
-                                                className={`w-full py-4 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-xl transition-all shadow-lg active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3 mt-4 ${
-                                                    unassignedCandidates.length === 0 ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'
-                                                }`}
+                                                className={`w-full py-4 text-white text-[11px] font-black uppercase tracking-[0.2em] rounded-xl transition-all shadow-lg active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-3 mt-4 ${unassignedCandidates.length === 0 ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'
+                                                    }`}
                                             >
                                                 {assigning ? 'Assigning...' : (
                                                     unassignedCandidates.length === 0 ? 'All Candidates Assigned' : 'Assign Proctor'
@@ -576,7 +608,7 @@ const AssessmentDetails = () => {
                                                                         <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
                                                                         <span className="text-[9px] font-black text-emerald-700 uppercase">Active</span>
                                                                     </div>
-                                                                    <button 
+                                                                    <button
                                                                         onClick={() => handleTerminateProctor(p.email)}
                                                                         className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-all"
                                                                         title="Terminate Assignment"
@@ -595,7 +627,7 @@ const AssessmentDetails = () => {
                                                                     <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-0.5">Passkey</p>
                                                                     <div className="flex items-center justify-between">
                                                                         <code className="text-[10px] font-black text-indigo-600 tracking-wider">{p.passkey}</code>
-                                                                        <button 
+                                                                        <button
                                                                             onClick={() => {
                                                                                 navigator.clipboard.writeText(p.passkey);
                                                                                 toast.success('Passkey copied!');
@@ -607,7 +639,7 @@ const AssessmentDetails = () => {
                                                                     </div>
                                                                 </div>
                                                             </div>
-                                                            
+
                                                             <div className="pt-3 border-t border-emerald-100/20">
                                                                 <p className="text-[8px] font-black text-gray-400 uppercase tracking-widest mb-2">Monitored Emails</p>
                                                                 <div className="flex flex-wrap gap-1.5">

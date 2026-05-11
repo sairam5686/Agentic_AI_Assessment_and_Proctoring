@@ -3,7 +3,7 @@ import NavBar from '../Components/NavBar';
 import { useNavigate } from 'react-router';
 import { toast } from 'react-toastify';
 import DiagramCreator from '../Components/DiagramCreator';
-import { Layout } from 'lucide-react';
+import { Layout, Briefcase, GraduationCap, ScrollText, FileText, Building2, Zap, Sparkles, Flag, Puzzle } from 'lucide-react';
 
 type SectionType = 'Coding' | 'MCQ' | 'SQL' | 'Gaming' | 'FITB';
 
@@ -17,22 +17,22 @@ interface Section {
 
 type AssessmentCategory = 'Hiring' | 'University' | 'Certification';
 
-const steps = ['Basic Info', 'Gaming', 'MCQ', 'Coding', 'SQL', 'FITB', 'Diagram', 'Review'];
+const steps = ['Basic Info', 'Gaming', 'MCQ', 'Coding', 'SQL', 'FITB', 'Diagram', 'Essay'];
 
 const CERTIFICATION_TRACKS: Record<string, any> = {
-  'Python Developer': { MCQ: true, Coding: true, SQL: false, FITB: true, Essay: true, Gaming: false },
-  'Data Analyst': { MCQ: true, Coding: false, SQL: true, FITB: true, Essay: true, Gaming: false },
-  'Full Stack Dev': { MCQ: true, Coding: true, SQL: true, FITB: false, Essay: false, Gaming: false },
-  'Problem Solving': { MCQ: true, Coding: true, SQL: false, FITB: false, Essay: false, Gaming: true },
-  'AI/ML Engineer': { MCQ: true, Coding: true, SQL: false, FITB: true, Essay: true, Gaming: false },
+  'Python Developer': { MCQ: true, Coding: true, SQL: false, FITB: true, Essay: true, Gaming: false, Diagram: false },
+  'Data Analyst': { MCQ: true, Coding: false, SQL: true, FITB: true, Essay: true, Gaming: false, Diagram: true },
+  'Full Stack Dev': { MCQ: true, Coding: true, SQL: true, FITB: false, Essay: true, Gaming: false, Diagram: true },
+  'Problem Solving': { MCQ: true, Coding: true, SQL: false, FITB: false, Essay: false, Gaming: true, Diagram: true },
+  'AI/ML Engineer': { MCQ: true, Coding: true, SQL: false, FITB: true, Essay: true, Gaming: false, Diagram: true },
 };
 
 const RUBRIC_COLORS = {
-  introduction: { bg: 'bg-blue-50', border: 'border-blue-100', icon: '📄', iconBg: 'bg-blue-100', accent: 'text-blue-600', text: 'text-blue-900' },
-  industry_overview: { bg: 'bg-indigo-50', border: 'border-indigo-100', icon: '🏢', iconBg: 'bg-indigo-100', accent: 'text-indigo-600', text: 'text-indigo-900' },
-  impact_analysis: { bg: 'bg-emerald-50', border: 'border-emerald-100', icon: '⚡', iconBg: 'bg-emerald-100', accent: 'text-emerald-600', text: 'text-emerald-900' },
-  future_predictions: { bg: 'bg-amber-50', border: 'border-amber-100', icon: '🔮', iconBg: 'bg-amber-100', accent: 'text-amber-600', text: 'text-amber-900' },
-  conclusion: { bg: 'bg-purple-50', border: 'border-purple-100', icon: '🏁', iconBg: 'bg-purple-100', accent: 'text-purple-600', text: 'text-purple-900' },
+  introduction: { bg: 'bg-slate-50', border: 'border-slate-100', icon: <FileText className="w-4 h-4 text-slate-700" />, iconBg: 'bg-slate-100', accent: 'text-slate-600', text: 'text-slate-900' },
+  industry_overview: { bg: 'bg-slate-50', border: 'border-slate-100', icon: <Building2 className="w-4 h-4 text-slate-700" />, iconBg: 'bg-slate-100', accent: 'text-slate-600', text: 'text-slate-900' },
+  impact_analysis: { bg: 'bg-slate-50', border: 'border-slate-100', icon: <Zap className="w-4 h-4 text-slate-700" />, iconBg: 'bg-slate-100', accent: 'text-slate-600', text: 'text-slate-900' },
+  future_predictions: { bg: 'bg-slate-50', border: 'border-slate-100', icon: <Sparkles className="w-4 h-4 text-slate-700" />, iconBg: 'bg-slate-100', accent: 'text-slate-600', text: 'text-slate-900' },
+  conclusion: { bg: 'bg-slate-50', border: 'border-slate-100', icon: <Flag className="w-4 h-4 text-slate-700" />, iconBg: 'bg-slate-100', accent: 'text-slate-600', text: 'text-slate-900' },
 };
 
 const TestCreator: React.FC = () => {
@@ -53,8 +53,8 @@ const TestCreator: React.FC = () => {
 
   const [certificationData, setCertificationData] = useState({
     trackName: '',
-    issuer: 'Virtusa - Jatayu Season 5',
-    certificateTitle: 'Certificate of Achievement',
+    issuer: '',
+    certificateTitle: '',
     globalThreshold: 60,
     sectionThresholds: {} as Record<string, number>
   });
@@ -82,6 +82,7 @@ const TestCreator: React.FC = () => {
     });
     setEssayEnabled(config.Essay);
     setGamingEnabled(config.Gaming);
+    setDiagramEnabled(config.Diagram);
   };
   const [gamingEnabled, setGamingEnabled] = useState<boolean>(true);
   const [gamingRounds, setGamingRounds] = useState<string>('3');
@@ -89,7 +90,7 @@ const TestCreator: React.FC = () => {
   const [certStep, setCertStep] = useState<number>(1);
 
   // Essay state — dynamic rubric
-  const [essayEnabled, setEssayEnabled] = useState<boolean>(false);
+  const [essayEnabled, setEssayEnabled] = useState<boolean>(true);
   const [essayTopic, setEssayTopic] = useState<string>('');
   const [essayInstructions, setEssayInstructions] = useState<string>('');
   const [essayDuration, setEssayDuration] = useState<string>('30');
@@ -102,7 +103,7 @@ const TestCreator: React.FC = () => {
   }
 
   // Diagram state
-  const [diagramEnabled, setDiagramEnabled] = useState<boolean>(false);
+  const [diagramEnabled, setDiagramEnabled] = useState<boolean>(true);
   const [diagramPrompt, setDiagramPrompt] = useState<string>('');
   const [masterJson, setMasterJson] = useState<any>(null);
   const [masterImage, setMasterImage] = useState<string | null>(null);
@@ -312,22 +313,22 @@ const TestCreator: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-100 font-sans">
       <NavBar />
-      <main className="max-w-3xl mx-auto pt-24 pb-10 px-4 sm:px-6">
+      <main className={`${selectedCategory === 'Certification' && certStep === 1 ? 'max-w-6xl' : 'max-w-3xl'} mx-auto pt-24 pb-10 px-4 sm:px-6`}>
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Create New Assessment</h1>
         <div className="h-1 w-12 bg-orange-500 rounded-full mb-6" />
 
         <div className="grid grid-cols-3 gap-4 mb-8">
           {[
-            { id: 'Hiring', title: 'Hiring Assessment', icon: '💼' },
-            { id: 'University', title: 'University Exam', icon: '🎓' },
-            { id: 'Certification', title: 'Skills Certification', icon: '📜' }
+            { id: 'Hiring', title: 'Hiring Assessment', icon: <Briefcase className="w-6 h-6 text-gray-700" /> },
+            { id: 'University', title: 'University Exam', icon: <GraduationCap className="w-6 h-6 text-gray-700" /> },
+            { id: 'Certification', title: 'Skills Certification', icon: <ScrollText className="w-6 h-6 text-gray-700" /> }
           ].map((cat) => (
             <button
               key={cat.id}
               onClick={() => setSelectedCategory(cat.id as AssessmentCategory)}
               className={`p-4 rounded-2xl border-2 transition-all duration-200 flex flex-col items-center gap-2 ${selectedCategory === cat.id
-                  ? 'border-orange-500 bg-orange-50 shadow-md transform scale-[1.02]'
-                  : 'border-gray-200 bg-white hover:border-orange-200 hover:bg-gray-50'
+                ? 'border-orange-500 bg-orange-50 shadow-md transform scale-[1.02]'
+                : 'border-gray-200 bg-white hover:border-orange-200 hover:bg-gray-50'
                 }`}
             >
               <span className="text-2xl">{cat.icon}</span>
@@ -386,7 +387,9 @@ const TestCreator: React.FC = () => {
                   <div className="space-y-4 pt-4 border-t border-gray-100">
                     <div className={`flex items-center justify-between p-4 bg-orange-50 rounded-xl border border-orange-100 transition-opacity duration-300 ${gamingEnabled ? 'opacity-100' : 'opacity-40 grayscale pointer-events-none'}`}>
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center text-xl">🧩</div>
+                        <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">
+                          <Puzzle className="w-6 h-6 text-orange-600" />
+                        </div>
                         <div>
                           <p className="text-sm font-semibold text-gray-800">Pipe Puzzle</p>
                           <p className="text-xs text-gray-500">Cognitive assessment simulation</p>
@@ -519,50 +522,56 @@ const TestCreator: React.FC = () => {
 
               {/* Essay Section for Certification Step 2 */}
               {selectedCategory === 'Certification' && CERTIFICATION_TRACKS[certificationData.trackName]?.Essay && (
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mt-4">
+                  {/* Header */}
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <h3 className="text-sm font-bold text-gray-800">Strategic Essay</h3>
                       <p className="text-xs text-gray-500">AI-evaluated with a custom rubric you define below</p>
                     </div>
-                    <span className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)] animate-pulse" />
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={essayEnabled} onChange={(e) => setEssayEnabled(e.target.checked)} />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500" />
+                    </label>
                   </div>
 
-                  <div className="space-y-6 pt-4 border-t border-gray-100">
-                    {/* Topic + Duration row */}
+                  <div className={`space-y-4 pt-4 border-t border-gray-100 transition-opacity duration-300 ${essayEnabled ? 'opacity-100' : 'opacity-40 grayscale pointer-events-none'}`}>
+
+                    {/* Topic + Duration + Passing row */}
                     <div className="flex gap-4">
                       <div className="flex-1">
                         <label className="block text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider">Essay Topic / Prompt</label>
                         <input
                           type="text"
-                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white font-bold"
                           placeholder="e.g., Impact of Generative AI on the Healthcare Industry"
                           value={essayTopic}
                           onChange={(e) => setEssayTopic(e.target.value)}
                         />
                       </div>
-                      <div className="w-32">
+                      <div className="w-28">
                         <label className="block text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider">Duration</label>
                         <div className="flex items-center gap-2">
                           <input
                             type="text"
                             inputMode="numeric"
                             pattern="[0-9]*"
-                            className="w-20 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
+                            placeholder="Mins"
                             value={essayDuration}
                             onChange={(e) => setEssayDuration(e.target.value.replace(/[^0-9]/g, ''))}
                           />
                           <span className="text-[10px] text-gray-500 font-bold">Mins</span>
                         </div>
                       </div>
-                      <div className="w-32">
+                      <div className="w-28">
                         <label className="block text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider">Passing %</label>
                         <div className="flex items-center gap-2">
                           <input
                             type="text"
                             inputMode="numeric"
                             pattern="[0-9]*"
-                            className="w-20 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white font-bold text-blue-700"
+                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white font-bold text-blue-700"
                             value={certificationData.sectionThresholds['essay'] || 60}
                             onChange={(e) => {
                               const val = Number(e.target.value.replace(/[^0-9]/g, ''));
@@ -577,26 +586,14 @@ const TestCreator: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Instructions row */}
-                    <div>
-                      <label className="block text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider">Question Description / Instructions</label>
-                      <textarea
-                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white min-h-[80px]"
-                        placeholder="Provide detailed instructions or the full question text here..."
-                        value={essayInstructions}
-                        onChange={(e) => setEssayInstructions(e.target.value)}
-                      />
-                    </div>
-
                     {/* Rubric builder header */}
                     <div className="flex items-center justify-between pt-2">
                       <div>
                         <p className="text-xs font-black text-gray-700 uppercase tracking-wider">Evaluation Rubric</p>
-                        <p className="text-[10px] text-gray-400 mt-0.5">Define sub-headings and criteria for evaluation (e.g., Intro, Analysis, Conclusion)</p>
                       </div>
                       <span className={`px-3 py-1 rounded-full text-xs font-black border ${totalRubricMarks === 50
-                          ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                          : 'bg-red-50 text-red-600 border-red-200'
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-red-50 text-red-600 border-red-200'
                         }`}>
                         Total: {totalRubricMarks} / 50 marks
                       </span>
@@ -607,12 +604,13 @@ const TestCreator: React.FC = () => {
                       {rubricSections.map((section, sIdx) => {
                         const isOpen = expandedRubricKey === section.key;
                         const sectionColors = [
-                          { bg: 'bg-violet-50', border: 'border-violet-200', badge: 'bg-violet-100 text-violet-700', accent: 'text-violet-600', ring: 'focus:ring-violet-300' },
-                          { bg: 'bg-purple-50', border: 'border-purple-200', badge: 'bg-purple-100 text-purple-700', accent: 'text-purple-600', ring: 'focus:ring-purple-300' },
+                          { bg: 'bg-orange-50', border: 'border-orange-200', badge: 'bg-orange-100 text-orange-700', accent: 'text-orange-600', ring: 'focus:ring-orange-300' },
+                          { bg: 'bg-orange-50', border: 'border-orange-200', badge: 'bg-orange-100 text-orange-700', accent: 'text-orange-600', ring: 'focus:ring-orange-300' },
                         ];
                         const sc = sectionColors[sIdx % sectionColors.length];
                         return (
                           <div key={section.key} className={`rounded-xl border ${sc.border} ${sc.bg} overflow-hidden`}>
+                            {/* Section row header */}
                             <button
                               type="button"
                               onClick={() => setExpandedRubricKey(isOpen ? null : section.key)}
@@ -621,6 +619,8 @@ const TestCreator: React.FC = () => {
                               <span className={`text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center ${sc.badge}`}>
                                 {sIdx + 1}
                               </span>
+
+                              {/* Editable section name */}
                               <input
                                 type="text"
                                 value={section.name}
@@ -628,6 +628,8 @@ const TestCreator: React.FC = () => {
                                 onChange={e => updateRubricSection(section.key, 'name', e.target.value)}
                                 className={`flex-1 bg-transparent text-sm font-bold text-gray-800 border-none outline-none focus:bg-white/70 focus:rounded px-1 ${sc.ring}`}
                               />
+
+                              {/* Max marks */}
                               <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
                                 <input
                                   type="text"
@@ -638,28 +640,30 @@ const TestCreator: React.FC = () => {
                                     const val = e.target.value.replace(/[^0-9]/g, '');
                                     updateRubricSection(section.key, 'max_marks', Math.min(50, parseInt(val) || 0));
                                   }}
-                                  className={`w-10 py-0.5 text-xs font-black text-center border-b-2 border-gray-200 focus:border-violet-400 bg-transparent outline-none transition-all`}
+                                  className={`w-10 py-0.5 text-xs font-black text-center border-b-2 border-gray-200 focus:border-orange-400 bg-transparent outline-none transition-all`}
                                 />
                                 <div className="flex flex-col -gap-1">
                                   <button
                                     type="button"
                                     onClick={() => updateRubricSection(section.key, 'max_marks', Math.min(50, section.max_marks + 5))}
-                                    className="text-[8px] text-violet-400 hover:text-violet-600 transition-colors leading-none p-0.5"
+                                    className="text-[8px] text-orange-400 hover:text-orange-600 transition-colors leading-none p-0.5"
                                   >▲</button>
                                   <button
                                     type="button"
                                     onClick={() => updateRubricSection(section.key, 'max_marks', Math.max(0, section.max_marks - 5))}
-                                    className="text-[8px] text-violet-400 hover:text-violet-600 transition-colors leading-none p-0.5"
+                                    className="text-[8px] text-orange-400 hover:text-orange-600 transition-colors leading-none p-0.5"
                                   >▼</button>
                                 </div>
                                 <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tight ml-0.5">marks</span>
                               </div>
-                              <span className={`text-xs ${sc.accent} ml-2`}>{isOpen ? '▲' : '▼'}</span>
+
+                              <span className={`text-xs ${sc.accent} ml-1`}>{isOpen ? '▲' : '▼'}</span>
                             </button>
 
+                            {/* Expanded: criteria list */}
                             {isOpen && (
                               <div className="px-4 pb-4 pt-1 space-y-2 border-t border-white/60">
-                                <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Grading Criteria</p>
+                                <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Grading Criteria — AI checks each of these</p>
                                 {section.criteria.map((criterion, cIdx) => (
                                   <div key={cIdx} className="flex items-center gap-2">
                                     <span className="text-gray-400 text-xs shrink-0">•</span>
@@ -668,7 +672,7 @@ const TestCreator: React.FC = () => {
                                       value={criterion}
                                       onChange={e => updateCriterion(section.key, cIdx, e.target.value)}
                                       placeholder="e.g., Clearly introduces the topic..."
-                                      className="flex-1 text-sm px-3 py-1.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-violet-300"
+                                      className="flex-1 text-sm px-3 py-1.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-orange-300"
                                     />
                                     <button
                                       type="button"
@@ -695,48 +699,50 @@ const TestCreator: React.FC = () => {
               )}
 
               {/* ── Diagram Section ── */}
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mt-4">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="text-sm font-bold text-gray-800">System Design / Diagram</h3>
-                    <p className="text-xs text-gray-500">Create a master solution for AI-powered diagram evaluation</p>
-                  </div>
-                  <label className="relative inline-flex items-center cursor-pointer">
-                    <input type="checkbox" className="sr-only peer" checked={diagramEnabled} onChange={(e) => setDiagramEnabled(e.target.checked)} />
-                    <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500" />
-                  </label>
-                </div>
-
-                <div className={`space-y-4 pt-4 border-t border-gray-100 transition-opacity duration-300 ${diagramEnabled ? 'opacity-100' : 'opacity-40 grayscale pointer-events-none'}`}>
-                  <div>
-                    <label className="block text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider">Question Prompt</label>
-                    <input
-                      type="text"
-                      className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
-                      placeholder="e.g., Draw a sequence diagram for a User Login process..."
-                      value={diagramPrompt}
-                      onChange={(e) => setDiagramPrompt(e.target.value)}
-                    />
+              {(selectedCategory === 'Hiring' || (selectedCategory === 'Certification' && CERTIFICATION_TRACKS[certificationData.trackName]?.Diagram)) && (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mt-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h3 className="text-sm font-bold text-gray-800">System Design / Diagram</h3>
+                      <p className="text-xs text-gray-500">Create a master solution for AI-powered diagram evaluation</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input type="checkbox" className="sr-only peer" checked={diagramEnabled} onChange={(e) => setDiagramEnabled(e.target.checked)} />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500" />
+                    </label>
                   </div>
 
-                  <div>
-                    <label className="block text-[10px] text-gray-500 mb-2 font-bold uppercase tracking-wider">Diagram Configuration</label>
-                    <button
-                      type="button"
-                      onClick={() => setIsDiagramModalOpen(true)}
-                      className="flex items-center gap-2 bg-blue-50 text-blue-600 border border-blue-200 px-6 py-3 rounded-xl font-bold text-sm hover:bg-blue-100 transition-colors"
-                    >
-                      <Layout size={18} />
-                      {masterJson ? "Edit Master Solution Diagram" : "Configure Master Diagram Solution"}
-                    </button>
-                    {masterJson && (
-                      <p className="text-[10px] text-emerald-600 font-bold uppercase mt-2 flex items-center gap-1">
-                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Master Diagram Saved
-                      </p>
-                    )}
+                  <div className={`space-y-4 pt-4 border-t border-gray-100 transition-opacity duration-300 ${diagramEnabled ? 'opacity-100' : 'opacity-40 grayscale pointer-events-none'}`}>
+                    <div>
+                      <label className="block text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider">Question Prompt</label>
+                      <input
+                        type="text"
+                        className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
+                        placeholder="e.g., Draw a sequence diagram for a User Login process..."
+                        value={diagramPrompt}
+                        onChange={(e) => setDiagramPrompt(e.target.value)}
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] text-gray-500 mb-2 font-bold uppercase tracking-wider">Diagram Configuration</label>
+                      <button
+                        type="button"
+                        onClick={() => setIsDiagramModalOpen(true)}
+                        className="flex items-center gap-2 bg-blue-50 text-blue-600 border border-blue-200 px-6 py-3 rounded-xl font-bold text-sm hover:bg-blue-100 transition-colors"
+                      >
+                        <Layout size={18} />
+                        {masterJson ? "Edit Master Solution Diagram" : "Configure Master Diagram Solution"}
+                      </button>
+                      {masterJson && (
+                        <p className="text-[10px] text-emerald-600 font-bold uppercase mt-2 flex items-center gap-1">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Master Diagram Saved
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* Diagram Modal */}
               {isDiagramModalOpen && (
@@ -768,12 +774,12 @@ const TestCreator: React.FC = () => {
                       </div>
                     </div>
                     <div className="flex-1 overflow-hidden">
-                      <DiagramCreator 
+                      <DiagramCreator
                         onSave={(data: any) => {
                           setMasterJson({ nodes: data.nodes, edges: data.edges });
                           if (data.master_image) setMasterImage(data.master_image);
-                        }} 
-                        initialData={masterJson} 
+                        }}
+                        initialData={masterJson}
                       />
                     </div>
                   </div>
@@ -816,7 +822,7 @@ const TestCreator: React.FC = () => {
                           type="text"
                           inputMode="numeric"
                           pattern="[0-9]*"
-                          className="w-20 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-400 bg-white"
+                          className="w-20 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
                           placeholder="Mins"
                           value={essayDuration}
                           onChange={(e) => setEssayDuration(e.target.value.replace(/[^0-9]/g, ''))}
@@ -832,8 +838,8 @@ const TestCreator: React.FC = () => {
                       <p className="text-xs font-black text-gray-700 uppercase tracking-wider">Evaluation Rubric</p>
                     </div>
                     <span className={`px-3 py-1 rounded-full text-xs font-black border ${totalRubricMarks === 50
-                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                        : 'bg-red-50 text-red-600 border-red-200'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-red-50 text-red-600 border-red-200'
                       }`}>
                       Total: {totalRubricMarks} / 50 marks
                     </span>
@@ -844,8 +850,8 @@ const TestCreator: React.FC = () => {
                     {rubricSections.map((section, sIdx) => {
                       const isOpen = expandedRubricKey === section.key;
                       const sectionColors = [
-                        { bg: 'bg-violet-50', border: 'border-violet-200', badge: 'bg-violet-100 text-violet-700', accent: 'text-violet-600', ring: 'focus:ring-violet-300' },
-                        { bg: 'bg-purple-50', border: 'border-purple-200', badge: 'bg-purple-100 text-purple-700', accent: 'text-purple-600', ring: 'focus:ring-purple-300' },
+                        { bg: 'bg-orange-50', border: 'border-orange-200', badge: 'bg-orange-100 text-orange-700', accent: 'text-orange-600', ring: 'focus:ring-orange-300' },
+                        { bg: 'bg-orange-50', border: 'border-orange-200', badge: 'bg-orange-100 text-orange-700', accent: 'text-orange-600', ring: 'focus:ring-orange-300' },
                       ];
                       const sc = sectionColors[sIdx % sectionColors.length];
                       return (
@@ -880,18 +886,18 @@ const TestCreator: React.FC = () => {
                                   const val = e.target.value.replace(/[^0-9]/g, '');
                                   updateRubricSection(section.key, 'max_marks', Math.min(50, parseInt(val) || 0));
                                 }}
-                                className={`w-10 py-0.5 text-xs font-black text-center border-b-2 border-gray-200 focus:border-violet-400 bg-transparent outline-none transition-all`}
+                                className={`w-10 py-0.5 text-xs font-black text-center border-b-2 border-gray-200 focus:border-orange-400 bg-transparent outline-none transition-all`}
                               />
                               <div className="flex flex-col -gap-1">
                                 <button
                                   type="button"
                                   onClick={() => updateRubricSection(section.key, 'max_marks', Math.min(50, section.max_marks + 5))}
-                                  className="text-[8px] text-violet-400 hover:text-violet-600 transition-colors leading-none p-0.5"
+                                  className="text-[8px] text-orange-400 hover:text-orange-600 transition-colors leading-none p-0.5"
                                 >▲</button>
                                 <button
                                   type="button"
                                   onClick={() => updateRubricSection(section.key, 'max_marks', Math.max(0, section.max_marks - 5))}
-                                  className="text-[8px] text-violet-400 hover:text-violet-600 transition-colors leading-none p-0.5"
+                                  className="text-[8px] text-orange-400 hover:text-orange-600 transition-colors leading-none p-0.5"
                                 >▼</button>
                               </div>
                               <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tight ml-0.5">marks</span>
@@ -903,7 +909,7 @@ const TestCreator: React.FC = () => {
                           {/* Expanded: criteria list */}
                           {isOpen && (
                             <div className="px-4 pb-4 pt-1 space-y-2 border-t border-white/60">
-                              <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Grading Criteria — Gemini checks each of these</p>
+                              <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Grading Criteria — AI checks each of these</p>
                               {section.criteria.map((criterion, cIdx) => (
                                 <div key={cIdx} className="flex items-center gap-2">
                                   <span className="text-gray-400 text-xs shrink-0">•</span>
@@ -912,7 +918,7 @@ const TestCreator: React.FC = () => {
                                     value={criterion}
                                     onChange={e => updateCriterion(section.key, cIdx, e.target.value)}
                                     placeholder="e.g., Clearly introduces the topic..."
-                                    className="flex-1 text-sm px-3 py-1.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-violet-300"
+                                    className="flex-1 text-sm px-3 py-1.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-orange-300"
                                   />
                                   <button
                                     type="button"
@@ -946,7 +952,7 @@ const TestCreator: React.FC = () => {
             {uniStep === 1 ? (
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
                 <h3 className="text-lg font-bold text-gray-800 mb-4 flex items-center gap-2">
-                  🎓 University Exam Details
+                  <GraduationCap className="w-6 h-6 text-gray-700" /> University Exam Details
                 </h3>
                 <div className="mb-6">
                   <label className="block text-sm font-medium text-gray-700 mb-1">Exam Title</label>
@@ -1048,7 +1054,9 @@ const TestCreator: React.FC = () => {
                   <div className="space-y-4 pt-4 border-t border-gray-100">
                     <div className={`flex items-center justify-between p-4 bg-orange-50 rounded-xl border border-orange-100 transition-opacity duration-300 ${gamingEnabled ? 'opacity-100' : 'opacity-40 grayscale pointer-events-none'}`}>
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center text-xl">🧩</div>
+                        <div className="w-10 h-10 bg-orange-50 rounded-lg flex items-center justify-center">
+                          <Puzzle className="w-6 h-6 text-orange-600" />
+                        </div>
                         <div>
                           <p className="text-sm font-semibold text-gray-800">Pipe Puzzle</p>
                           <p className="text-xs text-gray-500">Cognitive assessment simulation</p>
@@ -1138,6 +1146,7 @@ const TestCreator: React.FC = () => {
                   );
                 })}
                 <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6 mt-4">
+                  {/* Header */}
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <h3 className="text-sm font-bold text-gray-800">Essay / Long Answer</h3>
@@ -1150,6 +1159,8 @@ const TestCreator: React.FC = () => {
                   </div>
 
                   <div className={`space-y-4 pt-4 border-t border-gray-100 transition-opacity duration-300 ${essayEnabled ? 'opacity-100' : 'opacity-40 grayscale pointer-events-none'}`}>
+
+                    {/* Topic + Duration row */}
                     <div className="flex gap-4">
                       <div className="flex-1">
                         <label className="block text-[10px] text-gray-500 mb-1 font-bold uppercase tracking-wider">Essay Topic / Prompt</label>
@@ -1168,7 +1179,7 @@ const TestCreator: React.FC = () => {
                             type="text"
                             inputMode="numeric"
                             pattern="[0-9]*"
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
+                            className="w-20 px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-400 bg-white"
                             placeholder="Mins"
                             value={essayDuration}
                             onChange={(e) => setEssayDuration(e.target.value.replace(/[^0-9]/g, ''))}
@@ -1178,43 +1189,84 @@ const TestCreator: React.FC = () => {
                       </div>
                     </div>
 
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-bold text-gray-700 uppercase tracking-wider">Evaluation Rubric</h4>
+                    {/* Rubric builder header */}
+                    <div className="flex items-center justify-between pt-2">
+                      <div>
+                        <p className="text-xs font-black text-gray-700 uppercase tracking-wider">Evaluation Rubric</p>
                       </div>
+                      <span className={`px-3 py-1 rounded-full text-xs font-black border ${totalRubricMarks === 50
+                        ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                        : 'bg-red-50 text-red-600 border-red-200'
+                        }`}>
+                        Total: {totalRubricMarks} / 50 marks
+                      </span>
+                    </div>
 
-                      <div className="grid grid-cols-1 gap-4">
-                        {rubricSections.map((section) => {
-                          const sc = RUBRIC_COLORS[section.key as keyof typeof RUBRIC_COLORS] || RUBRIC_COLORS.introduction;
-                          return (
-                            <div key={section.key} className={`p-5 rounded-2xl border-2 ${sc.border} ${sc.bg} transition-all`}>
-                              <div className="flex items-center justify-between mb-4">
-                                <div className="flex items-center gap-3">
-                                  <div className={`w-8 h-8 ${sc.iconBg} ${sc.accent} rounded-lg flex items-center justify-center text-lg shadow-sm`}>
-                                    {sc.icon}
-                                  </div>
-                                  <span className={`text-sm font-bold ${sc.text}`}>{section.label}</span>
+                    {/* Rubric sections */}
+                    <div className="space-y-2">
+                      {rubricSections.map((section, sIdx) => {
+                        const isOpen = expandedRubricKey === section.key;
+                        const sectionColors = [
+                          { bg: 'bg-orange-50', border: 'border-orange-200', badge: 'bg-orange-100 text-orange-700', accent: 'text-orange-600', ring: 'focus:ring-orange-300' },
+                          { bg: 'bg-orange-50', border: 'border-orange-200', badge: 'bg-orange-100 text-orange-700', accent: 'text-orange-600', ring: 'focus:ring-orange-300' },
+                        ];
+                        const sc = sectionColors[sIdx % sectionColors.length];
+                        return (
+                          <div key={section.key} className={`rounded-xl border ${sc.border} ${sc.bg} overflow-hidden`}>
+                            {/* Section row header */}
+                            <button
+                              type="button"
+                              onClick={() => setExpandedRubricKey(isOpen ? null : section.key)}
+                              className="w-full flex items-center gap-3 px-4 py-3 text-left"
+                            >
+                              <span className={`text-[10px] font-black w-5 h-5 rounded-full flex items-center justify-center ${sc.badge}`}>
+                                {sIdx + 1}
+                              </span>
+
+                              {/* Editable section name */}
+                              <input
+                                type="text"
+                                value={section.name}
+                                onClick={e => e.stopPropagation()}
+                                onChange={e => updateRubricSection(section.key, 'name', e.target.value)}
+                                className={`flex-1 bg-transparent text-sm font-bold text-gray-800 border-none outline-none focus:bg-white/70 focus:rounded px-1 ${sc.ring}`}
+                              />
+
+                              {/* Max marks */}
+                              <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
+                                <input
+                                  type="text"
+                                  inputMode="numeric"
+                                  pattern="[0-9]*"
+                                  value={section.max_marks}
+                                  onChange={e => {
+                                    const val = e.target.value.replace(/[^0-9]/g, '');
+                                    updateRubricSection(section.key, 'max_marks', Math.min(50, parseInt(val) || 0));
+                                  }}
+                                  className={`w-10 py-0.5 text-xs font-black text-center border-b-2 border-gray-200 focus:border-orange-400 bg-transparent outline-none transition-all`}
+                                />
+                                <div className="flex flex-col -gap-1">
+                                  <button
+                                    type="button"
+                                    onClick={() => updateRubricSection(section.key, 'max_marks', Math.min(50, section.max_marks + 5))}
+                                    className="text-[8px] text-orange-400 hover:text-orange-600 transition-colors leading-none p-0.5"
+                                  >▲</button>
+                                  <button
+                                    type="button"
+                                    onClick={() => updateRubricSection(section.key, 'max_marks', Math.max(0, section.max_marks - 5))}
+                                    className="text-[8px] text-orange-400 hover:text-orange-600 transition-colors leading-none p-0.5"
+                                  >▼</button>
                                 </div>
-                                <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-gray-100 shadow-sm">
-                                  <input
-                                    type="text"
-                                    inputMode="numeric"
-                                    className="w-8 text-center text-sm font-black text-gray-800 outline-none"
-                                    value={section.marks}
-                                    onChange={(e) => updateRubricMarks(section.key, e.target.value.replace(/[^0-9]/g, ''))}
-                                  />
-                                  <div className="flex flex-col border-l border-gray-100 pl-2">
-                                    <button onClick={() => updateRubricMarks(section.key, (parseInt(section.marks) + 5).toString())} className="text-gray-400 hover:text-orange-500 transition-colors">
-                                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 15l7-7 7 7" /></svg>
-                                    </button>
-                                    <button onClick={() => updateRubricMarks(section.key, Math.max(0, parseInt(section.marks) - 5).toString())} className="text-gray-400 hover:text-orange-500 transition-colors">
-                                      <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" /></svg>
-                                    </button>
-                                  </div>
-                                  <span className="text-[10px] font-black text-gray-400 uppercase ml-1">Pts</span>
-                                </div>
+                                <span className="text-[9px] text-gray-400 font-bold uppercase tracking-tight ml-0.5">marks</span>
                               </div>
-                              <div className="space-y-2">
+
+                              <span className={`text-xs ${sc.accent} ml-1`}>{isOpen ? '▲' : '▼'}</span>
+                            </button>
+
+                            {/* Expanded: criteria list */}
+                            {isOpen && (
+                              <div className="px-4 pb-4 pt-1 space-y-2 border-t border-white/60">
+                                <p className="text-[10px] font-black text-gray-500 uppercase tracking-wider mb-2">Grading Criteria — AI checks each of these</p>
                                 {section.criteria.map((criterion, cIdx) => (
                                   <div key={cIdx} className="flex items-center gap-2">
                                     <span className="text-gray-400 text-xs shrink-0">•</span>
@@ -1240,10 +1292,10 @@ const TestCreator: React.FC = () => {
                                   <span className="text-base leading-none">+</span> Add criterion
                                 </button>
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
+                            )}
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -1256,20 +1308,22 @@ const TestCreator: React.FC = () => {
           <div className="space-y-6">
             <div className="bg-white rounded-2xl shadow-sm border border-gray-200 p-8">
               <div className="flex items-center gap-4 mb-8">
-                <div className="w-16 h-16 bg-blue-100 rounded-2xl flex items-center justify-center text-3xl shadow-inner">📜</div>
+                <div className="w-16 h-16 bg-blue-50 rounded-2xl flex items-center justify-center shadow-inner">
+                  <ScrollText className="w-8 h-8 text-blue-600" />
+                </div>
                 <div>
-                  <h3 className="text-xl font-black text-gray-800 tracking-tight">Professional Certification Designer</h3>
+                  <h3 className="text-xl font-black text-gray-800 tracking-tight">Certification Preview</h3>
                   <p className="text-sm text-gray-500 font-medium">Define the standards for your industry-grade certification</p>
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-8">
-                <div className="space-y-6">
-                  <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 text-left">Certification Track Name</label>
+              <div className="grid grid-cols-1 lg:grid-cols-[400px_1fr] gap-12">
+                <div className="space-y-8">
+                  <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 text-left">Certification Track Name</label>
                     <div className="relative">
                       <select
-                        className="w-full px-5 py-4 bg-gray-50 border-2 border-gray-100 focus:border-blue-500 focus:bg-white rounded-2xl outline-none transition-all font-bold text-gray-800 appearance-none"
+                        className="w-full px-5 py-4 bg-white border-2 border-gray-100 focus:border-blue-500 rounded-2xl outline-none transition-all font-bold text-gray-800 appearance-none shadow-sm"
                         value={certificationData.trackName}
                         onChange={(e) => handleTrackChange(e.target.value)}
                       >
@@ -1283,35 +1337,96 @@ const TestCreator: React.FC = () => {
                       </div>
                     </div>
                   </div>
-                  <div>
-                    <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 text-left">Issuing Authority</label>
+
+                  <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 text-left">Issuing Authority</label>
                     <input
                       type="text"
-                      className="w-full border-2 border-gray-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-blue-400 outline-none transition-all"
+                      className="w-full border-2 border-gray-100 rounded-xl px-5 py-4 text-sm font-bold focus:border-blue-400 outline-none transition-all bg-white shadow-sm"
                       placeholder="e.g. Virtusa - Jatayu Season 5"
                       value={certificationData.issuer}
                       onChange={(e) => setCertificationData({ ...certificationData, issuer: e.target.value })}
                     />
                   </div>
+
+                  <div className="bg-gray-50/50 p-6 rounded-2xl border border-gray-100">
+                    <label className="block text-[11px] font-black text-gray-400 uppercase tracking-widest mb-3 text-left">Certificate Heading</label>
+                    <input
+                      type="text"
+                      className="w-full border-2 border-gray-100 rounded-xl px-5 py-4 text-sm font-bold focus:border-blue-400 outline-none transition-all bg-white shadow-sm"
+                      placeholder="e.g. Certificate of Achievement"
+                      value={certificationData.certificateTitle}
+                      onChange={(e) => setCertificationData({ ...certificationData, certificateTitle: e.target.value })}
+                    />
+                  </div>
                 </div>
 
-                <div className="bg-gray-50/50 rounded-2xl border-2 border-dashed border-gray-200 p-6 flex flex-col items-center justify-center relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 p-3">
-                    <span className="px-2 py-1 bg-blue-500 text-[8px] font-black text-white rounded uppercase">Preview</span>
-                  </div>
-                  <div className="w-full border-4 border-double border-gray-300 p-4 bg-white shadow-sm flex flex-col items-center">
-                    <div className="w-8 h-8 bg-blue-600 rounded-full mb-2 flex items-center justify-center text-[10px] text-white font-bold">V</div>
-                    <h4 className="text-[10px] font-black uppercase tracking-tighter text-blue-900">{certificationData.certificateTitle}</h4>
-                    <div className="w-12 h-[1px] bg-gray-200 my-2" />
-                    <p className="text-[7px] text-gray-400 uppercase tracking-widest font-bold">This is to certify that</p>
-                    <p className="text-[12px] font-serif italic my-1 text-gray-800">Candidate Name</p>
-                    <p className="text-[7px] text-gray-400 uppercase tracking-widest font-bold">has successfully cleared the</p>
-                    <p className="text-[9px] font-black text-gray-700">{certificationData.trackName || 'Certification Track'}</p>
+                  {/* The Certificate UI - Premium Redesign */}
+                  <div className="w-full max-w-[760px] aspect-[1.414/1] bg-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] border-[1px] border-slate-200 p-12 flex flex-col items-center justify-between relative overflow-hidden">
+                    
+                    {/* Subtle Texture Background */}
+                    <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#1e293b 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+                    
+                    {/* Elegant Border Frame */}
+                    <div className="absolute inset-4 border-[1px] border-slate-100" />
+                    <div className="absolute inset-8 border-[2px] border-slate-200" />
+                    
+                    {/* Header Section */}
+                    <div className="z-10 flex flex-col items-center mt-6 mb-4">
+                      <div className="w-12 h-12 bg-blue-600 rounded-xl rotate-45 flex items-center justify-center shadow-lg shadow-blue-100 mb-6 border-2 border-white">
+                        <span className="text-xl font-black text-white -rotate-45">V</span>
+                      </div>
+                      <h4 className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-400 mb-1">Official Certification</h4>
+                      <h2 className="text-xl font-black uppercase tracking-[0.1em] text-slate-800 border-b-2 border-blue-600 pb-1 px-4">
+                        {certificationData.certificateTitle || "Certificate of Achievement"}
+                      </h2>
+                    </div>
+
+                    {/* Recipient Section */}
+                    <div className="z-10 flex flex-col items-center text-center px-12 mb-4">
+                      <p className="text-[9px] text-slate-400 uppercase tracking-[0.3em] font-bold mb-2">This acknowledges that</p>
+                      <h3 className="text-3xl font-serif italic text-slate-900 mb-2">Candidate Name</h3>
+                      <div className="w-32 h-px bg-slate-200 mb-3" />
+                      <p className="text-[9px] text-slate-400 uppercase tracking-[0.15em] font-bold leading-tight max-w-[440px]">
+                        has demonstrated exceptional proficiency and successfully met all requirements for the certification in
+                      </p>
+                    </div>
+
+                    {/* Track Section */}
+                    <div className="z-10 mb-8">
+                      <p className="text-[11px] font-bold text-slate-800 uppercase tracking-[0.2em]">
+                        {certificationData.trackName || 'Technical Specialization'}
+                      </p>
+                    </div>
+
+                    {/* Footer Section - Absolute positioned for stability */}
+                    <div className="absolute bottom-10 left-0 right-0 px-16 flex justify-between items-end">
+                      <div className="flex flex-col items-center">
+                        <div className="w-28 h-px bg-slate-300 mb-2" />
+                        <p className="text-[8px] font-black text-slate-800 uppercase tracking-widest">{certificationData.issuer || "Virtusa Authority"}</p>
+                        <p className="text-[7px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">Issuing Organization</p>
+                      </div>
+                      
+                      <div className="flex flex-col items-center">
+                        <div className="w-28 h-px bg-slate-300 mb-2" />
+                        <p className="text-[8px] font-black text-slate-800 uppercase tracking-widest">May 11, 2026</p>
+                        <p className="text-[7px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">Date of Issue</p>
+                      </div>
+                    </div>
+
+                    {/* Security Seal Decor - Moved to Top Left to avoid overlap */}
+                    <div className="absolute top-10 left-10 w-24 h-24 opacity-[0.08] pointer-events-none">
+                       <svg viewBox="0 0 100 100" className="w-full h-full text-slate-900 animate-spin-slow">
+                          <path id="curve" d="M 50, 50 m -37, 0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0" fill="transparent" />
+                          <text className="text-[10px] font-bold uppercase tracking-widest fill-current">
+                             <textPath href="#curve">Verified Certification • Virtusa Jatayu • </textPath>
+                          </text>
+                       </svg>
+                    </div>
                   </div>
                 </div>
               </div>
 
-            </div>
           </div>
         )}
 
