@@ -33,7 +33,7 @@ const AssessmentDetails = () => {
     const navigate = useNavigate();
     const fetchProctors = async () => {
         try {
-            const res = await fetch(`http://localhost:8000/admin/test/${testData.test_id}/proctor`);
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/test/${testData.test_id}/proctor`);
             const data = await res.json();
             setProctors(Array.isArray(data) ? data : []);
         } catch (error) {
@@ -43,7 +43,7 @@ const AssessmentDetails = () => {
 
     const fetchUnassigned = async () => {
         try {
-            const res = await fetch(`http://localhost:8000/admin/test/${testData.test_id}/unassigned-candidates`);
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/test/${testData.test_id}/unassigned-candidates`);
             const data = await res.json();
             setUnassignedCandidates(data);
             // Default count to empty or 1 if data exists
@@ -58,8 +58,8 @@ const AssessmentDetails = () => {
             if (!testData?.test_id) return;
             try {
                 const [previewRes, candidatesRes] = await Promise.all([
-                    fetch(`http://localhost:8000/admin/test/${testData.test_id}/Preview`),
-                    fetch(`http://localhost:8000/admin/test/${testData.test_id}/candidates`)
+                    fetch(`${import.meta.env.VITE_API_URL}/admin/test/${testData.test_id}/Preview`),
+                    fetch(`${import.meta.env.VITE_API_URL}/admin/test/${testData.test_id}/candidates`)
                 ]);
                 const previewData = await previewRes.json();
                 const candidatesData = await candidatesRes.json();
@@ -195,7 +195,7 @@ const AssessmentDetails = () => {
             formData.append('email', proctorForm.email);
             formData.append('candidate_count', count.toString());
 
-            const response = await fetch('http://localhost:8000/admin/assign-proctor', {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/assign-proctor`, {
                 method: 'POST',
                 body: formData
             });
@@ -223,7 +223,7 @@ const AssessmentDetails = () => {
         }
 
         try {
-            const response = await fetch(`http://localhost:8000/admin/terminate-proctor/${testData.test_id}/${proctorEmail}`, {
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/terminate-proctor/${testData.test_id}/${proctorEmail}`, {
                 method: 'DELETE'
             });
 

@@ -205,7 +205,7 @@ const PreviewTest = () => {
 
   const fetcher = async (assessment_id: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/admin/test/${assessment_id}/Preview`)
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/test/${assessment_id}/Preview`)
       const json = await response.json()
       console.log('API response:', json)
 
@@ -250,7 +250,7 @@ const PreviewTest = () => {
       formData.append('assessment_id', data.assessment_id);
       formData.append('status', 'terminated');
 
-      const response = await fetch('http://localhost:8000/update-test-status', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/update-test-status`, {
         method: 'POST',
         body: formData,
       });

@@ -235,7 +235,7 @@ const CandidateAnalytics = () => {
     /* ── fetchers ── */
     const CandidateResult = async () => {
         try {
-            const response = await fetch(`http://localhost:8000/candidate/${testId}/${candidate.email}/results`);
+            const response = await fetch(`${import.meta.env.VITE_API_URL}/candidate/${testId}/${candidate.email}/results`);
             const data = await response.json();
             setCandidateResult(data);
         } catch (err) { console.log(err); }
@@ -270,7 +270,7 @@ const CandidateAnalytics = () => {
 
     const FetcherLogs = async () => {
         try {
-            const res  = await fetch(`http://localhost:8000/EvidencesLogs/${testId}/${candidate.email}/get`);
+            const res  = await fetch(`${import.meta.env.VITE_API_URL}/EvidencesLogs/${testId}/${candidate.email}/get`);
             const data = await res.json();
             console.log(data);
             if (Array.isArray(data)) setEvidenceLogs(data);
@@ -279,7 +279,7 @@ const CandidateAnalytics = () => {
 
     const CodeFetcher = async () => {
         try {
-            const Codedata = await fetch(`http://localhost:8000/EvidencesLogs/${testId}/${candidate.email}/analytics/code`);
+            const Codedata = await fetch(`${import.meta.env.VITE_API_URL}/EvidencesLogs/${testId}/${candidate.email}/analytics/code`);
             const data = await Codedata.json();
             console.log(data);
             if (Array.isArray(data)) setCodeAnalytics(data);
@@ -290,7 +290,7 @@ const CandidateAnalytics = () => {
 
     const EssayFetcher = async () => {
         try {
-            const res = await fetch(`http://localhost:8000/candidate/${testId}/${candidate.email}/essay-result`);
+            const res = await fetch(`${import.meta.env.VITE_API_URL}/candidate/${testId}/${candidate.email}/essay-result`);
             if (res.ok) {
                 const data = await res.json();
                 setEssayResult(data);
@@ -302,7 +302,7 @@ const CandidateAnalytics = () => {
 
     const DiagramFetcher = async () => {
         try {
-            const res = await fetch(`http://localhost:8001/api/diagram/results/${testId}`);
+            const res = await fetch(`${import.meta.env.VITE_USER_API_URL}/api/diagram/results/${testId}`);
             if (res.ok) {
                 const data = await res.json();
                 // Filter for this specific candidate
@@ -478,7 +478,7 @@ const CandidateAnalytics = () => {
         const fetchTestInfo = async () => {
             if (!testId) return;
             try {
-                const res = await fetch(`http://localhost:8000/admin/test/${testId}/Preview`);
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/test/${testId}/Preview`);
                 setTestInfo(await res.json());
             } catch (err) { console.error(err); }
         };
@@ -489,7 +489,7 @@ const CandidateAnalytics = () => {
         const fetchAnalytics = async () => {
             if (!testId || !candidate?.candidate_id) return;
             try {
-                const res = await fetch(`http://localhost:8000/admin/test/${testId}/candidate/${candidate.candidate_id}/analytics`);
+                const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/test/${testId}/candidate/${candidate.candidate_id}/analytics`);
                 setAnalytics(await res.json());
             } catch (err) { console.error(err); }
         };

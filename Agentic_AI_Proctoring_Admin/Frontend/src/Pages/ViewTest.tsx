@@ -25,7 +25,7 @@ const ViewTest = () => {
   const handleDeleteConfirm = async () => {
     if (!deletingAssessment) return;
     try {
-      const res = await fetch(`http://localhost:8000/delete-test/${deletingAssessment.test_id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/delete-test/${deletingAssessment.test_id}`, {
         method: 'DELETE',
       });
 
@@ -45,7 +45,7 @@ const ViewTest = () => {
 
   const fetcher = async () => {
     try {
-      const res = await fetch("http://localhost:8000/admin/MexicanMonster/tests");
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/MexicanMonster/tests`);
       const data = await res.json();
       setTestArray(data);
     } catch (error) {
@@ -147,7 +147,7 @@ const ViewTest = () => {
                             <p className="text-sm font-semibold text-gray-900">{test.test_title}</p>
                             <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-0.5">
                               <LinkIcon size={12} />
-                              <span className="truncate max-w-[150px]">http://localhost:5173/assessment/{test.test_id}</span>
+                              <span className="truncate max-w-[150px]">{import.meta.env.VITE_CANDIDATE_PORTAL_URL}/assessment/{test.test_id}</span>
                             </div>
                           </div>
                         </div>

@@ -288,7 +288,7 @@ const TestCreator: React.FC = () => {
     }
 
     try {
-      const response = await fetch("http://localhost:8000/create-test", {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/create-test`, {
         method: "POST",
         body: formData,
       });

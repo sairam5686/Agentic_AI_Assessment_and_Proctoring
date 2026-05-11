@@ -60,7 +60,7 @@ const StartTest = () => {
       formData.append('file', file);
       formData.append('assessment_id', assessmentId);
 
-      const response = await fetch('http://localhost:8000/save-test', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/save-test`, {
         method: 'POST',
         body: formData,
       });
