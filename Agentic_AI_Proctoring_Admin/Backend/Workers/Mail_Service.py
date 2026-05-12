@@ -1,26 +1,24 @@
 import os
 from dotenv import load_dotenv
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import resend
 
 load_dotenv()
 
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
-SMTP_USER = os.getenv("SMTP_USER")
-SMTP_PASS = os.getenv("SMTP_PASS")
+# Configuration
+RESEND_API_KEY = os.getenv("RESEND_API_KEY")
+resend.api_key = RESEND_API_KEY
+
+# If you haven't verified a domain in Resend, you MUST use "onboarding@resend.dev"
+# Once you verify a domain (e.g., titans.com), you can use "info@titans.com"
+FROM_EMAIL = os.getenv("FROM_EMAIL", "onboarding@resend.dev")
 FROM_NAME = os.getenv("FROM_NAME", "TEAM_TITANS")
 
-
+# Support portal link
+CANDIDATE_SUPPORT_URL = os.getenv("VITE_CANDIDATE_PORTAL_URL", "http://localhost:5173")
 
 def send_assessment_mail(to_email, candidate_name, assessment_title, assessment_id, assessment_link, valid_from, valid_to):
     try:
-        msg = MIMEMultipart()
-        msg['From'] = f"{FROM_NAME} <{SMTP_USER}>"
-        msg['To'] = to_email
-        msg['Subject'] = f"Invitation to Assessment: {assessment_title}"
-
+        subject = f"Invitation to Assessment: {assessment_title}"
         body = f"""
         Hi {candidate_name},
 
@@ -43,30 +41,28 @@ def send_assessment_mail(to_email, candidate_name, assessment_title, assessment_
         
         Candidate Support:
         If you have any queries regarding the assessment or if you are not satisfied with your results, you can reach out to us through our Candidate Support Portal:
-        http://localhost:5173
+        {CANDIDATE_SUPPORT_URL}
 
         Best regards,
         {FROM_NAME} Team
         """
-        msg.attach(MIMEText(body, 'plain'))
+        
+        params = {
+            "from": f"{FROM_NAME} <{FROM_EMAIL}>",
+            "to": to_email,
+            "subject": subject,
+            "text": body,
+        }
 
-        server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
-        server.starttls()
-        server.login(SMTP_USER, SMTP_PASS)
-        server.send_message(msg)
-        server.quit()
+        resend.Emails.send(params)
         return True
     except Exception as e:
-        print(f"Failed to send email to {to_email}: {e}")
+        print(f"Failed to send email to {to_email} via Resend: {e}")
         return False
 
 def send_university_assessment_mail(to_email, candidate_name, registration_number, assessment_title, assessment_id, assessment_link, valid_from, valid_to):
     try:
-        msg = MIMEMultipart()
-        msg['From'] = f"{FROM_NAME} <{SMTP_USER}>"
-        msg['To'] = to_email
-        msg['Subject'] = f"Invitation to University Exam: {assessment_title}"
-
+        subject = f"Invitation to University Exam: {assessment_title}"
         body = f"""
         Hi {candidate_name},
 
@@ -89,30 +85,28 @@ def send_university_assessment_mail(to_email, candidate_name, registration_numbe
         
         Candidate Support:
         If you have any queries regarding the assessment or if you are not satisfied with your results, you can reach out to us through our Candidate Support Portal:
-        http://localhost:5173
+        {CANDIDATE_SUPPORT_URL}
 
         Best regards,
         {FROM_NAME} Team
         """
-        msg.attach(MIMEText(body, 'plain'))
 
-        server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
-        server.starttls()
-        server.login(SMTP_USER, SMTP_PASS)
-        server.send_message(msg)
-        server.quit()
+        params = {
+            "from": f"{FROM_NAME} <{FROM_EMAIL}>",
+            "to": to_email,
+            "subject": subject,
+            "text": body,
+        }
+
+        resend.Emails.send(params)
         return True
     except Exception as e:
-        print(f"Failed to send university exam email to {to_email}: {e}")
+        print(f"Failed to send university exam email to {to_email} via Resend: {e}")
         return False
 
 def send_proctor_mail(to_email, proctor_name, assessment_title, assessment_id, passkey):
     try:
-        msg = MIMEMultipart()
-        msg['From'] = f"{FROM_NAME} <{SMTP_USER}>"
-        msg['To'] = to_email
-        msg['Subject'] = f"Invigilator Access: {assessment_title}"
-
+        subject = f"Invigilator Access: {assessment_title}"
         body = f"""
         Hi {proctor_name},
 
@@ -127,14 +121,16 @@ def send_proctor_mail(to_email, proctor_name, assessment_title, assessment_id, p
         Best regards,
         {FROM_NAME} Team
         """
-        msg.attach(MIMEText(body, 'plain'))
 
-        server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
-        server.starttls()
-        server.login(SMTP_USER, SMTP_PASS)
-        server.send_message(msg)
-        server.quit()
+        params = {
+            "from": f"{FROM_NAME} <{FROM_EMAIL}>",
+            "to": to_email,
+            "subject": subject,
+            "text": body,
+        }
+
+        resend.Emails.send(params)
         return True
     except Exception as e:
-        print(f"Failed to send proctor email to {to_email}: {e}")
+        print(f"Failed to send proctor email to {to_email} via Resend: {e}")
         return False
