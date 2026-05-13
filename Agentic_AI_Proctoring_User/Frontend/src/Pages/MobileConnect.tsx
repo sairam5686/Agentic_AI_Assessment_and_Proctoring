@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import QRCode from 'react-qr-code';
 import { io } from 'socket.io-client';
+import API_USER_URL from '../Config/apiConfig';
 
 const MobileConnect: React.FC = () => {
     const navigate = useNavigate();
@@ -22,7 +23,7 @@ const MobileConnect: React.FC = () => {
         const room = `${assessment_id.toString().trim().toLowerCase()}_${email.toString().trim().toLowerCase()}`;
 
         // Connect to Socket.io
-        socketRef.current = io('http://localhost:8000');
+        socketRef.current = io(API_USER_URL);
         
         socketRef.current.on('connect', () => {
             const joinData = { 
@@ -44,7 +45,7 @@ const MobileConnect: React.FC = () => {
         const pollInterval = setInterval(async () => {
             if (isMobileConnected) return; // Stop polling if already connected
             try {
-                const res = await fetch(`http://localhost:8000/api/mobile/status/${room}`);
+                const res = await fetch(`${API_USER_URL}/api/mobile/status/${room}`);
                 const data = await res.json();
                 if (data.status === 'active') {
                     console.log("Polling signal: Mobile active");
@@ -63,7 +64,7 @@ const MobileConnect: React.FC = () => {
 
     useEffect(() => {
         // Fetch the actual server IP from backend so QR works even on localhost
-        fetch("http://localhost:8000/api/get-server-ip")
+        fetch(`${API_USER_URL}/api/get-server-ip`)
             .then(res => res.json())
             .then(data => setServerIp(data.ip))
             .catch(err => console.error("Failed to fetch server IP:", err));

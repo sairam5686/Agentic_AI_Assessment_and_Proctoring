@@ -146,6 +146,12 @@ async def disconnect(sid):
 
 @app.get("/api/get-server-ip")
 async def get_server_ip():
+    # If on Railway, return the public domain
+    public_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN")
+    if public_domain:
+        return {"ip": public_domain}
+    
+    # Fallback to local IP for local testing
     return {"ip": get_local_ip()}
 
 @app.get("/api/mobile/status/{room_id}")
