@@ -16,6 +16,7 @@ const MobileConnect: React.FC = () => {
     const [isExpired, setIsExpired] = useState(false);
     const [isMobileConnected, setIsMobileConnected] = useState(false);
     const [serverIp, setServerIp] = useState<string>('');
+    const [fetchError, setFetchError] = useState<boolean>(false);
     const socketRef = useRef<any>(null);
 
     useEffect(() => {
@@ -64,10 +65,19 @@ const MobileConnect: React.FC = () => {
 
     useEffect(() => {
         // Fetch the actual server IP from backend so QR works even on localhost
-        fetch(`${API_USER_URL}/api/get-server-ip`)
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+        fetch(`${API_USER_URL}/api/get-server-ip`, { signal: controller.signal })
             .then(res => res.json())
-            .then(data => setServerIp(data.ip))
-            .catch(err => console.error("Failed to fetch server IP:", err));
+            .then(data => {
+                clearTimeout(timeoutId);
+                setServerIp(data.ip);
+            })
+            .catch(err => {
+                console.error("Failed to fetch server IP:", err);
+                setFetchError(true);
+            });
     }, []);
 
     useEffect(() => {
@@ -136,7 +146,17 @@ const MobileConnect: React.FC = () => {
                             ) : (
                                 <div className="animate-pulse flex flex-col items-center">
                                     <div className="w-16 h-16 bg-slate-200 rounded-lg mb-3"></div>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">Fetching Server IP...</p>
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">
+                                        {fetchError ? "Connection Error" : "Fetching Server IP..."}
+                                    </p>
+                                    {fetchError && (
+                                        <button 
+                                            onClick={() => window.location.reload()}
+                                            className="mt-2 text-[10px] text-blue-600 underline"
+                                        >
+                                            Retry
+                                        </button>
+                                    )}
                                 </div>
                             )
                         ) : (

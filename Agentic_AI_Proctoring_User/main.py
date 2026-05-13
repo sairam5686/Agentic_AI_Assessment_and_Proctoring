@@ -145,13 +145,16 @@ async def disconnect(sid):
     print(f"Client disconnected: {sid}")
 
 @app.get("/api/get-server-ip")
-async def get_server_ip():
-    # If on Railway, return the public domain
-    public_domain = os.getenv("RAILWAY_PUBLIC_DOMAIN")
-    if public_domain:
-        return {"ip": public_domain}
+async def get_server_ip(request: Request):
+    # Dynamically detect the host from the incoming request
+    # This works for both Railway (public URL) and Localhost
+    host = request.headers.get("host")
     
-    # Fallback to local IP for local testing
+    if host:
+        # Remove any port if present (though usually fine to keep)
+        return {"ip": host}
+    
+    # Fallback to local IP if host header is missing
     return {"ip": get_local_ip()}
 
 @app.get("/api/mobile/status/{room_id}")
