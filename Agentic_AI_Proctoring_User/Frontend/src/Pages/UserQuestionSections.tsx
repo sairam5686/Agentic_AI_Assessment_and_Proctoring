@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate, useLocation } from 'react-router';
+import API_USER_URL from '../Config/apiConfig';
 
 
 const UserQuestionSections = () => {
@@ -31,7 +32,7 @@ const UserQuestionSections = () => {
       const assessment_id = localStorage.getItem('assessment_id');
       if (!assessment_id) throw new Error('No assessment ID found. Please login again.');
 
-      const response = await fetch(`http://127.0.0.1:8000/assessment/${assessment_id}/questions`)
+      const response = await fetch(`${API_USER_URL}/assessment/${assessment_id}/questions`)
       if (!response.ok) {
         const data = await response.json()
         throw new Error(data.detail || 'Failed to fetch questions for this assessment')

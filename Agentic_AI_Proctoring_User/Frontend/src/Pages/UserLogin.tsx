@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { toast, ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import API_USER_URL from '../Config/apiConfig';
 
 const UserLogin = () => {
   const [identifier, setIdentifier] = useState('');
@@ -22,7 +23,7 @@ const UserLogin = () => {
     try {
       const payload = { identifier, assessment_id: assessmentId };
 
-      const response = await fetch('http://127.0.0.1:8000/candidate/login', {
+      const response = await fetch(`${API_USER_URL}/candidate/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),

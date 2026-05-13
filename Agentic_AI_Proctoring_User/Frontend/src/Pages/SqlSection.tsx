@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router'
 import { toast } from 'react-toastify'
 import Editor from '@monaco-editor/react'
 import { useLocalPersist } from '../hooks/useLocalPersist'
+import API_USER_URL from '../Config/apiConfig'
 
 const SQL_TEMPLATE = `-- Write your SQL query below\n`
 
@@ -181,7 +182,7 @@ const SqlSection = () => {
 
         try {
             const email = localStorage.getItem("candidate_email");
-            fetch("http://127.0.0.1:8001/Code/Checker", {
+            fetch(`${API_USER_URL}/Code/Checker`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -199,7 +200,7 @@ const SqlSection = () => {
                 code: currentCode,
             }
 
-            const response = await fetch('http://127.0.0.1:8000/run-sql', {
+            const response = await fetch(`${API_USER_URL}/run-sql`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data),
@@ -289,7 +290,7 @@ const SqlSection = () => {
         );
 
         try {
-            const resp = await fetch("http://127.0.0.1:8000/api/sql/results", {
+            const resp = await fetch(`${API_USER_URL}/api/sql/results`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

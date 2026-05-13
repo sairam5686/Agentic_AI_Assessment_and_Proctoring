@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
 import { io } from 'socket.io-client';
 import { useAgoraProctoring } from '../Components/AgoraProctoringWrapper';
+import API_USER_URL from '../Config/apiConfig';
 
 
 const Submission: React.FC = () => {
@@ -34,7 +34,7 @@ const Submission: React.FC = () => {
             const assessment_id = localStorage.getItem('assessment_id');
             const email = localStorage.getItem('candidate_email');
             if (assessment_id && email) {
-                const response = await fetch('http://127.0.0.1:8001/webcam/score/store', {
+                const response = await fetch(`${API_USER_URL}/webcam/score/store`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ assessment_id, email })
@@ -59,7 +59,7 @@ const Submission: React.FC = () => {
         localStorage.removeItem('sql_completed');
 
         // Signal mobile to cleanup
-        const socket = io('http://localhost:8000');
+        const socket = io(API_USER_URL);
         const assessment_id = localStorage.getItem('assessment_id');
         const email = localStorage.getItem('candidate_email');
         if (assessment_id && email) {
@@ -159,7 +159,7 @@ const Submission: React.FC = () => {
                                     const email = localStorage.getItem("candidate_email")?.toString().trim().toLowerCase();
 
                                     if (a_id && email) {
-                                        fetch("http://localhost:8001/stop", { method: "POST" }).catch(() => {});
+                                        fetch(`${API_USER_URL}/stop`, { method: "POST" }).catch(() => {});
                                         fetch("http://localhost:8002/stop", {
                                             method: "POST",
                                             headers: { "Content-Type": "application/json" },

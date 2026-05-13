@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router'
 import { toast } from 'react-toastify'
 import Editor from '@monaco-editor/react'
 import { useLocalPersist } from '../hooks/useLocalPersist'
+import API_USER_URL from '../Config/apiConfig'
 
 const LANGUAGE_TEMPLATES: Record<string, string> = {
   Python: `# Write your solution here\ndef solution():\n    pass\n`,
@@ -135,7 +136,7 @@ const CodingSection = () => {
       code: currentCode,
     } 
     try {
-      fetch("http://127.0.0.1:8001/Code/Checker" , {
+      fetch(`${API_USER_URL}/Code/Checker` , {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -162,7 +163,7 @@ const CodingSection = () => {
     }
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/run-code', {
+      const response = await fetch(`${API_USER_URL}/run-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -331,7 +332,7 @@ const CodingSection = () => {
     );
 
     try {
-      const resp = await fetch("http://127.0.0.1:8000/api/coding/results", {
+      const resp = await fetch(`${API_USER_URL}/api/coding/results`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

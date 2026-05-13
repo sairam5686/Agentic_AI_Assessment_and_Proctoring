@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useLocalPersist } from '../hooks/useLocalPersist'
+import API_USER_URL from '../Config/apiConfig'
 
 const FitbSection = () => {
   const Locator = useLocation()
@@ -154,7 +155,7 @@ const FitbSection = () => {
         total_marks
       };
 
-      const response = await fetch("http://127.0.0.1:8000/api/fitb/results", {
+      const response = await fetch(`${API_USER_URL}/api/fitb/results`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

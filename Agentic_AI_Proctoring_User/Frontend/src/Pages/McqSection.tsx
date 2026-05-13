@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useLocalPersist } from '../hooks/useLocalPersist'
+import API_USER_URL from '../Config/apiConfig'
 
 const McqSection = () => {
   const Locator = useLocation()
@@ -148,7 +149,7 @@ const McqSection = () => {
         total_marks
       };
 
-      const response = await fetch("http://127.0.0.1:8000/api/mcq/results", {
+      const response = await fetch(`${API_USER_URL}/api/mcq/results`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

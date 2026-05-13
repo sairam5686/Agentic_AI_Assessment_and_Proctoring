@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { toast, ToastContainer } from 'react-toastify'
 import Editor from '@monaco-editor/react'
 import 'react-toastify/dist/ReactToastify.css'
+import API_USER_URL from '../Config/apiConfig'
 
 // ─── TypeScript interfaces ────────────────────────────────────────────────────
 
@@ -29,12 +30,7 @@ interface EssayEvaluation {
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 // Use a dynamic API_BASE to handle different network environments (localhost vs IP)
-const getApiBase = () => {
-  const hostname = window.location.hostname || 'localhost';
-  return `http://${hostname}:8000`;
-}
-
-const API_BASE = getApiBase();
+const API_BASE = API_USER_URL;
 const MIN_WORDS = 200
 
 // ─── Helper utilities ─────────────────────────────────────────────────────────
