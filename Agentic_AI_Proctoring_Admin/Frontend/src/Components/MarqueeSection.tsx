@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 // --- Icons (inline SVG paths) ---
 const icons = {
@@ -232,35 +233,31 @@ const Footer = () => (
     <div style={{ maxWidth: 1024, margin: '0 auto', display: 'flex', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 48 }}>
       <div>
         <div style={{ marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-          <div style={{ width: 32, height: 32, borderRadius: 8, background: '#02F576', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+          <div style={{ width: 50, height: 50, borderRadius: 8, background: '#02F576', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#111" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
             </svg>
           </div>
-          <span style={{ fontWeight: 700, fontSize: 18, letterSpacing: '-0.02em' }}>ProctorAI</span>
+          <span style={{ fontWeight: 638, fontSize: 50, letterSpacing: '-0.02em' }}>TITANS</span>
         </div>
-        <p style={{ color: '#666', fontSize: 13, maxWidth: 220, lineHeight: 1.6 }}>
+        <p style={{ color: '#fff', fontSize: 13, maxWidth: 220, lineHeight: 1.6 }}>
           Smarter monitoring for secure, trusted online examinations.
         </p>
       </div>
       <div style={{ display: 'flex', gap: 64 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {['Explore', 'Pricing', 'Changelog', 'Blog'].map(l => (
-            <a key={l} href="#" style={{ fontSize: 13, fontWeight: 500, color: '#888', textDecoration: 'none' }}>{l}</a>
-          ))}
+          
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-          {['Contact', 'Help center', 'Careers', 'X (Twitter)'].map(l => (
-            <a key={l} href="#" style={{ fontSize: 13, fontWeight: 500, color: '#888', textDecoration: 'none' }}>{l}</a>
-          ))}
+          
         </div>
       </div>
     </div>
     <div style={{ maxWidth: 1024, margin: '80px auto 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16, borderTop: '1px solid #222', paddingTop: 32 }}>
-      <p style={{ fontSize: 12, color: '#555' }}>© ProctorAI 2018–2026. All rights reserved.</p>
+      <p style={{ fontSize: 12, color: '#fff' }}>© Titans - Virtusa Jatayu S5. All rights reserved.</p>
       <div style={{ display: 'flex', gap: 24 }}>
         {['Privacy policy', 'Terms'].map(l => (
-          <a key={l} href="#" style={{ fontSize: 12, color: '#555', textDecoration: 'none' }}>{l}</a>
+          <a key={l} href="#" style={{ fontSize: 12, color: '#fff', textDecoration: 'none' }}>{l}</a>
         ))}
       </div>
     </div>
@@ -269,6 +266,7 @@ const Footer = () => (
 
 // --- App ---
 const App = () => {
+  const navigate = useNavigate();
   return (
     <main style={{ background: '#111', minHeight: '100vh', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif' }}>
       <div style={{ background: '#fff', paddingBottom: 80, borderRadius: '0 0 3rem 3rem', position: 'relative', zIndex: 10 }}>
@@ -289,23 +287,19 @@ const App = () => {
             </p>
 
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12 }}>
-              <button style={{
-                padding: '12px 28px', background: '#0a0a0a', color: '#02F576',
-                fontWeight: 600, fontSize: 13, borderRadius: 999, border: 'none',
-                cursor: 'pointer', letterSpacing: '0.04em', textTransform: 'uppercase',
-                display: 'flex', alignItems: 'center', gap: 8,
-              }}>
+              <button 
+                onClick={() => navigate('/about-us')}
+                style={{
+                  padding: '12px 28px', background: '#0a0a0a', color: '#02F576',
+                  fontWeight: 600, fontSize: 13, borderRadius: 999, border: 'none',
+                  cursor: 'pointer', letterSpacing: '0.04em', textTransform: 'uppercase',
+                  display: 'flex', alignItems: 'center', gap: 8,
+                }}
+              >
                 About Us
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M5 12h14M12 5l7 7-7 7" />
                 </svg>
-              </button>
-              <button style={{
-                padding: '12px 28px', background: 'transparent', color: '#111',
-                fontWeight: 600, fontSize: 13, borderRadius: 999, border: '1.5px solid #e5e7eb',
-                cursor: 'pointer', letterSpacing: '0.04em', textTransform: 'uppercase',
-              }}>
-                See Demo
               </button>
             </div>
           </div>

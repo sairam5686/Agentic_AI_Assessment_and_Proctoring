@@ -231,11 +231,6 @@ const ViewTest = () => {
           </div>
         </div>
 
-        {/* Footer Info */}
-        <div className="mt-6 flex items-center justify-between text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em] px-2">
-          <p>Total Deployed: {filteredTests.length}</p>
-          <p>Virtusa Assessment Protocol v2.4</p>
-        </div>
       </div>
 
       {/* ── Delete Confirmation Modal ── */}

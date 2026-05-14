@@ -47,7 +47,7 @@ export default function VideoPlayer() {
               <video 
                 className="w-full h-full object-cover"
                 controls
-                poster="https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop"
+                poster="https://media.licdn.com/dms/image/v2/D5605AQF8rNEvYF7L5g/feedshare-thumbnail_720_1280/feedshare-thumbnail_720_1280/0/1686665424139?e=2147483647&v=beta&t=9CEO0cJxmGoeLTh6y4OvshuiXDmxeTmQTzU1CxXCO1g"
               >
                 {/* A standard high-quality placeholder video */}
                 <source 
