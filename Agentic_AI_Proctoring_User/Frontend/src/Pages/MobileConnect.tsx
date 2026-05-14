@@ -42,9 +42,20 @@ const MobileConnect: React.FC = () => {
             }
         });
 
-        // Polling fallback every 2 seconds for high reliability
+        return () => {
+            if (socketRef.current) {
+                socketRef.current.disconnect();
+                socketRef.current = null;
+            }
+        };
+    }, [assessment_id, email]);
+
+    useEffect(() => {
+        if (!assessment_id || !email || isMobileConnected) return;
+        const room = `${assessment_id.toString().trim().toLowerCase()}_${email.toString().trim().toLowerCase()}`;
+
+        // Polling fallback every 2 seconds
         const pollInterval = setInterval(async () => {
-            if (isMobileConnected) return; // Stop polling if already connected
             try {
                 const res = await fetch(`${API_USER_URL}/api/mobile/status/${room}`);
                 const data = await res.json();
@@ -57,10 +68,7 @@ const MobileConnect: React.FC = () => {
             }
         }, 2000);
 
-        return () => {
-            if (socketRef.current) socketRef.current.disconnect();
-            clearInterval(pollInterval);
-        };
+        return () => clearInterval(pollInterval);
     }, [assessment_id, email, isMobileConnected]);
 
     useEffect(() => {

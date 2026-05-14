@@ -43,7 +43,7 @@ class _ThirdEyeAppState extends State<ThirdEyeApp> with WidgetsBindingObserver {
   String? _serverIp;
   bool _isAssessmentStarted = false;
 
-  final String appId = ""; 
+  final String appId = "81046807a7844e549be400e41013e7bf"; 
   static const Color virtusaOrange = Color(0xFFFF5A09);
   static const Color virtusaBlack = Color(0xFF000000);
 
@@ -99,7 +99,12 @@ class _ThirdEyeAppState extends State<ThirdEyeApp> with WidgetsBindingObserver {
         throw Exception("Invalid Server IP. Please access the laptop via its Network IP.");
       }
       
-      baseUrl = "http://$_serverIp:8000";
+      // Handle both Railway (HTTPS/443) and Localhost (HTTP/8000)
+      if (_serverIp!.contains("railway.app") || _serverIp!.contains("up.railway.app")) {
+        baseUrl = "https://$_serverIp";
+      } else {
+        baseUrl = "http://$_serverIp:8000";
+      }
       
       // Briefly show loading/permissions state while native dialogs are up
       setState(() => _currentState = AppState.permissions);

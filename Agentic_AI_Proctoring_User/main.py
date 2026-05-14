@@ -151,8 +151,9 @@ async def get_server_ip(request: Request):
     host = request.headers.get("host")
     
     if host:
-        # Remove any port if present (though usually fine to keep)
-        return {"ip": host}
+        # Strip port if present (e.g., localhost:8000 -> localhost)
+        hostname = host.split(":")[0]
+        return {"ip": hostname}
     
     # Fallback to local IP if host header is missing
     return {"ip": get_local_ip()}

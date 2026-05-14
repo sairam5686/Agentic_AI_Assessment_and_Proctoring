@@ -149,8 +149,6 @@ const AgoraProctoringWrapper: React.FC<Props> = ({ children }) => {
     console.log("Agora Wrapper: Route check:", location.pathname, "isMatch:", isProctoringPage, "isStarted:", isStarted, "isJoined:", isJoinedRef.current);
 
     // CRITICAL: Do NOT auto-init tracks if we are on the submission page.
-    // If they are already active, they can stay, but if we just cleaned them up,
-    // don't bring them back.
     if (isProctoringPage && isStarted && !isSubmissionPage) {
         if (!isJoinedRef.current) {
             if (localVideoTrackRef.current) {
@@ -161,7 +159,7 @@ const AgoraProctoringWrapper: React.FC<Props> = ({ children }) => {
             }
         }
     }
-  }, [location.pathname, startStreaming, tracksVersion, initTracks]);
+  }, [location.pathname, startStreaming, initTracks]); // Removed tracksVersion to break the loop
 
   const cleanup = useCallback(async () => {
     console.log("Agora Wrapper: Full System Shutdown Initiated...");
@@ -215,16 +213,18 @@ const AgoraProctoringWrapper: React.FC<Props> = ({ children }) => {
     return () => document.removeEventListener('fullscreenchange', handleExitConditions);
   }, [cleanup]);
 
+  const contextValue = React.useMemo(() => ({ 
+    localVideoTrack: localVideoTrackRef.current, 
+    localAudioTrack: localAudioTrackRef.current,
+    status, 
+    errorMsg, 
+    initTracks,
+    cleanup,
+    tracksVersion 
+  }), [status, errorMsg, initTracks, cleanup, tracksVersion]);
+
   return (
-    <AgoraProctoringContext.Provider value={{ 
-      localVideoTrack: localVideoTrackRef.current, 
-      localAudioTrack: localAudioTrackRef.current,
-      status, 
-      errorMsg, 
-      initTracks,
-      cleanup,
-      tracksVersion 
-    }}>
+    <AgoraProctoringContext.Provider value={contextValue}>
       {children}
     </AgoraProctoringContext.Provider>
   );
