@@ -279,11 +279,11 @@ const CodingSection = () => {
       
       if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
         const nextSection = enabledSections[currentIdx + 1];
-        navigate(`/section/${nextSection.key}`, { state: assessmentState });
+        navigate('/guiding-page', { state: { ...assessmentState, nextSection: nextSection.label } });
         return;
       }
     }
-    navigate('/submission');
+    navigate('/guiding-page', { state: { ...assessmentState, nextSection: 'Finish' } });
   }
 
   const handleCodingSubmit = async () => {
@@ -399,9 +399,9 @@ const CodingSection = () => {
             
             <button
               onClick={handleNextFlow}
-              className="w-full py-4 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 active:scale-95 transition-all duration-150 cursor-pointer"
+              className="w-full py-4 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 active:scale-95 transition-all duration-150 cursor-pointer uppercase tracking-wide"
             >
-              Move to Next Session →
+              Continue to next step →
             </button>
           </div>
         </div>
@@ -910,7 +910,7 @@ const CodingSection = () => {
                   );
 
                   try {
-                    const resp = await fetch("http://127.0.0.1:8000/api/coding/results", {
+                    const resp = await fetch(`${API_USER_URL}/api/coding/results`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({
@@ -951,13 +951,13 @@ const CodingSection = () => {
                     if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
                       const nextSection = enabledSections[currentIdx + 1];
                       setSubmitted(true);
-                      navigate(`/section/${nextSection.key}`, { state: assessmentState });
+                      navigate('/guiding-page', { state: { ...assessmentState, nextSection: nextSection.label } });
                       return;
                     }
                   }
                   
                   setSubmitted(true);
-                  navigate('/submission');
+                  navigate('/guiding-page', { state: { ...assessmentState, nextSection: 'Finish' } });
                 }}
                 className="flex-1 py-3 bg-red-600 text-white text-sm font-bold rounded-xl hover:bg-red-700 active:scale-95 transition-all cursor-pointer uppercase tracking-wide shadow-md"
               >

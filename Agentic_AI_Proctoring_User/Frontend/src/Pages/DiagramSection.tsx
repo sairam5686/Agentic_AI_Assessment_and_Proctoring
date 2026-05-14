@@ -172,6 +172,70 @@ const DiagramSection = () => {
   const location = useLocation();
   const assessmentState = location.state || {};
   const [showFinishConfirm, setShowFinishConfirm] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showUserInfo, setShowUserInfo] = useState(false);
+  const [lastSaved, setLastSaved] = useState<number>(Date.now());
+  const [timeAgo, setTimeAgo] = useState("just now");
+
+  const assessment_id = assessmentState?.assessment_id || localStorage.getItem("assessment_id") || "default";
+  const assessment = assessmentState.Diagram_Questions?.[0] || assessmentState;
+  const totalDurationSeconds = parseInt(assessment?.diagram_duration || '0') * 60;
+
+  const [timeLeft, setTimeLeft] = useState<number>(() => {
+    const saved = localStorage.getItem(`diagram_time_${assessment_id}`);
+    if (saved) return parseInt(saved);
+    return totalDurationSeconds > 0 ? totalDurationSeconds : 1800;
+  });
+
+  useEffect(() => {
+    if (timeLeft > 0 && !isSubmitting) {
+      localStorage.setItem(`diagram_time_${assessment_id}`, timeLeft.toString());
+    }
+  }, [timeLeft, assessment_id, isSubmitting]);
+
+  useEffect(() => {
+    if (isSubmitting || timeLeft <= 0) return;
+    const interval = setInterval(() => {
+      setTimeLeft((t) => {
+        if (t <= 1) { clearInterval(interval); handleSubmit(true); return 0; }
+        return t - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [isSubmitting, timeLeft]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const diff = Math.floor((Date.now() - lastSaved) / 1000);
+      if (diff < 5) setTimeAgo("just now");
+      else if (diff < 60) setTimeAgo(`${diff} seconds ago`);
+      else setTimeAgo(`${Math.floor(diff / 60)} minutes ago`);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [lastSaved]);
+
+  const formatTime = (seconds: number) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) / 60);
+    const s = seconds % 60;
+    return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
+  const timerColor = timeLeft < 60 ? 'text-red-500' : timeLeft < 300 ? 'text-amber-500' : 'text-gray-800';
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch(err => console.error(err));
+    } else {
+      document.exitFullscreen();
+    }
+  };
+
+  useEffect(() => {
+    const handleFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', handleFsChange);
+    return () => document.removeEventListener('fullscreenchange', handleFsChange);
+  }, []);
 
   const [activeTool, setActiveTool] = useState<string>('selection');
 
@@ -382,6 +446,8 @@ const DiagramSection = () => {
           body: JSON.stringify(payload)
         });
       lastSavedRef.current = currentData;
+      setLastSaved(Date.now());
+      setTimeAgo("just now");
     } catch (err) {
       console.error("Autosave failed", err);
     }
@@ -403,11 +469,11 @@ const DiagramSection = () => {
       
       if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
         const nextSection = enabledSections[currentIdx + 1];
-        navigate(`/section/${nextSection.key}`, { state: assessmentState });
+        navigate('/guiding-page', { state: { ...assessmentState, nextSection: nextSection.label } });
         return;
       }
     }
-    navigate('/submission');
+    navigate('/guiding-page', { state: { ...assessmentState, nextSection: 'Finish' } });
   };
 
   // ── Submit ────────────────────────────────────────────────────────────────
@@ -463,34 +529,91 @@ const DiagramSection = () => {
     <>
       <div className="flex flex-col h-screen bg-[#f1f3f4] font-sans overflow-hidden">
         
-        {/* ── Top Navbar ── */}
-        <header className="bg-white border-b border-gray-200 px-6 py-2.5 flex justify-between items-center z-50 sticky top-0">
-          <div className="flex items-center gap-6">
-            <img src="/virtusa-logo.svg" alt="Virtusa" className="h-7" />
-            <div className="h-6 w-px bg-gray-200"></div>
-            <div className="flex flex-col">
-              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider leading-none mb-1">Assessment Section</span>
-              <span className="text-sm font-bold text-gray-800 leading-none">System Design / Diagram</span>
+        {/* ── Top Nav ── */}
+        <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+          <div className="max-w-[1600px] mx-auto px-6 py-2.5 flex items-center justify-between">
+            
+            {/* Left: Logo & Assessment Info */}
+            <div className="flex items-center gap-8">
+              <img src="/virtusa-logo.svg" alt="Virtusa" className="h-8 w-auto" />
+              <div className="h-10 w-px bg-gray-200" />
+              <div className="flex items-center gap-6">
+                <div className="flex flex-col">
+                  <h1 className="text-base font-bold text-gray-900 leading-tight">
+                    {assessment?.test_title || "Diagram Assessment"}
+                  </h1>
+                  <p className="text-[12px] font-bold text-gray-500 uppercase tracking-widest">
+                    {localStorage.getItem("candidate_name") || "Candidate"}
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-50 rounded-full border border-gray-100">
+                  <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                  <span className="text-[11px] font-bold text-gray-500 italic uppercase tracking-wider">
+                    Saved {timeAgo}
+                  </span>
+                </div>
+              </div>
             </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
-              <span className="text-[11px] font-semibold text-gray-500 uppercase tracking-tight">Autosave Active</span>
+
+            {/* Right: Timer & Global Controls */}
+            <div className="flex items-center gap-6">
+              <div className="flex flex-col items-center">
+                <p className={`text-lg font-bold tabular-nums tracking-tight ${timerColor}`}>
+                  {formatTime(timeLeft)}
+                </p>
+                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest -mt-1">Test Time</p>
+              </div>
+
+              <div className="h-8 w-px bg-gray-200" />
+
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={toggleFullscreen}
+                  className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors border border-transparent hover:border-gray-200"
+                  title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                >
+                  {isFullscreen ? (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+                  ) : (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                  )}
+                </button>
+
+                <div className="relative">
+                  <button 
+                    onClick={() => setShowUserInfo(!showUserInfo)}
+                    className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors border border-transparent hover:border-gray-200"
+                    title="Candidate Info"
+                  >
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                  </button>
+
+                  {showUserInfo && (
+                    <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-xl p-4 z-[100] animate-in fade-in zoom-in duration-200">
+                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Candidate Details</p>
+                      <div className="space-y-3">
+                        <div>
+                          <p className="text-[10px] text-gray-400 uppercase font-semibold">Name</p>
+                          <p className="text-xs font-bold text-gray-800">{localStorage.getItem("candidate_name")}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-gray-400 uppercase font-semibold">Email</p>
+                          <p className="text-xs font-bold text-gray-800">{localStorage.getItem("candidate_email")}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                <button
+                  onClick={() => setShowFinishConfirm(true)}
+                  className="px-5 py-2 bg-[#E31B23] text-white text-xs font-bold rounded-lg hover:bg-[#c4151c] shadow-sm transition-all active:scale-95 uppercase tracking-wide"
+                >
+                  Finish Assessment
+                </button>
+              </div>
             </div>
-            <button
-                onClick={() => handleSubmit(false)}
-                disabled={isSubmitting}
-                className="bg-indigo-50 hover:bg-indigo-100 text-indigo-700 px-6 py-2 rounded-lg font-bold text-sm transition-all border border-indigo-200 shadow-sm active:scale-95 disabled:opacity-50"
-            >
-                {isSubmitting ? 'Evaluating...' : 'Submit'}
-            </button>
-            <button
-                onClick={() => setShowFinishConfirm(true)}
-                className="bg-[#E31B23] hover:bg-[#c4151c] text-white px-6 py-2 rounded-lg font-bold text-sm transition-all shadow-sm active:scale-95 uppercase tracking-wide"
-            >
-                Finish Assessment
-            </button>
           </div>
         </header>
 
@@ -523,9 +646,17 @@ const DiagramSection = () => {
                       <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">
                           <Flag size={12} /> Options
                       </div>
-                      <button className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors text-sm font-semibold text-gray-600">
+                      <button className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors text-sm font-semibold text-gray-600 mb-4">
                           Mark for Revisit
                           <div className="w-2 h-2 rounded-full bg-gray-300"></div>
+                      </button>
+
+                      <button
+                          onClick={() => handleSubmit(false)}
+                          disabled={isSubmitting || localStorage.getItem('diagram_completed') === 'true'}
+                          className="w-full py-4 bg-gray-900 text-white text-sm font-bold rounded-2xl hover:bg-gray-800 transition-all active:scale-95 shadow-lg shadow-gray-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
+                      >
+                          {isSubmitting ? 'Evaluating Diagram...' : localStorage.getItem('diagram_completed') === 'true' ? 'Submitted' : 'Submit Diagram'}
                       </button>
                    </div>
                </div>

@@ -364,15 +364,15 @@ const SqlSection = () => {
                                   
                                   if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
                                     const nextSection = enabledSections[currentIdx + 1];
-                                    navigate(`/section/${nextSection.key}`, { state: assessmentState });
+                                    navigate('/guiding-page', { state: { ...assessmentState, nextSection: nextSection.label } });
                                     return;
                                   }
                                 }
-                                navigate('/submission');
+                                navigate('/guiding-page', { state: { ...assessmentState, nextSection: 'Finish' } });
                             }}
-                            className="w-full py-4 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 active:scale-95 transition-all duration-150 cursor-pointer"
+                            className="w-full py-4 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 active:scale-95 transition-all duration-150 cursor-pointer uppercase tracking-wide"
                         >
-                            Finish & Submit Assessment →
+                            Continue to next step →
                         </button>
                     </div>
                 </div>
@@ -903,7 +903,7 @@ const SqlSection = () => {
                                     );
 
                                     try {
-                                        const resp = await fetch("http://127.0.0.1:8000/api/sql/results", {
+                                        const resp = await fetch(`${API_USER_URL}/api/sql/results`, {
                                             method: "POST",
                                             headers: { "Content-Type": "application/json" },
                                             body: JSON.stringify({
@@ -943,11 +943,11 @@ const SqlSection = () => {
                                       
                                       if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
                                         const nextSection = enabledSections[currentIdx + 1];
-                                        navigate(`/section/${nextSection.key}`, { state: assessmentState });
+                                        navigate('/guiding-page', { state: { ...assessmentState, nextSection: nextSection.label } });
                                         return;
                                       }
                                     }
-                                    navigate('/submission');
+                                    navigate('/guiding-page', { state: { ...assessmentState, nextSection: 'Finish' } });
                                 }}
                                 className="flex-1 py-3 bg-red-600 text-white text-sm font-bold rounded-xl hover:bg-red-700 active:scale-95 transition-all cursor-pointer uppercase tracking-wide shadow-md"
                             >

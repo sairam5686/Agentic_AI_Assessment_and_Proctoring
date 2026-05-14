@@ -182,16 +182,16 @@ const McqSection = () => {
       
       if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
         const nextSection = enabledSections[currentIdx + 1];
-        navigate(`/section/${nextSection.key}`, { state });
+        navigate('/guiding-page', { state: { ...state, nextSection: nextSection.label } });
         return;
       }
     }
-    navigate('/submission');
+    navigate('/guiding-page', { state: { ...state, nextSection: 'Finish' } });
   }
 
   const handleFinishAssessment = async () => {
     await handleSubmit();
-    navigate('/submission');
+    navigate('/guiding-page', { state: { ...state, nextSection: 'Finish' } });
   }
 
   const timerColor =
@@ -217,9 +217,9 @@ const McqSection = () => {
 
             <button
               onClick={handleNextFlow}
-              className="w-full py-4 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 active:scale-95 transition-all duration-150 cursor-pointer"
+              className="w-full py-4 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 active:scale-95 transition-all duration-150 cursor-pointer uppercase tracking-wide"
             >
-              Move to Next Session →
+              Continue to next step →
             </button>
           </div>
         </div>

@@ -7,16 +7,26 @@ const GuidingPage = () => {
     const { nextSection, roundsCompleted, totalRounds, assessmentData } = location.state || {};
 
     const handleNext = () => {
-        // We pass the full assessmentData object so each section can later 
-        // pass it to the NEXT GuidingPage, preserving the full flow.
-        if (nextSection === "MCQ") {
-            navigate("/section/mcq", { state: assessmentData });
-        } else if (nextSection === "Coding") {
-            navigate("/section/coding", { state: assessmentData });
-        } else if (nextSection === "SQL") {
-            navigate("/section/sql", { state: assessmentData });
+        if (nextSection === "Finish") {
+            navigate("/submission");
+            return;
+        }
+
+        const sectionMapping: Record<string, string> = {
+            "MCQ": "/section/mcq",
+            "Coding": "/section/coding",
+            "SQL": "/section/sql",
+            "Essay": "/section/essay",
+            "Fill in the Blanks": "/section/fitb",
+            "Gaming": "/section/gaming",
+            "Diagram": "/section/diagram"
+        };
+
+        const targetRoute = sectionMapping[nextSection];
+        if (targetRoute) {
+            navigate(targetRoute, { state: assessmentData });
         } else {
-            navigate("/thank-you");
+            navigate("/submission");
         }
     };
 
@@ -30,16 +40,20 @@ const GuidingPage = () => {
             <div className="flex-1 flex items-center justify-center p-6 font-sans">
                 <div className="max-w-md w-full text-center bg-white p-12 rounded-3xl shadow-xl border border-gray-100 transition-all hover:shadow-2xl">
                     <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border border-green-100" />
-                    <h2 className="text-3xl font-bold text-gray-900 mb-4 tracking-tight">Section Completed!</h2>
+                    <h2 className="text-3xl font-bold text-gray-900 mb-4 tracking-tight">
+                        {nextSection === "Finish" ? "Assessment Finished!" : "Section Completed!"}
+                    </h2>
                     <p className="text-sm text-gray-500 mb-8">
-                        Your responses have been recorded successfully.
+                        {nextSection === "Finish" 
+                            ? "You have completed all sections of the assessment. Click below to finalize your submission."
+                            : "Your responses have been recorded successfully."}
                     </p>
 
                     <button
                         onClick={handleNext}
-                        className="w-full py-4 bg-gray-900 text-white font-bold rounded-2xl hover:bg-gray-800 transition-all active:scale-95 shadow-lg shadow-gray-200 cursor-pointer"
+                        className="w-full py-4 bg-gray-900 text-white font-bold rounded-2xl hover:bg-gray-800 transition-all active:scale-95 shadow-lg shadow-gray-200 cursor-pointer uppercase tracking-wide"
                     >
-                        Take next sections →
+                        {nextSection === "Finish" ? "Finalize & Submit Assessment" : "Take next sections →"}
                     </button>
                 </div>
             </div>

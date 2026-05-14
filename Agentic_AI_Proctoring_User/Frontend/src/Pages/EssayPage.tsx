@@ -218,11 +218,11 @@ const EssayPage = () => {
       const currentIdx = enabledSections.findIndex((s: any) => s.key === 'essay')
       if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
         const nextSection = enabledSections[currentIdx + 1]
-        navigate(`/section/${nextSection.key}`, { state })
+        navigate('/guiding-page', { state: { ...state, nextSection: nextSection.label } })
         return
       }
     }
-    navigate('/submission')
+    navigate('/guiding-page', { state: { ...state, nextSection: 'Finish' } })
   }
 
   const toggleFullscreen = () => {
@@ -257,9 +257,9 @@ const EssayPage = () => {
             
             <button
               onClick={handleContinue}
-              className="w-full py-4 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 active:scale-95 transition-all duration-150 cursor-pointer"
+              className="w-full py-4 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 active:scale-95 transition-all duration-150 cursor-pointer uppercase tracking-wide"
             >
-              Move to Next Section →
+              Continue to next step →
             </button>
           </div>
         </div>
@@ -326,7 +326,9 @@ const EssayPage = () => {
               <button
                 onClick={() => {
                    if(confirm("Are you sure you want to finish the assessment?")) {
-                      handleSubmit();
+                      handleSubmit().then(() => {
+                        navigate('/guiding-page', { state: { ...state, nextSection: 'Finish' } });
+                      });
                    }
                 }}
                 className="px-5 py-2 bg-[#E31B23] text-white text-xs font-bold rounded-lg hover:bg-[#c4151c] shadow-sm transition-all active:scale-95 uppercase tracking-wide"

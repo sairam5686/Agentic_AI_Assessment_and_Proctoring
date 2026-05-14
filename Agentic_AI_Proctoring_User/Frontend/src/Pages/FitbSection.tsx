@@ -186,13 +186,13 @@ const FitbSection = () => {
       if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
         // Move to next section
         const nextSection = enabledSections[currentIdx + 1];
-        navigate(`/section/${nextSection.key}`, { state: assessmentState });
+        navigate('/guiding-page', { state: { ...assessmentState, nextSection: nextSection.label } });
         return;
       }
     }
     
     // If last section or not found, go to submission
-    navigate('/submission');
+    navigate('/guiding-page', { state: { ...assessmentState, nextSection: 'Finish' } });
   }
 
   const renderQuestionText = (q: any) => {
@@ -232,10 +232,10 @@ const FitbSection = () => {
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Section Completed!</h2>
             <p className="text-sm text-gray-500 mb-8">Your responses have been recorded successfully.</p>
             <button
-              onClick={() => navigate('/dashboard')}
-              className="w-full py-4 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 transition-all cursor-pointer"
+              onClick={handleFinishAssessment}
+              className="w-full py-4 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 transition-all cursor-pointer uppercase tracking-wide"
             >
-              Back to Dashboard →
+              Continue to next step →
             </button>
           </div>
         </div>

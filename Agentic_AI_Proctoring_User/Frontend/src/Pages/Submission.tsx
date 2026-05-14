@@ -1,3 +1,4 @@
+import React, { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAgoraProctoring } from '../Components/AgoraProctoringWrapper';
 import API_USER_URL from '../Config/apiConfig';
@@ -151,20 +152,27 @@ const Submission: React.FC = () => {
 
                             const performCleanup = async () => {
                                 try {
-                                    console.log("Submission: Background cleanup starting...");
+                                    console.log("Submission: Background cleanup starting (Mobile First)...");
                                    
-                                    await cleanup();
-
                                     const a_id = localStorage.getItem("assessment_id")?.toString().trim().toLowerCase();
                                     const email = localStorage.getItem("candidate_email")?.toString().trim().toLowerCase();
 
+                                    // 1. Stop Mobile Monitoring first
                                     if (a_id && email) {
-                                        fetch(`${API_USER_URL}/stop`, { method: "POST" }).catch(() => {});
-                                        fetch("http://localhost:8002/stop", {
+                                        console.log("Submission: Signaling mobile to stop...");
+                                        await fetch("http://localhost:8002/stop", {
                                             method: "POST",
                                             headers: { "Content-Type": "application/json" },
                                             body: JSON.stringify({ assessment_id: a_id, email_id: email })
-                                        }).catch(() => {});
+                                        }).catch(err => console.warn("Mobile stop failed:", err));
+                                    }
+
+                                    // 2. Stop Laptop Monitoring (Agora Tracks)
+                                    console.log("Submission: Cleaning up laptop webcam...");
+                                    await cleanup();
+
+                                    if (a_id && email) {
+                                        fetch(`${API_USER_URL}/stop`, { method: "POST" }).catch(() => {});
                                     }
                                    
                                     setTimeout(() => {
@@ -177,8 +185,8 @@ const Submission: React.FC = () => {
                                 }
                             };
 
-                            Mobile_Fetcher();
-                            fetcher();
+                            await Mobile_Fetcher();
+                            await fetcher();
                             performCleanup();
                         }}
                         className="w-full py-4 bg-gray-900 text-white text-sm font-bold rounded-2xl hover:bg-gray-800 transition-all active:scale-95 shadow-lg shadow-gray-200 cursor-pointer"

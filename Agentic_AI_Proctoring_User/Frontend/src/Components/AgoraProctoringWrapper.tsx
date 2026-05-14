@@ -42,8 +42,8 @@ const AgoraProctoringWrapper: React.FC<Props> = ({ children }) => {
   const initTracks = useCallback(async () => {
     if (localVideoTrackRef.current) return; // Already have tracks
     if (isInitializingRef.current) return;
-
     isInitializingRef.current = true;
+
     setStatus("connecting");
     setErrorMsg("");
 
@@ -77,10 +77,13 @@ const AgoraProctoringWrapper: React.FC<Props> = ({ children }) => {
   const startStreaming = useCallback(async () => {
     if (isJoinedRef.current || !localVideoTrackRef.current) return;
     
+    if (isJoiningRef.current) return;
+    isJoiningRef.current = true;
+
+    setStatus("connecting");
+    console.log("Agora Wrapper: Starting Admin Stream...");
+    
     try {
-      setStatus("connecting");
-      console.log("Agora Wrapper: Starting Admin Stream...");
-      
       const assessmentId = localStorage.getItem('assessment_id')?.toString().trim().toLowerCase();
       const candidateId = localStorage.getItem('candidate_id')?.toString().trim().toLowerCase();
       
@@ -94,9 +97,6 @@ const AgoraProctoringWrapper: React.FC<Props> = ({ children }) => {
       if (!appId || appId.includes("Replace")) {
           throw new Error("Missing Agora App ID");
       }
-
-      if (isJoiningRef.current) return;
-      isJoiningRef.current = true;
 
       // Fetch dynamic token from backend
       const tokenResponse = await fetch(`${AGORA_CONFIG.tokenUrl}?channelName=${channelName}`);
