@@ -14,7 +14,7 @@ CANDIDATE_SUPPORT_URL = os.getenv("VITE_CANDIDATE_PORTAL_URL", "http://localhost
 
 BREVO_URL = "https://api.brevo.com/v3/smtp/email"
 
-def send_mail_via_brevo(to_email, subject, body):
+def send_mail_via_brevo(to_email, subject, body, attachment_content=None, attachment_name=None):
     if not BREVO_API_KEY or not SENDER_EMAIL:
         print("Brevo API Key or Sender Email missing in environment variables.")
         return False
@@ -31,6 +31,14 @@ def send_mail_via_brevo(to_email, subject, body):
         "subject": subject,
         "textContent": body
     }
+
+    if attachment_content and attachment_name:
+        payload["attachment"] = [
+            {
+                "content": attachment_content,
+                "name": attachment_name
+            }
+        ]
 
     try:
         with httpx.Client() as client:
@@ -123,3 +131,27 @@ def send_proctor_mail(to_email, proctor_name, assessment_title, assessment_id, p
     {FROM_NAME} Team
     """
     return send_mail_via_brevo(to_email, subject, body)
+
+def send_certification_mail(to_email, candidate_name, track_name, certificate_id, score, attachment_content=None, issuer="TEAM_TITANS"):
+    subject = f"Congratulations! Your Professional Certification for {track_name}"
+    body = f"""
+    Hi {candidate_name},
+
+    Congratulations! We are pleased to inform you that you have successfully cleared the assessment benchmarks for the professional track of:
+    {track_name}
+
+    Your Performance Summary:
+    - Overall Score: {score}%
+    - Status: SUCCESSFUL
+    - Grade: DISTINCTION
+
+    Your unique Verification Credential ID is: {certificate_id}
+
+    Attached to this email, you will find your professional certificate as an image. This recognizes your industry-standard proficiency and technical excellence.
+
+    Well done on this significant achievement!
+
+    Best regards,
+    {issuer}
+    """
+    return send_mail_via_brevo(to_email, subject, body, attachment_content, "Certificate.png")

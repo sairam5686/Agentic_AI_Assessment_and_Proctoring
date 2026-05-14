@@ -7,7 +7,7 @@ import {
     Camera, Puzzle, Smartphone, Download, XCircle, FileText, 
     ArrowLeft, User, ShieldCheck, AlertCircle, CheckCircle2, 
     Code2, Database, Award, BarChart2, 
-    RefreshCw, ShieldAlert, Bot, Copy, PenLine, Building2, Flag, Brain, Search, Lightbulb, Check, ArrowRight
+    RefreshCw, ShieldAlert, Bot, Copy, PenLine, Building2, Flag, Brain, Search, Lightbulb, Check, ArrowRight, Send
 } from 'lucide-react';
 import NavBar from '../Components/NavBar';
 import RemoteVideoPlayer from '../Components/RemoteVideoPlayer';
@@ -1552,7 +1552,7 @@ const CandidateAnalytics = () => {
                         className="bg-white rounded-[2.5rem] shadow-2xl max-w-4xl w-full overflow-hidden relative border-[12px] border-white"
                     >
                         {/* Certificate Design */}
-                        <div className="relative p-12 border-[3px] border-gray-100 rounded-[1.5rem] bg-gradient-to-br from-white via-slate-50/50 to-white overflow-hidden">
+                        <div ref={(el) => { if (el) (window as any).certificateRef = el; }} className="relative p-12 border-[3px] border-gray-100 rounded-[1.5rem] bg-gradient-to-br from-white via-slate-50/50 to-white overflow-hidden">
                             {/* Decorative background elements */}
                             <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl" />
                             <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl" />
@@ -1638,6 +1638,44 @@ const CandidateAnalytics = () => {
                             <div className="flex gap-4">
                                 <button className="px-8 py-4 bg-white border border-slate-200 text-slate-900 text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-slate-50 transition-all flex items-center gap-2 shadow-sm">
                                     <Copy size={14} /> Share Link
+                                </button>
+                                <button 
+                                    onClick={async () => {
+                                        try {
+                                            const { toPng } = await import('html-to-image');
+                                            const node = (window as any).certificateRef;
+                                            if (!node) return;
+
+                                            // Capture high quality image
+                                            const dataUrl = await toPng(node, { quality: 1.0, pixelRatio: 2 });
+
+                                            const formData = new FormData();
+                                            formData.append('email', candidate.email);
+                                            formData.append('name', candidate.name);
+                                            formData.append('track_name', ds.certConfig?.track_name || 'Professional Certification');
+                                            formData.append('certificate_id', testId.substring(0,18).toUpperCase());
+                                            formData.append('score', Math.round((ds.totalScore / ds.totalMax) * 100).toString());
+                                            formData.append('issuer', ds.certConfig?.issuer || 'TEAM_TITANS');
+                                            formData.append('Certificate_Image', dataUrl);
+
+                                            const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/send-certificate`, {
+                                                method: 'POST',
+                                                body: formData
+                                            });
+
+                                            if (res.ok) {
+                                                alert('Certificate image sent successfully to ' + candidate.email);
+                                            } else {
+                                                alert('Failed to send certificate');
+                                            }
+                                        } catch (err) {
+                                            console.error(err);
+                                            alert('Error generating or sending certificate');
+                                        }
+                                    }}
+                                    className="px-8 py-4 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all flex items-center gap-2 shadow-lg shadow-emerald-200 active:scale-95"
+                                >
+                                    <Send size={14} /> Send via Email
                                 </button>
                                 <button 
                                     onClick={() => window.print()}

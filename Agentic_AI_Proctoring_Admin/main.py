@@ -3,7 +3,7 @@ from urllib import request
 import uuid
 import json
 from fastapi import FastAPI ,  HTTPException , Request ,  UploadFile, File, Form
-from Backend.Workers.Mail_Service import send_assessment_mail, send_proctor_mail, send_university_assessment_mail
+from Backend.Workers.Mail_Service import send_assessment_mail, send_proctor_mail, send_university_assessment_mail, send_certification_mail
 from Backend.Connection.Assessment_Connection import MCQ_DB, Admin_Assessments_DB, Coding_Questions_DB, Coding_TestCases_DB, Enrollment_DB, SQL_Questions_DB, SQL_TestCases_DB, Gaming_DB, Game_Sessions_DB, Invigilator_DB
 from Backend.Excels_Parsers.MCQ_Parser import mcq_parser
 from Backend.Excels_Parsers.FITB_Parser import fitb_parser
@@ -790,6 +790,28 @@ async def assign_proctor(
         "assigned_candidate_details": assigned,
         "email_sent": success
     })
+
+@app.post("/admin/send-certificate")
+async def send_certificate(
+    email: str = Form(...),
+    name: str = Form(...),
+    track_name: str = Form(...),
+    certificate_id: str = Form(...),
+    score: str = Form(...),
+    issuer: str = Form("TEAM_TITANS"),
+    Certificate_Image: str = Form(None) # Base64 string of the certificate
+):
+    # If image is provided, strip the data:image/png;base64, prefix if present
+    attachment_content = None
+    if Certificate_Image and "," in Certificate_Image:
+        attachment_content = Certificate_Image.split(",")[1]
+    elif Certificate_Image:
+        attachment_content = Certificate_Image
+
+    success = send_certification_mail(email, name, track_name, certificate_id, score, attachment_content, issuer)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to send certificate email")
+    return {"message": "Certificate sent successfully"}
 
 @app.post("/proctor/login")
 async def proctor_login(
