@@ -1,3 +1,3 @@
-const API_USER_URL = import.meta.env.VITE_API_USER_BACKEND || 'http://localhost:8001';
+const API_USER_URL = 'https://agenticaiassessmentandproctoring-production-bc3a.up.railway.app';
 
 export default API_USER_URL;
