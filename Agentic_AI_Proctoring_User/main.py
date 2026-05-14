@@ -4,7 +4,8 @@ from Backend.Connection.Assessment_Connection_DB import (
     SQL_Questions_DB, SQL_TestCases_DB, Admin_Assessments_DB,
     Pipe_Puzzle_Sessions_DB, Gaming_DB, Enrollment_DB , 
     Candidate_Data_DB, Pipe_Puzzle_Results_DB,
-    Coding_Results, SQL_Results, MCQ_Results, FITB_Results
+    Coding_Results, SQL_Results, MCQ_Results, FITB_Results,
+    Mobile_Sessions_DB
 )
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -47,8 +48,7 @@ app = FastAPI()
 sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
 sio_app = socketio.ASGIApp(sio, other_asgi_app=app)
 
-# Track active mobile sessions by room_id: { "assessment_id_email": status }
-active_mobile_sessions = {}
+# In-memory fallback removed — now using Mobile_Sessions_DB (MongoDB) for shared state
 
 def get_local_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -85,8 +85,10 @@ async def handle_join(sid, data):
     await sio.enter_room(sid, room)
     print(f"Client {sid} joined room: {room}")
     
-    # If mobile is already active in this room, notify the laptop immediately on join
-    if active_mobile_sessions.get(room) == "active":
+    
+    # Check if mobile is already active in this room via MongoDB (shared state)
+    session = Mobile_Sessions_DB.find_one({"room_id": room})
+    if session and session.get("status") == "active":
         print(f"Notifying joining client {sid} that mobile is already active in room: {room}")
         await sio.emit("mobile_connected", {"status": "active"}, room=sid)
 
@@ -96,8 +98,12 @@ async def handle_mobile_ready(sid, data):
     email = str(data.get('email', '')).strip().lower()
     room = f"{a_id}_{email}"
     
-    # Store global state
-    active_mobile_sessions[room] = "active"
+    # Store global state in MongoDB so all Railway instances can see it
+    Mobile_Sessions_DB.update_one(
+        {"room_id": room},
+        {"$set": {"status": "active", "updated_at": datetime.now(timezone.utc)}},
+        upsert=True
+    )
     
     # Notify all clients in the room (including the laptop)
     await sio.emit("mobile_connected", {"status": "active"}, room=room)
@@ -119,9 +125,8 @@ async def handle_test_ended(sid, data):
     email = str(data.get('email', '')).strip().lower()
     room = f"{a_id}_{email}"
     
-    # Clear state
-    if room in active_mobile_sessions:
-        del active_mobile_sessions[room]
+    # Clear state in MongoDB
+    Mobile_Sessions_DB.delete_one({"room_id": room})
         
     # Notify the mobile app to cleanup
     await sio.emit("cleanup_mobile", {"message": "CANDIDATE TO EXIT FROM THE DASHBOARD"}, room=room)
@@ -161,7 +166,8 @@ async def get_server_ip(request: Request):
 @app.get("/api/mobile/status/{room_id}")
 async def get_mobile_status(room_id: str):
     # room_id is assessment_id_email
-    status = active_mobile_sessions.get(room_id, "inactive")
+    session = Mobile_Sessions_DB.find_one({"room_id": room_id})
+    status = session.get("status", "inactive") if session else "inactive"
     return {"status": status}
 
 
