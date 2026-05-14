@@ -164,6 +164,7 @@ const DiagramSection = () => {
   const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSubmitted, setIsSubmitted] = useState(localStorage.getItem('diagram_completed') === 'true');
   const [zoomLevel, setZoomLevel] = useState(100);
   const editInputRef = useRef<HTMLInputElement>(null);
   const editTextareaRef = useRef<HTMLTextAreaElement>(null);
@@ -510,8 +511,9 @@ const DiagramSection = () => {
 
       const result = await response.json();
       if (response.ok) {
-        toast.success(`Submission Success! Score: ${result.score}`);
+        // Remove toast and score display as per user request
         localStorage.setItem('diagram_completed', 'true');
+        setIsSubmitted(true);
       } else {
         throw new Error(result.detail || 'Submission failed');
       }
@@ -634,138 +636,147 @@ const DiagramSection = () => {
                       <p className="text-[0.95rem] text-gray-600 leading-relaxed font-medium mb-4">
                           {diagramPrompt}
                       </p>
-                      <ul className="text-sm text-gray-500 space-y-2 list-disc pl-4">
+                       <ul className="text-sm text-gray-500 space-y-2 list-disc pl-4">
                           <li>Use appropriate shapes for each component.</li>
                           <li>Ensure all flows are connected logically.</li>
                           <li>Double-click any shape to edit its label.</li>
                           <li>Your work is saved automatically every 3 seconds.</li>
-                      </ul>
-                   </div>
-
-                   <div className="mt-8 pt-6 border-t border-gray-100">
-                      <div className="flex items-center gap-2 text-xs font-bold text-gray-400 uppercase tracking-widest mb-4">
-                          <Flag size={12} /> Options
-                      </div>
+                       </ul>
                       <button className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-xl transition-colors text-sm font-semibold text-gray-600 mb-4">
                           Mark for Revisit
                           <div className="w-2 h-2 rounded-full bg-gray-300"></div>
-                      </button>
-
-                      <button
-                          onClick={() => handleSubmit(false)}
-                          disabled={isSubmitting || localStorage.getItem('diagram_completed') === 'true'}
-                          className="w-full py-4 bg-gray-900 text-white text-sm font-bold rounded-2xl hover:bg-gray-800 transition-all active:scale-95 shadow-lg shadow-gray-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide"
-                      >
-                          {isSubmitting ? 'Evaluating Diagram...' : localStorage.getItem('diagram_completed') === 'true' ? 'Submitted' : 'Submit Diagram'}
                       </button>
                    </div>
                </div>
            </div>
 
            {/* ── Right Side: Canvas Area ── */}
-           <div className="flex-1 bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm flex flex-col relative" ref={reactFlowWrapper}>
-              
-              {/* ── Floating Action Bar ── */}
-              <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl px-2.5 py-2 shadow-xl ring-1 ring-black/5">
-                <ToolButton title="Selection" tool="selection" icon={<MousePointer2 size={19} />} active={activeTool === 'selection'} onClick={() => setActiveTool('selection')} />
-                <div className="w-px h-6 bg-gray-200 mx-1.5"></div>
-                <ToolButton title="Arrow" tool="arrow" icon={<ArrowRight size={19} />} active={activeTool === 'arrow'} onClick={() => setActiveTool('arrow')} />
-                <ToolButton title="Rectangle" tool="rect" icon={<Square size={19} />} active={activeTool === 'rect'} onClick={() => setActiveTool('rect')} />
-                <ToolButton title="Rounded" tool="rounded" icon={<div className="w-[19px] h-[19px] border-[2.5px] border-current rounded-[6px]" />} active={activeTool === 'rounded'} onClick={() => setActiveTool('rounded')} />
-                <ToolButton title="Circle" tool="circle" icon={<Circle size={19} />} active={activeTool === 'circle'} onClick={() => setActiveTool('circle')} />
-                <ToolButton title="Diamond" tool="diamond" icon={<div className="w-4 h-4 border-[2.5px] border-current rotate-45" />} active={activeTool === 'diamond'} onClick={() => setActiveTool('diamond')} />
-                <ToolButton title="Database" tool="database" icon={<Database size={19} />} active={activeTool === 'database'} onClick={() => setActiveTool('database')} />
-                <ToolButton title="Text" tool="text" icon={<Type size={19} />} active={activeTool === 'text'} onClick={() => setActiveTool('text')} />
-              </div>
+           <div className="flex-1 flex flex-col gap-4 overflow-y-auto pr-2">
+              <div className="h-[650px] bg-white border border-gray-200 rounded-2xl overflow-hidden shadow-sm flex flex-col relative flex-shrink-0" ref={reactFlowWrapper}>
+                
+                {/* ── Floating Action Bar ── */}
+                <div className="absolute top-6 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-white/90 backdrop-blur-md border border-gray-200 rounded-2xl px-2.5 py-2 shadow-xl ring-1 ring-black/5">
+                  <ToolButton title="Selection" tool="selection" icon={<MousePointer2 size={19} />} active={activeTool === 'selection'} onClick={() => setActiveTool('selection')} />
+                  <div className="w-px h-6 bg-gray-200 mx-1.5"></div>
+                  <ToolButton title="Arrow" tool="arrow" icon={<ArrowRight size={19} />} active={activeTool === 'arrow'} onClick={() => setActiveTool('arrow')} />
+                  <ToolButton title="Rectangle" tool="rect" icon={<Square size={19} />} active={activeTool === 'rect'} onClick={() => setActiveTool('rect')} />
+                  <ToolButton title="Rounded" tool="rounded" icon={<div className="w-[19px] h-[19px] border-[2.5px] border-current rounded-[6px]" />} active={activeTool === 'rounded'} onClick={() => setActiveTool('rounded')} />
+                  <ToolButton title="Circle" tool="circle" icon={<Circle size={19} />} active={activeTool === 'circle'} onClick={() => setActiveTool('circle')} />
+                  <ToolButton title="Diamond" tool="diamond" icon={<div className="w-4 h-4 border-[2.5px] border-current rotate-45" />} active={activeTool === 'diamond'} onClick={() => setActiveTool('diamond')} />
+                  <ToolButton title="Database" tool="database" icon={<Database size={19} />} active={activeTool === 'database'} onClick={() => setActiveTool('database')} />
+                  <ToolButton title="Text" tool="text" icon={<Type size={19} />} active={activeTool === 'text'} onClick={() => setActiveTool('text')} />
+                </div>
 
-              {/* ── Floating Format Bar ── */}
-              {selectedNode && (
-                <div className="absolute top-24 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-white border border-gray-200 rounded-xl px-2.5 py-2 shadow-lg ring-1 ring-black/5 animate-in fade-in zoom-in duration-200">
-                  <select className="text-xs font-bold text-gray-700 border-none outline-none bg-transparent cursor-pointer px-2" value={selectedNode.data?.fontFamily || 'Arial'} onChange={(e) => updateSelectedNode('fontFamily', e.target.value)}>
-                    <option value="Arial">Arial</option>
-                    <option value="Helvetica">Helvetica</option>
-                    <option value="Inter">Inter</option>
-                  </select>
-                  <div className="w-px h-4 bg-gray-200 mx-1.5"></div>
-                  <select className="text-xs font-bold text-gray-700 border-none outline-none bg-transparent cursor-pointer pl-1 pr-2" value={selectedNode.data?.fontSize || 12} onChange={(e) => updateSelectedNode('fontSize', parseInt(e.target.value))}>
-                    {[10,12,14,18,24,32].map(s => <option key={s} value={s}>{s}px</option>)}
-                  </select>
-                  <div className="w-px h-4 bg-gray-200 mx-1.5"></div>
-                  <button onClick={() => toggleSelectedNodeStyle('bold')} className={`p-2 rounded-lg ${selectedNode.data?.bold ? 'bg-orange-50 text-orange-600' : 'text-gray-500 hover:bg-gray-50'}`}><Bold size={15} /></button>
-                  <button onClick={() => toggleSelectedNodeStyle('italic')} className={`p-2 rounded-lg ${selectedNode.data?.italic ? 'bg-orange-50 text-orange-600' : 'text-gray-500 hover:bg-gray-50'}`}><Italic size={15} /></button>
-                  <button onClick={() => toggleSelectedNodeStyle('underline')} className={`p-2 rounded-lg ${selectedNode.data?.underline ? 'bg-orange-50 text-orange-600' : 'text-gray-500 hover:bg-gray-50'}`}><Underline size={15} /></button>
-                  <div className="w-px h-4 bg-gray-200 mx-1.5"></div>
-                  <div className="flex items-center gap-3 px-2">
-                    <div className="relative w-6 h-6 rounded-lg overflow-hidden border-2 border-gray-200 shadow-inner" title="Background">
-                      <input type="color" value={selectedNode.data?.bgColor || '#ffffff'} onChange={(e) => updateSelectedNode('bgColor', e.target.value)} className="absolute -top-3 -left-3 w-12 h-12 cursor-pointer"/>
+                {/* ── Floating Format Bar ── */}
+                {selectedNode && (
+                  <div className="absolute top-24 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1 bg-white border border-gray-200 rounded-xl px-2.5 py-2 shadow-lg ring-1 ring-black/5 animate-in fade-in zoom-in duration-200">
+                    <select className="text-xs font-bold text-gray-700 border-none outline-none bg-transparent cursor-pointer px-2" value={selectedNode.data?.fontFamily || 'Arial'} onChange={(e) => updateSelectedNode('fontFamily', e.target.value)}>
+                      <option value="Arial">Arial</option>
+                      <option value="Helvetica">Helvetica</option>
+                      <option value="Inter">Inter</option>
+                    </select>
+                    <div className="w-px h-4 bg-gray-200 mx-1.5"></div>
+                    <select className="text-xs font-bold text-gray-700 border-none outline-none bg-transparent cursor-pointer pl-1 pr-2" value={selectedNode.data?.fontSize || 12} onChange={(e) => updateSelectedNode('fontSize', parseInt(e.target.value))}>
+                      {[10,12,14,18,24,32].map(s => <option key={s} value={s}>{s}px</option>)}
+                    </select>
+                    <div className="w-px h-4 bg-gray-200 mx-1.5"></div>
+                    <button onClick={() => toggleSelectedNodeStyle('bold')} className={`p-2 rounded-lg ${selectedNode.data?.bold ? 'bg-orange-50 text-orange-600' : 'text-gray-500 hover:bg-gray-50'}`}><Bold size={15} /></button>
+                    <button onClick={() => toggleSelectedNodeStyle('italic')} className={`p-2 rounded-lg ${selectedNode.data?.italic ? 'bg-orange-50 text-orange-600' : 'text-gray-500 hover:bg-gray-50'}`}><Italic size={15} /></button>
+                    <button onClick={() => toggleSelectedNodeStyle('underline')} className={`p-2 rounded-lg ${selectedNode.data?.underline ? 'bg-orange-50 text-orange-600' : 'text-gray-500 hover:bg-gray-50'}`}><Underline size={15} /></button>
+                    <div className="w-px h-4 bg-gray-200 mx-1.5"></div>
+                    <div className="flex items-center gap-3 px-2">
+                      <div className="relative w-6 h-6 rounded-lg overflow-hidden border-2 border-gray-200 shadow-inner" title="Background">
+                        <input type="color" value={selectedNode.data?.bgColor || '#ffffff'} onChange={(e) => updateSelectedNode('bgColor', e.target.value)} className="absolute -top-3 -left-3 w-12 h-12 cursor-pointer"/>
+                      </div>
+                      <div className="relative w-6 h-6 rounded-lg overflow-hidden border-2 border-gray-200 shadow-inner" title="Border">
+                        <div className="absolute inset-0 m-auto w-2 h-2 rounded-full bg-white z-10 pointer-events-none border border-gray-100 shadow-sm"></div>
+                        <input type="color" value={selectedNode.data?.borderColor || '#000000'} onChange={(e) => updateSelectedNode('borderColor', e.target.value)} className="absolute -top-3 -left-3 w-12 h-12 cursor-pointer"/>
+                      </div>
                     </div>
-                    <div className="relative w-6 h-6 rounded-lg overflow-hidden border-2 border-gray-200 shadow-inner" title="Border">
-                      <div className="absolute inset-0 m-auto w-2 h-2 rounded-full bg-white z-10 pointer-events-none border border-gray-100 shadow-sm"></div>
-                      <input type="color" value={selectedNode.data?.borderColor || '#000000'} onChange={(e) => updateSelectedNode('borderColor', e.target.value)} className="absolute -top-3 -left-3 w-12 h-12 cursor-pointer"/>
-                    </div>
+                    <div className="w-px h-4 bg-gray-200 mx-1.5"></div>
+                    <button onClick={deleteSelected} className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-lg transition-colors"><Trash2 size={16} /></button>
                   </div>
-                  <div className="w-px h-4 bg-gray-200 mx-1.5"></div>
-                  <button onClick={deleteSelected} className="p-2 hover:bg-red-50 text-gray-400 hover:text-red-500 rounded-lg transition-colors"><Trash2 size={16} /></button>
-                </div>
-              )}
+                )}
 
-              {/* ── Control Panel (Bottom Left) ── */}
-              <div className="absolute bottom-6 left-6 z-10 flex gap-4">
-                <div className="flex items-center bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden ring-1 ring-black/5">
-                  <button onClick={handleZoomOut} className="p-3 hover:bg-gray-50 text-gray-500 transition-colors"><ZoomOut size={17} /></button>
-                  <span className="text-xs font-bold px-3 min-w-[50px] text-center text-gray-600 bg-gray-50/50 py-3">{zoomLevel}%</span>
-                  <button onClick={handleZoomIn} className="p-3 hover:bg-gray-50 text-gray-500 transition-colors"><ZoomIn size={17} /></button>
+                {/* ── Control Panel (Bottom Left) ── */}
+                <div className="absolute bottom-6 left-6 z-10 flex gap-4">
+                  <div className="flex items-center bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden ring-1 ring-black/5">
+                    <button onClick={handleZoomOut} className="p-3 hover:bg-gray-50 text-gray-500 transition-colors"><ZoomOut size={17} /></button>
+                    <span className="text-xs font-bold px-3 min-w-[50px] text-center text-gray-600 bg-gray-50/50 py-3">{zoomLevel}%</span>
+                    <button onClick={handleZoomIn} className="p-3 hover:bg-gray-50 text-gray-500 transition-colors"><ZoomIn size={17} /></button>
+                  </div>
+                  <div className="flex items-center bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden ring-1 ring-black/5">
+                    <button onClick={undo} className={`p-3 hover:bg-gray-50 text-gray-500 transition-colors ${!canUndo ? 'opacity-30' : ''}`}><Undo size={17} /></button>
+                    <button onClick={redo} className={`p-3 hover:bg-gray-50 text-gray-500 transition-colors ${!canRedo ? 'opacity-30' : ''}`}><Redo size={17} /></button>
+                    <div className="w-px h-6 bg-gray-100 mx-1"></div>
+                    <button onClick={() => setShowClearModal(true)} className="p-3 hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors" title="Clear Canvas"><Eraser size={17} /></button>
+                  </div>
                 </div>
-                <div className="flex items-center bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden ring-1 ring-black/5">
-                  <button onClick={undo} className={`p-3 hover:bg-gray-50 text-gray-500 transition-colors ${!canUndo ? 'opacity-30' : ''}`}><Undo size={17} /></button>
-                  <button onClick={redo} className={`p-3 hover:bg-gray-50 text-gray-500 transition-colors ${!canRedo ? 'opacity-30' : ''}`}><Redo size={17} /></button>
-                  <div className="w-px h-6 bg-gray-100 mx-1"></div>
-                  <button onClick={() => setShowClearModal(true)} className="p-3 hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors" title="Clear Canvas"><Eraser size={17} /></button>
+
+                {/* ── Label Editor ── */}
+                {selectedNode && selectedNode.type !== 'text' && (
+                  <div className="absolute top-6 right-6 z-10 bg-white border border-gray-200 rounded-xl p-3 shadow-xl ring-1 ring-black/5 flex items-center gap-3 animate-in slide-in-from-right-4 duration-300">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Label</span>
+                    <input ref={editInputRef} type="text" value={selectedNode.data.label || ''} onChange={(e) => updateSelectedNode('label', e.target.value)} className="text-sm font-bold text-gray-700 border-2 border-gray-50 outline-none focus:border-orange-200 focus:bg-orange-50/30 rounded-lg px-3 py-1.5 w-40 transition-all" placeholder="Enter name..."/>
+                  </div>
+                )}
+                {selectedNode && selectedNode.type === 'text' && (
+                  <div className="absolute top-6 right-6 z-10 bg-white border border-gray-200 rounded-xl p-3 shadow-xl ring-1 ring-black/5 flex flex-col gap-2 animate-in slide-in-from-right-4 duration-300">
+                    <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Text Content</span>
+                    <textarea ref={editTextareaRef} value={selectedNode.data.label || ''} onChange={(e) => updateSelectedNode('label', e.target.value)} className="text-sm font-bold text-gray-700 border-2 border-gray-50 outline-none focus:border-orange-200 focus:bg-orange-50/30 rounded-lg px-3 py-2 w-56 h-24 resize-none transition-all" placeholder="Enter text..."/>
+                  </div>
+                )}
+
+                <div className={`w-full h-full ${activeTool !== 'selection' ? 'cursor-crosshair' : ''} ${activeTool === 'arrow' ? '[&_.react-flow__handle]:!opacity-100 [&_.react-flow__handle]:!w-4 [&_.react-flow__handle]:!h-4 [&_.react-flow__handle]:!-ml-2 [&_.react-flow__handle]:!-mt-2' : ''}`}>
+                  <ReactFlow
+                      nodes={nodes}
+                      edges={edges}
+                      onNodesChange={onNodesChange}
+                      onEdgesChange={onEdgesChange}
+                      onConnect={onConnect}
+                      onInit={setReactFlowInstance}
+                      onPaneClick={onPaneClick}
+                      onSelectionChange={onSelectionChange}
+                      onNodeDoubleClick={onNodeDoubleClick}
+                      onMoveEnd={(_, viewport) => setZoomLevel(Math.round(viewport.zoom * 100))}
+                      nodeTypes={nodeTypes}
+                      connectionLineType={ConnectionLineType.Straight}
+                      defaultEdgeOptions={{ 
+                        type: 'straight',
+                        markerEnd: { type: MarkerType.ArrowClosed, color: '#000' },
+                        style: { stroke: '#000', strokeWidth: 1.5 }
+                      }}
+                      connectionMode={ConnectionMode.Loose}
+                      fitView
+                      snapToGrid
+                      snapGrid={[10, 10]}
+                      deleteKeyCode="Delete"
+                  >
+                      <Background color="#f1f5f9" gap={25} size={1} />
+                      <Controls showInteractive={false} className="hidden" />
+                  </ReactFlow>
                 </div>
               </div>
 
-              {/* ── Label Editor ── */}
-              {selectedNode && selectedNode.type !== 'text' && (
-                <div className="absolute top-6 right-6 z-10 bg-white border border-gray-200 rounded-xl p-3 shadow-xl ring-1 ring-black/5 flex items-center gap-3 animate-in slide-in-from-right-4 duration-300">
-                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Label</span>
-                  <input ref={editInputRef} type="text" value={selectedNode.data.label || ''} onChange={(e) => updateSelectedNode('label', e.target.value)} className="text-sm font-bold text-gray-700 border-2 border-gray-50 outline-none focus:border-orange-200 focus:bg-orange-50/30 rounded-lg px-3 py-1.5 w-40 transition-all" placeholder="Enter name..."/>
-                </div>
-              )}
-              {selectedNode && selectedNode.type === 'text' && (
-                <div className="absolute top-6 right-6 z-10 bg-white border border-gray-200 rounded-xl p-3 shadow-xl ring-1 ring-black/5 flex flex-col gap-2 animate-in slide-in-from-right-4 duration-300">
-                  <span className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Text Content</span>
-                  <textarea ref={editTextareaRef} value={selectedNode.data.label || ''} onChange={(e) => updateSelectedNode('label', e.target.value)} className="text-sm font-bold text-gray-700 border-2 border-gray-50 outline-none focus:border-orange-200 focus:bg-orange-50/30 rounded-lg px-3 py-2 w-56 h-24 resize-none transition-all" placeholder="Enter text..."/>
-                </div>
-              )}
 
-              <div className={`w-full h-full ${activeTool !== 'selection' ? 'cursor-crosshair' : ''} ${activeTool === 'arrow' ? '[&_.react-flow__handle]:!opacity-100 [&_.react-flow__handle]:!w-4 [&_.react-flow__handle]:!h-4 [&_.react-flow__handle]:!-ml-2 [&_.react-flow__handle]:!-mt-2' : ''}`}>
-                <ReactFlow
-                    nodes={nodes}
-                    edges={edges}
-                    onNodesChange={onNodesChange}
-                    onEdgesChange={onEdgesChange}
-                    onConnect={onConnect}
-                    onInit={setReactFlowInstance}
-                    onPaneClick={onPaneClick}
-                    onSelectionChange={onSelectionChange}
-                    onNodeDoubleClick={onNodeDoubleClick}
-                    onMoveEnd={(_, viewport) => setZoomLevel(Math.round(viewport.zoom * 100))}
-                    nodeTypes={nodeTypes}
-                    connectionLineType={ConnectionLineType.Straight}
-                    defaultEdgeOptions={{ 
-                      type: 'straight',
-                      markerEnd: { type: MarkerType.ArrowClosed, color: '#000' },
-                      style: { stroke: '#000', strokeWidth: 1.5 }
-                    }}
-                    connectionMode={ConnectionMode.Loose}
-                    fitView
-                    snapToGrid
-                    snapGrid={[10, 10]}
-                    deleteKeyCode="Delete"
+              {/* ── Submit & Finish Action Bar ── */}
+              <div className="flex justify-end gap-3 pb-8">
+                <button
+                    onClick={() => handleSubmit(false)}
+                    disabled={isSubmitting || isSubmitted}
+                    className="px-10 py-4 bg-gray-900 text-white text-sm font-bold rounded-2xl hover:bg-gray-800 transition-all active:scale-95 shadow-lg shadow-gray-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide flex items-center gap-3"
                 >
-                    <Background color="#f1f5f9" gap={25} size={1} />
-                    <Controls showInteractive={false} className="hidden" />
-                </ReactFlow>
+                    {isSubmitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
+                    {isSubmitting ? 'Evaluating Diagram...' : isSubmitted ? 'Submitted' : 'Submit Diagram'}
+                </button>
+
+                <button
+                    onClick={() => handleNextFlow()}
+                    disabled={!isSubmitted}
+                    className="px-12 py-4 bg-slate-800 text-white text-sm font-bold rounded-2xl hover:bg-slate-700 transition-all active:scale-95 shadow-lg shadow-slate-200 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed uppercase tracking-wide flex items-center gap-3"
+                >
+                    Finish
+                </button>
               </div>
            </div>
         </div>
