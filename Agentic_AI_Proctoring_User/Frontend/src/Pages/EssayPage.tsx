@@ -218,11 +218,11 @@ const EssayPage = () => {
       const currentIdx = enabledSections.findIndex((s: any) => s.key === 'essay')
       if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
         const nextSection = enabledSections[currentIdx + 1]
-        navigate('/guiding-page', { state: { ...state, nextSection: nextSection.label } })
+        navigate(`/section/${nextSection.key}`, { state: { ...state } })
         return
       }
     }
-    navigate('/guiding-page', { state: { ...state, nextSection: 'Finish' } })
+    navigate('/submission')
   }
 
   const toggleFullscreen = () => {
@@ -325,9 +325,9 @@ const EssayPage = () => {
 
               <button
                 onClick={() => {
-                   if(confirm("Are you sure you want to finish the assessment?")) {
+                   if(confirm("Are you sure you want to finish this section?")) {
                       handleSubmit().then(() => {
-                        navigate('/guiding-page', { state: { ...state, nextSection: 'Finish' } });
+                        handleContinue();
                       });
                    }
                 }}

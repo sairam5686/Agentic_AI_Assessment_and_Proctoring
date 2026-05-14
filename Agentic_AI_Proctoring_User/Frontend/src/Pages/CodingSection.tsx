@@ -279,11 +279,11 @@ const CodingSection = () => {
       
       if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
         const nextSection = enabledSections[currentIdx + 1];
-        navigate('/guiding-page', { state: { ...assessmentState, nextSection: nextSection.label } });
+        navigate(`/section/${nextSection.key}`, { state: { ...assessmentState } });
         return;
       }
     }
-    navigate('/guiding-page', { state: { ...assessmentState, nextSection: 'Finish' } });
+    navigate('/submission');
   }
 
   const handleCodingSubmit = async () => {
@@ -951,7 +951,7 @@ const CodingSection = () => {
                     if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
                       const nextSection = enabledSections[currentIdx + 1];
                       setSubmitted(true);
-                      navigate('/guiding-page', { state: { ...assessmentState, nextSection: nextSection.label } });
+                      navigate('/guiding-page', { state: { ...assessmentState, nextSection: nextSection.key } });
                       return;
                     }
                   }

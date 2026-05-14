@@ -13,13 +13,13 @@ const GuidingPage = () => {
         }
 
         const sectionMapping: Record<string, string> = {
-            "MCQ": "/section/mcq",
-            "Coding": "/section/coding",
-            "SQL": "/section/sql",
-            "Essay": "/section/essay",
-            "Fill in the Blanks": "/section/fitb",
-            "Gaming": "/section/gaming",
-            "Diagram": "/section/diagram"
+            "mcq": "/section/mcq",
+            "coding": "/section/coding",
+            "sql": "/section/sql",
+            "essay": "/section/essay",
+            "fitb": "/section/fitb",
+            "pipe-puzzle": "/section/pipe-puzzle",
+            "diagram": "/section/diagram"
         };
 
         const targetRoute = sectionMapping[nextSection];
