@@ -431,13 +431,9 @@ const TestCreator: React.FC = () => {
                 const isCert = selectedCategory === 'Certification';
                 const config = isCert ? CERTIFICATION_TRACKS[certificationData.trackName] : null;
                 const isEnabledByTrack = isCert ? config?.[type] : true;
-
-                // For Certification, only show sections enabled for the track
-                if (isCert && !isEnabledByTrack) return null;
-
-                const enabled = isCert ? true : sectionEnabled[type];
-
                 const cardColor = color;
+
+                if (isCert && !isEnabledByTrack) return null;
 
                 return (
                   <div key={section.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 p-6">
@@ -446,18 +442,13 @@ const TestCreator: React.FC = () => {
                         <h3 className="text-sm font-bold text-gray-800">{label}</h3>
                         <p className="text-xs text-gray-500">{sublabel}</p>
                       </div>
-                      {!isCert && (
-                        <label className="relative inline-flex items-center cursor-pointer">
-                          <input type="checkbox" className="sr-only peer" checked={enabled} onChange={() => toggleSection(type)} />
-                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500" />
-                        </label>
-                      )}
-                      {isCert && (
-                        <span className={`w-2 h-2 rounded-full bg-${cardColor}-500 shadow-[0_0_8px_rgba(var(--${cardColor}-rgb,59,130,246),0.6)] animate-pulse`} />
-                      )}
+                      <label className="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" className="sr-only peer" checked={sectionEnabled[type]} onChange={() => toggleSection(type)} />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-orange-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-orange-500" />
+                      </label>
                     </div>
                     <div className="space-y-4 pt-4 border-t border-gray-100">
-                      <div className={`flex items-center justify-between p-4 bg-${cardColor}-50 rounded-xl border border-${cardColor}-100 transition-opacity duration-300 ${enabled ? 'opacity-100' : 'opacity-40 grayscale pointer-events-none'}`}>
+                      <div className={`flex items-center justify-between p-4 bg-${cardColor}-50 rounded-xl border border-${cardColor}-100 transition-opacity duration-300 ${sectionEnabled[type] ? 'opacity-100' : 'opacity-40 grayscale pointer-events-none'}`}>
                         <div>
                           <p className="text-sm font-semibold text-gray-800">{label}</p>
                           <p className="text-xs text-gray-500">{sublabel}</p>

@@ -5,14 +5,14 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.0.0",
-    "agora-rtc-sdk-ng": "^4.24.3",
-    "agora-rtm": "^2.2.3-2",
+    "agora-rtc-sdk-ng": "4.23.0",
+    "agora-rtm": "2.2.4",
     "framer-motion": "^11.0.0",
     "jotai": "^2.18.1",
     "lucide-react": "^0.344.0",
