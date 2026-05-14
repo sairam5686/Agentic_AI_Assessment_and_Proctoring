@@ -9,7 +9,7 @@
  *   - Agora RTC (Real-Time Communication) — proctor's own camera feed
  *   - UI theme switching (blue / black / white)
  *
- * Backend Base URL: http://localhost:8000  (FastAPI)
+ * Backend Base URL: https://agenticaiassessmentandproctoring-production.up.railway.app (FastAPI)
  */
 import { create } from 'zustand';
 import axios from 'axios';
@@ -17,9 +17,7 @@ import AgoraRTM, { RTMClient } from 'agora-rtm';
 import AgoraRTC, { IAgoraRTCClient, ILocalVideoTrack } from 'agora-rtc-sdk-ng';
 import { AGORA_CONFIG } from '../Config/AgoraConfig';
 
-const API_BASE_URL = window.location.hostname === 'localhost' 
-    ? 'http://localhost:8000' 
-    : `http://${window.location.hostname}:8000`;
+const API_BASE_URL = 'https://agenticaiassessmentandproctoring-production.up.railway.app';
 
 /** A single violation/flag event recorded for a candidate during the exam. */
 export interface CandidateFlag {
