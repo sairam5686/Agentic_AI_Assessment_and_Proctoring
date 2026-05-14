@@ -1,4 +1,5 @@
 import { motion, useMotionValue, useSpring, useTransform, MotionValue } from 'framer-motion';
+import { useNavigate } from 'react-router';
 
 interface FloatingIconProps {
   top: string;
@@ -53,6 +54,7 @@ const FloatingIcon = ({ top, left, delay, duration = 4, depth = 20, mouseX, mous
 };
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   // Motion values for tracking mouse position
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
@@ -175,7 +177,10 @@ const Dashboard = () => {
           {/* CTAs */}
           <div className="flex gap-[10px] items-center">
 
-            <button className="px-[26px] py-[14px] rounded-full   bg-[#151C28] text-[#02F576] hover:bg-white text-[15px] font-semibold border-[1.5px] border-[#ddd] cursor-pointer inline-flex items-center gap-[6px] transition-colors duration-150 hover:border-[#aaa]">
+            <button 
+              onClick={() => navigate('/test-creater')}
+              className="px-[26px] py-[14px] rounded-full   bg-[#151C28] text-[#02F576] hover:bg-white text-[15px] font-semibold border-[1.5px] border-[#ddd] cursor-pointer inline-flex items-center gap-[6px] transition-colors duration-150 hover:border-[#aaa]"
+            >
               Get Started <span>→</span>
             </button>
           </div>
