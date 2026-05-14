@@ -768,20 +768,30 @@ export const PipePuzzle: React.FC = () => {
         return () => document.removeEventListener('fullscreenchange', handleFsChange);
     }, []);
 
-    const handleFinishAssessment = async () => {
+    const handleMoveNext = useCallback(() => {
         setSaving(true);
         const email = localStorage.getItem('candidate_email') || '';
         const user_name = localStorage.getItem('candidate_name') || '';
-        const a_id = localStorage.getItem('assessment_id') || '';
+        const assessment_id = localStorage.getItem('assessment_id') || '';
 
-        try {
-            await api.saveResults(email, user_name, a_id, results);
-        } catch (e) {
-            console.error(e);
-        }
+        api.saveResults(email, user_name, assessment_id, results).finally(() => {
+            const enabledSectionsRaw = localStorage.getItem('enabled_sections');
+            if (enabledSectionsRaw) {
+              const enabledSections = JSON.parse(enabledSectionsRaw);
+              const currentIdx = enabledSections.findIndex((s: any) => s.key === 'pipe-puzzle');
+              
+              if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
+                const nextSection = enabledSections[currentIdx + 1];
+                navigate(`/section/${nextSection.key}`, { state: { ...assessmentData } });
+                return;
+              }
+            }
+            navigate('/submission');
+        });
+    }, [results, navigate, assessmentData]);
 
-        localStorage.setItem('gaming_completed', 'true');
-        navigate('/guiding-page', { state: { ...assessmentData, nextSection: 'Finish' } });
+    const handleFinishAssessment = async () => {
+        handleMoveNext();
     };
 
     const handleLevelComplete = useCallback((success: boolean, stats: LevelStats) => {
@@ -796,28 +806,6 @@ export const PipePuzzle: React.FC = () => {
         });
         if (currentLevel < dynamicLevels.length - 1) setCurrentLevel(prev => prev + 1);
     }, [currentLevel, dynamicLevels.length]);
-
-    const handleMoveNext = useCallback(() => {
-        setSaving(true);
-        const email = localStorage.getItem('candidate_email') || '';
-        const user_name = localStorage.getItem('candidate_name') || '';
-        const assessment_id = localStorage.getItem('assessment_id') || '';
-
-        api.saveResults(email, user_name, assessment_id, results).finally(() => {
-            const enabledSectionsRaw = localStorage.getItem('enabled_sections');
-            if (enabledSectionsRaw) {
-              const enabledSections = JSON.parse(enabledSectionsRaw);
-              const currentIdx = enabledSections.findIndex((s: any) => s.key === 'gaming');
-              
-              if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
-                const nextSection = enabledSections[currentIdx + 1];
-                navigate('/guiding-page', { state: { ...assessmentData, nextSection: nextSection.label } });
-                return;
-              }
-            }
-            navigate('/guiding-page', { state: { ...assessmentData, nextSection: 'Finish' } });
-        });
-    }, [results, navigate, assessmentData]);
 
     if (step === 'RESULTS') {
         const roundsCompleted = results.filter(r => r.success).length;

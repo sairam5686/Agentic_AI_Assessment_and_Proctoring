@@ -469,11 +469,11 @@ const DiagramSection = () => {
       
       if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
         const nextSection = enabledSections[currentIdx + 1];
-        navigate('/guiding-page', { state: { ...assessmentState, nextSection: nextSection.label } });
+        navigate(`/section/${nextSection.key}`, { state: { ...assessmentState } });
         return;
       }
     }
-    navigate('/guiding-page', { state: { ...assessmentState, nextSection: 'Finish' } });
+    navigate('/submission');
   };
 
   // ── Submit ────────────────────────────────────────────────────────────────

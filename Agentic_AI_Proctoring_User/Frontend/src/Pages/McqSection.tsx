@@ -182,16 +182,16 @@ const McqSection = () => {
       
       if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
         const nextSection = enabledSections[currentIdx + 1];
-        navigate('/guiding-page', { state: { ...state, nextSection: nextSection.label } });
+        navigate(`/section/${nextSection.key}`, { state: { ...state } });
         return;
       }
     }
-    navigate('/guiding-page', { state: { ...state, nextSection: 'Finish' } });
+    navigate('/submission');
   }
 
   const handleFinishAssessment = async () => {
     await handleSubmit();
-    navigate('/guiding-page', { state: { ...state, nextSection: 'Finish' } });
+    handleNextFlow();
   }
 
   const timerColor =

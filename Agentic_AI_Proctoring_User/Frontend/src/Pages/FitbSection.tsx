@@ -186,13 +186,13 @@ const FitbSection = () => {
       if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
         // Move to next section
         const nextSection = enabledSections[currentIdx + 1];
-        navigate('/guiding-page', { state: { ...assessmentState, nextSection: nextSection.label } });
+        navigate(`/section/${nextSection.key}`, { state: { ...assessmentState } });
         return;
       }
     }
     
     // If last section or not found, go to submission
-    navigate('/guiding-page', { state: { ...assessmentState, nextSection: 'Finish' } });
+    navigate('/submission');
   }
 
   const renderQuestionText = (q: any) => {

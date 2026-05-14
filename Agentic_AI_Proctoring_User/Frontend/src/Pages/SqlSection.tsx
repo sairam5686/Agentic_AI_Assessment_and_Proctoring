@@ -364,11 +364,11 @@ const SqlSection = () => {
                                   
                                   if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
                                     const nextSection = enabledSections[currentIdx + 1];
-                                    navigate('/guiding-page', { state: { ...assessmentState, nextSection: nextSection.label } });
+                                    navigate(`/section/${nextSection.key}`, { state: { ...assessmentState } });
                                     return;
                                   }
                                 }
-                                navigate('/guiding-page', { state: { ...assessmentState, nextSection: 'Finish' } });
+                                navigate('/submission');
                             }}
                             className="w-full py-4 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 active:scale-95 transition-all duration-150 cursor-pointer uppercase tracking-wide"
                         >
@@ -943,11 +943,11 @@ const SqlSection = () => {
                                       
                                       if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
                                         const nextSection = enabledSections[currentIdx + 1];
-                                        navigate('/guiding-page', { state: { ...assessmentState, nextSection: nextSection.label } });
+                                        navigate(`/section/${nextSection.key}`, { state: { ...assessmentState } });
                                         return;
                                       }
                                     }
-                                    navigate('/guiding-page', { state: { ...assessmentState, nextSection: 'Finish' } });
+                                    navigate('/submission');
                                 }}
                                 className="flex-1 py-3 bg-red-600 text-white text-sm font-bold rounded-xl hover:bg-red-700 active:scale-95 transition-all cursor-pointer uppercase tracking-wide shadow-md"
                             >
