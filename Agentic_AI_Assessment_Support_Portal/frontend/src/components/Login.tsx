@@ -14,7 +14,7 @@ const Login: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.post('http://localhost:8003/login', {
+      const response = await axios.post(`${import.meta.env.VITE_API_SUPPORT__URL}/login`, {
         email,
         assessment_id: assessmentId
       });
@@ -41,35 +41,35 @@ const Login: React.FC = () => {
       </div>
       <h2>Candidate Login</h2>
       <p className="subtitle">Enter your credentials to access the support portal</p>
-      
+
       <form onSubmit={handleLogin}>
         <div className="form-group">
           <label>Email Address</label>
-          <input 
-            type="email" 
-            value={email} 
-            onChange={(e) => setEmail(e.target.value)} 
-            required 
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
             placeholder="e.g. candidate@example.com"
           />
         </div>
         <div className="form-group">
           <label>Assessment ID</label>
-          <input 
-            type="text" 
-            value={assessmentId} 
-            onChange={(e) => setAssessmentId(e.target.value)} 
-            required 
+          <input
+            type="text"
+            value={assessmentId}
+            onChange={(e) => setAssessmentId(e.target.value)}
+            required
             placeholder="Enter your assessment ID"
           />
         </div>
-        
+
         {error && (
           <div className="error">
             <span>⚠️</span> {error}
           </div>
         )}
-        
+
         <button type="submit" disabled={loading} style={{ marginTop: '1rem' }}>
           {loading ? 'Verifying...' : 'Proceed'}
         </button>

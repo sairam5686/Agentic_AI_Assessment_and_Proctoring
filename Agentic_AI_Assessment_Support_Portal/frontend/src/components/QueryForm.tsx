@@ -7,7 +7,7 @@ const QueryForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const navigate = useNavigate();
-  
+
   const email = localStorage.getItem('user_email');
   const assessmentId = localStorage.getItem('assessment_id');
 
@@ -22,7 +22,7 @@ const QueryForm: React.FC = () => {
     setLoading(true);
     setError('');
     try {
-      const response = await axios.post('http://localhost:8003/submit-query', {
+      const response = await axios.post(`${import.meta.env.VITE_API_SUPPORT__URL}/submit-query`, {
         email,
         assessment_id: assessmentId,
         query
@@ -48,25 +48,25 @@ const QueryForm: React.FC = () => {
       </div>
       <h2>Submit Your Query</h2>
       <p className="subtitle">Raising query for Assessment: {assessmentId}</p>
-      
+
       <form onSubmit={handleSubmit}>
         <div className="form-group">
           <label>Detailed Query</label>
-          <textarea 
-            value={query} 
-            onChange={(e) => setQuery(e.target.value)} 
-            required 
+          <textarea
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            required
             rows={5}
             placeholder="Describe your query or reason for appeal here..."
           />
         </div>
-        
+
         {error && (
           <div className="error">
             <span>⚠️</span> {error}
           </div>
         )}
-        
+
         <button type="submit" disabled={loading} style={{ marginTop: '1rem' }}>
           {loading ? 'Submitting...' : 'Submit Query'}
         </button>
