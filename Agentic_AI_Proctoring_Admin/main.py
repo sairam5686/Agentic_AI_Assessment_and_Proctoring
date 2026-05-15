@@ -405,7 +405,8 @@ async def initiate_test(request: Request, assessment_id: str = Form(...)):
     is_university = "university" in raw_category
     
     for candidate in candidates:
-        link = "http://localhost:5173/"
+        link = os.getenv("ASSESSMENT_URL")
+
         
         if is_university:
             # UNIVERSITY EXAM EMAIL

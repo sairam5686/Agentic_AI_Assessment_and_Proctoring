@@ -9,8 +9,9 @@ BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 SENDER_EMAIL = os.getenv("SENDER_EMAIL") # Your verified Gmail address in Brevo
 FROM_NAME = os.getenv("FROM_NAME", "TEAM_TITANS")
 
-# Support portal link
-CANDIDATE_SUPPORT_URL = os.getenv("VITE_CANDIDATE_PORTAL_URL", "http://localhost:5173")
+# Support portal and Mobile App links
+CANDIDATE_SUPPORT_URL = os.getenv("SUPPORT_PORTAL_URL")
+MOBILE_APP_URL = os.getenv("MOBILE_APP_URL")
 
 BREVO_URL = "https://api.brevo.com/v3/smtp/email"
 
@@ -74,6 +75,23 @@ def send_assessment_mail(to_email, candidate_name, assessment_title, assessment_
 
     Important: Please use the same device and browser for the entire assessment. In case of a system crash or restart, you can only resume your progress on the same device.
     
+    --------------------------------------------------
+    📲 MOBILE PROCTORING SETUP (MANDATORY)
+    --------------------------------------------------
+    This assessment requires secondary monitoring via your mobile device. Please complete these steps BEFORE starting:
+    
+    1. Download & Install: Download the Proctoring App here:
+       {MOBILE_APP_URL}
+    
+    2. Permissions: Open the app and allow "Camera" permissions.
+    
+    3. Connectivity: Ensure both your Laptop and Mobile are connected to the SAME WiFi/Network.
+    
+    4. Placement: Position your mobile device in LANDSCAPE view (horizontal) to your side. It must have a clear view of you and your workspace.
+    
+    5. Pairing: Once you login to the assessment on your laptop, use the mobile app to scan the QR code or enter the session ID to begin monitoring.
+    --------------------------------------------------
+
     Candidate Support:
     If you have any queries regarding the assessment or if you are not satisfied with your results, you can reach out to us through our Candidate Support Portal:
     {CANDIDATE_SUPPORT_URL}
@@ -105,6 +123,23 @@ def send_university_assessment_mail(to_email, candidate_name, registration_numbe
 
     Important: Please use the same device and browser for the entire assessment. In case of a system crash or restart, you can only resume your progress on the same device.
     
+    --------------------------------------------------
+    📲 MOBILE PROCTORING SETUP (MANDATORY)
+    --------------------------------------------------
+    This exam requires secondary monitoring via your mobile device. Please complete these steps BEFORE starting:
+    
+    1. Download & Install: Download the Proctoring App here:
+       {MOBILE_APP_URL}
+    
+    2. Permissions: Open the app and allow "Camera" and "Microphone" permissions.
+    
+    3. Connectivity: Ensure both your Laptop and Mobile are connected to the SAME WiFi/Network.
+    
+    4. Placement: Position your mobile device in LANDSCAPE view (horizontal) to your side. It must have a clear view of you and your workspace.
+    
+    5. Pairing: Once you login to the exam on your laptop, use the mobile app to scan the QR code or enter the session ID to begin monitoring.
+    --------------------------------------------------
+
     Candidate Support:
     If you have any queries regarding the assessment or if you are not satisfied with your results, you can reach out to us through our Candidate Support Portal:
     {CANDIDATE_SUPPORT_URL}
