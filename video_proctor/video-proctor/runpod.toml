@@ -1,0 +1,56 @@
+# Runpod Project Configuration
+
+name = "video-proctor"
+
+[project]
+uuid = "4bce2b4d"
+base_image = "runpod/base:0.6.1-cuda12.1.0"
+gpu_types = ["NVIDIA GeForce RTX 3090"]
+gpu_count = 1
+volume_mount_path = "/runpod-volume"
+ports = "4040/http, 7270/http, 22/tcp"
+container_disk_size_gb = 100
+
+[project.env_vars]
+POD_INACTIVITY_TIMEOUT = "120"
+RUNPOD_DEBUG_LEVEL = "debug"
+UVICORN_LOG_LEVEL = "warning"
+
+# --- MongoDB Connection URIs ---
+MONGODB_URI_ASSESSMENT = "mongodb+srv://vimalrajproff_db_user:n1PjGX1jlFp8gUoA@aaaps.q8uuhtj.mongodb.net/?appName=AAAPS"
+MONGODB_URI_CANDIDATE = "mongodb+srv://vimalrajproff_db_user:n1PjGX1jlFp8gUoA@aaaps.q8uuhtj.mongodb.net/?appName=AAAPS"
+MONGODB_URI_PROCTORING = "mongodb+srv://vishravi135_db_user:Eg0ezYOCAZ6cGV7S@ai.6axnjyd.mongodb.net/?appName=AI"
+
+# --- AI & Cloud Services ---
+GEMINI_API_KEY = "AIzaSyDvEHyN_qEPu0Pyfv19gZ7dayNwpPlaGaQ"
+
+# Cloudinary - Laptop Webcam
+CLOUDINARY_LAPTOP_CLOUD_NAME = "dawfv3niz"
+CLOUDINARY_LAPTOP_API_KEY = "157863996192225"
+CLOUDINARY_LAPTOP_API_SECRET = "VJ31Rf2Zn0-D_JtEapaA_56Og7I"
+
+# Cloudinary - Mobile Cam
+CLOUDINARY_MOBILE_CLOUD_NAME = "dmpuhpff9"
+CLOUDINARY_MOBILE_API_KEY = "976445848862441"
+CLOUDINARY_MOBILE_API_SECRET = "-wSLlmnYYdshwLQMnwtyjISWSJ8"
+
+# --- Agora Credentials ---
+AGORA_APP_ID = "81046807a7844e549be400e41013e7bf"
+AGORA_APP_CERTIFICATE = "e5454651ae2b40b5918656fd67e63c83"
+
+# --- Email Configuration (SMTP) ---
+SMTP_HOST = "smtp.gmail.com"
+SMTP_PORT = "587"
+SMTP_USER = "humanproctor@gmail.com"
+SMTP_PASS = "ccxiekylfpcedlyb"
+FROM_NAME = "TEAM_TITANS"
+
+[endpoint]
+active_workers = 0
+max_workers = 3
+flashboot = true
+
+[runtime]
+python_version = "3.10"
+handler_path = "src/handler.py"
+requirements_path = "builder/requirements.txt"
