@@ -25,7 +25,7 @@ const ViewTest = () => {
   const handleDeleteConfirm = async () => {
     if (!deletingAssessment) return;
     try {
-      const res = await fetch(`http://localhost:8000/delete-test/${deletingAssessment.test_id}`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/delete-test/${deletingAssessment.test_id}`, {
         method: 'DELETE',
       });
 
@@ -45,7 +45,7 @@ const ViewTest = () => {
 
   const fetcher = async () => {
     try {
-      const res = await fetch("http://localhost:8000/admin/MexicanMonster/tests");
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/MexicanMonster/tests`);
       const data = await res.json();
       setTestArray(data);
     } catch (error) {
@@ -75,7 +75,7 @@ const ViewTest = () => {
     <div className="min-h-screen bg-[#F9FAFB] font-sans">
       <NavBar />
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-6 py-8 pt-24">
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
           <div>
@@ -147,7 +147,7 @@ const ViewTest = () => {
                             <p className="text-sm font-semibold text-gray-900">{test.test_title}</p>
                             <div className="flex items-center gap-1.5 text-[11px] text-gray-400 mt-0.5">
                               <LinkIcon size={12} />
-                              <span className="truncate max-w-[150px]">http://localhost:5173/assessment/{test.test_id}</span>
+                              <span className="truncate max-w-[150px]">{import.meta.env.VITE_CANDIDATE_PORTAL_URL}/assessment/{test.test_id}</span>
                             </div>
                           </div>
                         </div>
@@ -231,11 +231,6 @@ const ViewTest = () => {
           </div>
         </div>
 
-        {/* Footer Info */}
-        <div className="mt-6 flex items-center justify-between text-[10px] text-gray-400 font-bold uppercase tracking-[0.2em] px-2">
-          <p>Total Deployed: {filteredTests.length}</p>
-          <p>Virtusa Assessment Protocol v2.4</p>
-        </div>
       </div>
 
       {/* ── Delete Confirmation Modal ── */}

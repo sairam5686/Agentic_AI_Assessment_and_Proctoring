@@ -704,6 +704,95 @@ export const PipePuzzle: React.FC = () => {
     const [currentLevel, setCurrentLevel] = useState(0);
     const [results, setResults] = useState<LevelResult[]>([]);
     const [saving, setSaving] = useState(false);
+    const [showFinishConfirm, setShowFinishConfirm] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
+    const [showUserInfo, setShowUserInfo] = useState(false);
+    const [lastSaved, setLastSaved] = useState<number>(Date.now());
+    const [timeAgo, setTimeAgo] = useState("just now");
+
+    const assessment_id = assessmentData?.assessment_id || localStorage.getItem("assessment_id") || "default";
+    
+    const [timeLeft, setTimeLeft] = useState<number>(() => {
+        const saved = localStorage.getItem(`pipe_time_${assessment_id}`);
+        if (saved) return parseInt(saved);
+        return 600; // Default 10 mins for game
+    });
+
+    useEffect(() => {
+        if (timeLeft > 0 && step === 'GAME') {
+            localStorage.setItem(`pipe_time_${assessment_id}`, timeLeft.toString());
+        }
+    }, [timeLeft, assessment_id, step]);
+
+    useEffect(() => {
+        if (step !== 'GAME' || timeLeft <= 0) return;
+        const interval = setInterval(() => {
+            setTimeLeft((t) => {
+                if (t <= 1) { clearInterval(interval); return 0; }
+                return t - 1;
+            });
+        }, 1000);
+        return () => clearInterval(interval);
+    }, [step, timeLeft]);
+
+    useEffect(() => {
+        const interval = setInterval(() => {
+            const diff = Math.floor((Date.now() - lastSaved) / 1000);
+            if (diff < 5) setTimeAgo("just now");
+            else if (diff < 60) setTimeAgo(`${diff} seconds ago`);
+            else setTimeAgo(`${Math.floor(diff / 60)} minutes ago`);
+        }, 5000);
+        return () => clearInterval(interval);
+    }, [lastSaved]);
+
+    const formatTime = (seconds: number) => {
+        const h = Math.floor(seconds / 3600);
+        const m = Math.floor((seconds % 3600) / 60);
+        const s = seconds % 60;
+        return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    };
+
+    const timerColor = timeLeft < 60 ? 'text-red-500' : timeLeft < 300 ? 'text-amber-500' : 'text-gray-800';
+
+    const toggleFullscreen = () => {
+        if (!document.fullscreenElement) {
+            document.documentElement.requestFullscreen().catch(err => console.error(err));
+        } else {
+            document.exitFullscreen();
+        }
+    };
+
+    useEffect(() => {
+        const handleFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+        document.addEventListener('fullscreenchange', handleFsChange);
+        return () => document.removeEventListener('fullscreenchange', handleFsChange);
+    }, []);
+
+    const handleMoveNext = useCallback(() => {
+        setSaving(true);
+        const email = localStorage.getItem('candidate_email') || '';
+        const user_name = localStorage.getItem('candidate_name') || '';
+        const assessment_id = localStorage.getItem('assessment_id') || '';
+
+        api.saveResults(email, user_name, assessment_id, results).finally(() => {
+            const enabledSectionsRaw = localStorage.getItem('enabled_sections');
+            if (enabledSectionsRaw) {
+              const enabledSections = JSON.parse(enabledSectionsRaw);
+              const currentIdx = enabledSections.findIndex((s: any) => s.key === 'pipe-puzzle');
+              
+              if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
+                const nextSection = enabledSections[currentIdx + 1];
+                navigate(`/section/${nextSection.key}`, { state: { ...assessmentData } });
+                return;
+              }
+            }
+            navigate('/submission');
+        });
+    }, [results, navigate, assessmentData]);
+
+    const handleFinishAssessment = async () => {
+        handleMoveNext();
+    };
 
     const handleLevelComplete = useCallback((success: boolean, stats: LevelStats) => {
         setResults(prev => {
@@ -718,24 +807,40 @@ export const PipePuzzle: React.FC = () => {
         if (currentLevel < dynamicLevels.length - 1) setCurrentLevel(prev => prev + 1);
     }, [currentLevel, dynamicLevels.length]);
 
-    const handleMoveNext = useCallback(() => {
-        setSaving(true);
-        const email = localStorage.getItem('candidate_email') || '';
-        const user_name = localStorage.getItem('candidate_name') || '';
-        const assessment_id = localStorage.getItem('assessment_id') || '';
-
-        api.saveResults(email, user_name, assessment_id, results).finally(() => {
-            navigate('/section/mcq', { state: assessmentData });
-        });
-    }, [results, navigate, assessmentData]);
-
     if (step === 'RESULTS') {
         const roundsCompleted = results.filter(r => r.success).length;
         return (
-            <div style={{ minHeight: '100vh', background: '#f3f4f6', display: 'flex', flexDirection: 'column' }}>
-                {/* Virtusa topbar */}
-                <header style={{ background: '#fff', borderBottom: '1px solid #e5e7eb', padding: '10px 24px', flexShrink: 0 }}>
-                    <img src="/virtusa-logo.svg" alt="Virtusa" style={{ height: '32px', display: 'block' }} />
+            <div className="flex flex-col min-h-screen bg-gray-50">
+                {/* ── Top Nav ── */}
+                <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+                  <div className="max-w-[1600px] mx-auto px-6 py-2.5 flex items-center justify-between">
+                    
+                    {/* Left: Logo & Assessment Info */}
+                    <div className="flex items-center gap-8">
+                      <img src="/virtusa-logo.svg" alt="Virtusa" className="h-8 w-auto" />
+                      <div className="h-10 w-px bg-gray-200" />
+                      <div className="flex items-center gap-6">
+                        <div className="flex flex-col">
+                          <h1 className="text-base font-bold text-gray-900 leading-tight">
+                            Simulation Assessment
+                          </h1>
+                          <p className="text-[12px] font-bold text-gray-500 uppercase tracking-widest">
+                            {localStorage.getItem("candidate_name") || "Candidate"}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right: Controls */}
+                    <div className="flex items-center gap-6">
+                       <button
+                          onClick={() => setShowFinishConfirm(true)}
+                          className="px-5 py-2 bg-[#E31B23] text-white text-xs font-bold rounded-lg hover:bg-[#c4151c] shadow-sm transition-all active:scale-95 uppercase tracking-wide"
+                        >
+                          Finish Assessment
+                        </button>
+                    </div>
+                  </div>
                 </header>
 
                 {/* Completion card */}
@@ -769,15 +874,9 @@ export const PipePuzzle: React.FC = () => {
                         <button
                             onClick={handleMoveNext}
                             disabled={saving}
-                            style={{
-                                width: '100%', padding: '0.875rem',
-                                background: saving ? '#374151' : '#111827',
-                                color: '#fff', border: 'none', borderRadius: '10px',
-                                fontSize: '0.875rem', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer',
-                                transition: 'background 0.15s',
-                            }}
+                            className="w-full py-4 bg-gray-900 text-white text-sm font-bold rounded-2xl hover:bg-gray-800 transition-all active:scale-95 shadow-lg shadow-gray-200 cursor-pointer disabled:opacity-50 uppercase tracking-wide"
                         >
-                            {saving ? 'Saving…' : 'Move to Next Section →'}
+                            {saving ? 'Saving…' : 'Continue to next step →'}
                         </button>
                     </div>
                 </div>
@@ -786,14 +885,119 @@ export const PipePuzzle: React.FC = () => {
     }
 
     return (
-        <PathfinderGame
-            key={currentLevel}
-            rows={dynamicLevels[currentLevel].rows}
-            cols={dynamicLevels[currentLevel].cols}
-            currentLevel={currentLevel + 1}
-            totalLevels={dynamicLevels.length}
-            onComplete={handleLevelComplete}
-        />
+        <div className="flex flex-col min-h-screen bg-[#f3f4f6]">
+            {/* ── Top Nav ── */}
+            <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
+              <div className="max-w-[1600px] mx-auto px-6 py-2.5 flex items-center justify-between">
+                
+                {/* Left: Logo & Assessment Info */}
+                <div className="flex items-center gap-8">
+                  <img src="/virtusa-logo.svg" alt="Virtusa" className="h-8 w-auto" />
+                  <div className="h-10 w-px bg-gray-200" />
+                  <div className="flex items-center gap-6">
+                    <div className="flex flex-col">
+                      <h1 className="text-base font-bold text-gray-900 leading-tight">
+                        Simulation Assessment
+                      </h1>
+                      <p className="text-[12px] font-bold text-gray-500 uppercase tracking-widest">
+                        {localStorage.getItem("candidate_name") || "Candidate"}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-50 rounded-full border border-gray-100">
+                      <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                      <span className="text-[11px] font-bold text-gray-500 italic uppercase tracking-wider">
+                        Live Simulation
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right: Timer & Global Controls */}
+                <div className="flex items-center gap-6">
+                  <div className="flex flex-col items-center">
+                    <p className={`text-lg font-bold tabular-nums tracking-tight ${timerColor}`}>
+                      {formatTime(timeLeft)}
+                    </p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest -mt-1">Session Time</p>
+                  </div>
+
+                  <div className="h-8 w-px bg-gray-200" />
+
+                  <div className="flex items-center gap-3">
+                    <button 
+                      onClick={toggleFullscreen}
+                      className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors border border-transparent hover:border-gray-200"
+                      title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
+                    >
+                      {isFullscreen ? (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3v3a2 2 0 0 1-2 2H3m18 0h-3a2 2 0 0 1-2-2V3m0 18v-3a2 2 0 0 1 2-2h3M3 16h3a2 2 0 0 1 2 2v3"/></svg>
+                      ) : (
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/></svg>
+                      )}
+                    </button>
+
+                    <div className="relative">
+                      <button 
+                        onClick={() => setShowUserInfo(!showUserInfo)}
+                        className="p-2 text-gray-400 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-colors border border-transparent hover:border-gray-200"
+                        title="Candidate Info"
+                      >
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                      </button>
+
+                      {showUserInfo && (
+                        <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-xl shadow-xl p-4 z-[100] animate-in fade-in zoom-in duration-200">
+                          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">Candidate Details</p>
+                          <div className="space-y-3">
+                            <div>
+                              <p className="text-[10px] text-gray-400 uppercase font-semibold">Name</p>
+                              <p className="text-xs font-bold text-gray-800">{localStorage.getItem("candidate_name")}</p>
+                            </div>
+                            <div>
+                              <p className="text-[10px] text-gray-400 uppercase font-semibold">Email</p>
+                              <p className="text-xs font-bold text-gray-800">{localStorage.getItem("candidate_email")}</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => setShowFinishConfirm(true)}
+                      className="px-5 py-2 bg-[#E31B23] text-white text-xs font-bold rounded-lg hover:bg-[#c4151c] shadow-sm transition-all active:scale-95 uppercase tracking-wide"
+                    >
+                      Finish Assessment
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </header>
+
+            <div className="flex-1 relative overflow-hidden">
+                <PathfinderGame
+                    key={currentLevel}
+                    rows={dynamicLevels[currentLevel].rows}
+                    cols={dynamicLevels[currentLevel].cols}
+                    currentLevel={currentLevel + 1}
+                    totalLevels={dynamicLevels.length}
+                    onComplete={handleLevelComplete}
+                />
+            </div>
+
+            {showFinishConfirm && (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[100] px-6">
+                    <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl border border-gray-100">
+                        <h3 className="text-xl font-bold text-gray-900 text-center mb-2">Finish Assessment?</h3>
+                        <p className="text-sm text-gray-500 text-center mb-6">Are you sure you want to end the assessment now? Your progress will be saved.</p>
+                        <div className="flex gap-3">
+                            <button onClick={() => setShowFinishConfirm(false)} className="flex-1 py-3 border border-gray-200 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-50 transition-all cursor-pointer">No, Continue</button>
+                            <button onClick={handleFinishAssessment} className="flex-1 py-3 bg-red-600 text-white text-sm font-bold rounded-xl hover:bg-red-700 active:scale-95 transition-all cursor-pointer shadow-md uppercase tracking-wide">Yes, Finish</button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
     );
 };
 

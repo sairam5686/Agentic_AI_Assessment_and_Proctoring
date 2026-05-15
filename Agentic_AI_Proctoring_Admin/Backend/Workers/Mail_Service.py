@@ -1,140 +1,157 @@
 import os
 from dotenv import load_dotenv
-import smtplib
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+import httpx
 
 load_dotenv()
 
-SMTP_HOST = os.getenv("SMTP_HOST", "smtp.gmail.com")
-SMTP_PORT = int(os.getenv("SMTP_PORT", 587))
-SMTP_USER = os.getenv("SMTP_USER")
-SMTP_PASS = os.getenv("SMTP_PASS")
+# Configuration
+BREVO_API_KEY = os.getenv("BREVO_API_KEY")
+SENDER_EMAIL = os.getenv("SENDER_EMAIL") # Your verified Gmail address in Brevo
 FROM_NAME = os.getenv("FROM_NAME", "TEAM_TITANS")
 
+# Support portal link
+CANDIDATE_SUPPORT_URL = os.getenv("VITE_CANDIDATE_PORTAL_URL", "http://localhost:5173")
 
+BREVO_URL = "https://api.brevo.com/v3/smtp/email"
+
+def send_mail_via_brevo(to_email, subject, body, attachment_content=None, attachment_name=None):
+    if not BREVO_API_KEY or not SENDER_EMAIL:
+        print("Brevo API Key or Sender Email missing in environment variables.")
+        return False
+
+    headers = {
+        "accept": "application/json",
+        "api-key": BREVO_API_KEY,
+        "content-type": "application/json"
+    }
+
+    payload = {
+        "sender": {"name": FROM_NAME, "email": SENDER_EMAIL},
+        "to": [{"email": to_email}],
+        "subject": subject,
+        "textContent": body
+    }
+
+    if attachment_content and attachment_name:
+        payload["attachment"] = [
+            {
+                "content": attachment_content,
+                "name": attachment_name
+            }
+        ]
+
+    try:
+        with httpx.Client() as client:
+            response = client.post(BREVO_URL, headers=headers, json=payload)
+            if response.status_code in [201, 200, 202]:
+                return True
+            else:
+                print(f"Brevo API error: {response.status_code} - {response.text}")
+                return False
+    except Exception as e:
+        print(f"Failed to send email to {to_email} via Brevo: {e}")
+        return False
 
 def send_assessment_mail(to_email, candidate_name, assessment_title, assessment_id, assessment_link, valid_from, valid_to):
-    try:
-        msg = MIMEMultipart()
-        msg['From'] = f"{FROM_NAME} <{SMTP_USER}>"
-        msg['To'] = to_email
-        msg['Subject'] = f"Invitation to Assessment: {assessment_title}"
+    subject = f"Invitation to Assessment: {assessment_title}"
+    body = f"""
+    Hi {candidate_name},
 
-        body = f"""
-        Hi {candidate_name},
+    You have been invited to participate in the assessment: {assessment_title}.
 
-        You have been invited to participate in the assessment: {assessment_title}.
-
-        Your Login Credentials:
-            - Registered Email: {to_email}
-            - Assessment ID / Password: {assessment_id}
+    Your Login Credentials:
+        - Registered Email: {to_email}
+        - Assessment ID / Password: {assessment_id}
 
 
-        Please click the link below to access the assessment portal and use both your registered email and the assessment ID provided above to login:
-        {assessment_link}
+    Please click the link below to access the assessment portal and use both your registered email and the assessment ID provided above to login:
+    {assessment_link}
 
 
-        Eligibility Window:
-        The assessment will be accessible from {valid_from} and must be completed by {valid_to}. 
-        Please ensure you start your test within this professional window.
+    Eligibility Window:
+    The assessment will be accessible from {valid_from} and must be completed by {valid_to}. 
+    Please ensure you start your test within this professional window.
 
-        Important: Please use the same device and browser for the entire assessment. In case of a system crash or restart, you can only resume your progress on the same device.
-        
-        Candidate Support:
-        If you have any queries regarding the assessment or if you are not satisfied with your results, you can reach out to us through our Candidate Support Portal:
-        http://localhost:5173
+    Important: Please use the same device and browser for the entire assessment. In case of a system crash or restart, you can only resume your progress on the same device.
+    
+    Candidate Support:
+    If you have any queries regarding the assessment or if you are not satisfied with your results, you can reach out to us through our Candidate Support Portal:
+    {CANDIDATE_SUPPORT_URL}
 
-        Best regards,
-        {FROM_NAME} Team
-        """
-        msg.attach(MIMEText(body, 'plain'))
-
-        server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
-        server.starttls()
-        server.login(SMTP_USER, SMTP_PASS)
-        server.send_message(msg)
-        server.quit()
-        return True
-    except Exception as e:
-        print(f"Failed to send email to {to_email}: {e}")
-        return False
+    Best regards,
+    {FROM_NAME} Team
+    """
+    return send_mail_via_brevo(to_email, subject, body)
 
 def send_university_assessment_mail(to_email, candidate_name, registration_number, assessment_title, assessment_id, assessment_link, valid_from, valid_to):
-    try:
-        msg = MIMEMultipart()
-        msg['From'] = f"{FROM_NAME} <{SMTP_USER}>"
-        msg['To'] = to_email
-        msg['Subject'] = f"Invitation to University Exam: {assessment_title}"
+    subject = f"Invitation to University Exam: {assessment_title}"
+    body = f"""
+    Hi {candidate_name},
 
-        body = f"""
-        Hi {candidate_name},
+    You have been invited to participate in the University Exam: {assessment_title}.
 
-        You have been invited to participate in the University Exam: {assessment_title}.
-
-        Your Login Credentials:
-            - Registered Email: {to_email}
-            - Assessment ID / Password: {assessment_id}
+    Your Login Credentials:
+        - Registered Email: {to_email}
+        - Assessment ID / Password: {assessment_id}
 
 
-        Please click the link below to access the assessment portal and use both your registered email and the assessment ID provided above to login:
-        {assessment_link}
+    Please click the link below to access the assessment portal and use both your registered email and the assessment ID provided above to login:
+    {assessment_link}
 
 
-        Eligibility Window:
-        The assessment will be accessible from {valid_from} and must be completed by {valid_to}. 
-        Please ensure you start your test within this professional window.
+    Eligibility Window:
+    The assessment will be accessible from {valid_from} and must be completed by {valid_to}. 
+    Please ensure you start your test within this professional window.
 
-        Important: Please use the same device and browser for the entire assessment. In case of a system crash or restart, you can only resume your progress on the same device.
-        
-        Candidate Support:
-        If you have any queries regarding the assessment or if you are not satisfied with your results, you can reach out to us through our Candidate Support Portal:
-        http://localhost:5173
+    Important: Please use the same device and browser for the entire assessment. In case of a system crash or restart, you can only resume your progress on the same device.
+    
+    Candidate Support:
+    If you have any queries regarding the assessment or if you are not satisfied with your results, you can reach out to us through our Candidate Support Portal:
+    {CANDIDATE_SUPPORT_URL}
 
-        Best regards,
-        {FROM_NAME} Team
-        """
-        msg.attach(MIMEText(body, 'plain'))
-
-        server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
-        server.starttls()
-        server.login(SMTP_USER, SMTP_PASS)
-        server.send_message(msg)
-        server.quit()
-        return True
-    except Exception as e:
-        print(f"Failed to send university exam email to {to_email}: {e}")
-        return False
+    Best regards,
+    {FROM_NAME} Team
+    """
+    return send_mail_via_brevo(to_email, subject, body)
 
 def send_proctor_mail(to_email, proctor_name, assessment_title, assessment_id, passkey):
-    try:
-        msg = MIMEMultipart()
-        msg['From'] = f"{FROM_NAME} <{SMTP_USER}>"
-        msg['To'] = to_email
-        msg['Subject'] = f"Invigilator Access: {assessment_title}"
+    subject = f"Invigilator Access: {assessment_title}"
+    body = f"""
+    Hi {proctor_name},
 
-        body = f"""
-        Hi {proctor_name},
+    You have been assigned as a human proctor for the assessment: {assessment_title}.
 
-        You have been assigned as a human proctor for the assessment: {assessment_title}.
+    Your Login Credentials for Proctor Interface:
+        - Assessment ID: {assessment_id}
+        - Passkey: {passkey}
 
-        Your Login Credentials for Proctor Interface:
-            - Assessment ID: {assessment_id}
-            - Passkey: {passkey}
+    Please login to the Proctor Dashboard using these credentials to begin monitoring candidates.
 
-        Please login to the Proctor Dashboard using these credentials to begin monitoring candidates.
+    Best regards,
+    {FROM_NAME} Team
+    """
+    return send_mail_via_brevo(to_email, subject, body)
 
-        Best regards,
-        {FROM_NAME} Team
-        """
-        msg.attach(MIMEText(body, 'plain'))
+def send_certification_mail(to_email, candidate_name, track_name, certificate_id, score, attachment_content=None, issuer="TEAM_TITANS"):
+    subject = f"Congratulations! Your Professional Certification for {track_name}"
+    body = f"""
+    Hi {candidate_name},
 
-        server = smtplib.SMTP(SMTP_HOST, SMTP_PORT)
-        server.starttls()
-        server.login(SMTP_USER, SMTP_PASS)
-        server.send_message(msg)
-        server.quit()
-        return True
-    except Exception as e:
-        print(f"Failed to send proctor email to {to_email}: {e}")
-        return False
+    Congratulations! We are pleased to inform you that you have successfully cleared the assessment benchmarks for the professional track of:
+    {track_name}
+
+    Your Performance Summary:
+    - Overall Score: {score}%
+    - Status: SUCCESSFUL
+    - Grade: DISTINCTION
+
+    Your unique Verification Credential ID is: {certificate_id}
+
+    Attached to this email, you will find your professional certificate as an image. This recognizes your industry-standard proficiency and technical excellence.
+
+    Well done on this significant achievement!
+
+    Best regards,
+    {issuer}
+    """
+    return send_mail_via_brevo(to_email, subject, body, attachment_content, "Certificate.png")

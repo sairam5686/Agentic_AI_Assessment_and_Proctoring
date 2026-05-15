@@ -1,10 +1,9 @@
 import { create } from 'zustand';
 import axios from 'axios';
 import AgoraRTM, { RTMClient } from 'agora-rtm';
+import API_USER_URL from '../Config/apiConfig';
 
-const API_BASE_URL = window.location.hostname === 'localhost' 
-    ? 'http://localhost:8000' 
-    : `http://${window.location.hostname}:8000`;
+const API_BASE_URL = API_USER_URL;
 
 export interface ChatMessage {
     id: string;

@@ -16,6 +16,9 @@ import IDVerification from './Pages/IDVerification.tsx'
 import AgoraProctoringLayout from './Components/AgoraProctoringLayout.tsx'
 import FITBSection from './Pages/FitbSection.tsx'
 import EssayPage from './Pages/EssayPage.tsx'
+import DiagramSection from './Pages/DiagramSection.tsx'
+import { ToastContainer } from 'react-toastify'
+import 'react-toastify/dist/ReactToastify.css'
 
 const routes = createBrowserRouter([
   { path: "/Login", element: <UserLogin /> },
@@ -33,6 +36,7 @@ const routes = createBrowserRouter([
       { path: "/section/sql", element: <SqlSection /> },
       { path: "/section/fitb", element: <FITBSection /> },
       { path: "/section/essay", element: <EssayPage /> },
+      { path: "/section/diagram", element: <DiagramSection /> },
       { path: "/section/pipe-puzzle", element: <PipePuzzle /> },
       { path: "/dashboard", element: <UserQuestionSections /> },
       { path: "/submission", element: <Submission /> }
@@ -42,8 +46,8 @@ const routes = createBrowserRouter([
 
 createRoot(document.getElementById('root')!).render(
   <>
+    <ToastContainer />
     <RouterProvider router={routes} />
-
   </>
 
 )

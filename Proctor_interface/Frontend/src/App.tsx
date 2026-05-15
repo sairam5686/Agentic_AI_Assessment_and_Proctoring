@@ -14,12 +14,15 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import Dashboard from './Pages/Dashboard';
 import Login from './Pages/Login';
 import { useProctorStore } from './store/proctorStore';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function App() {
     const isAuthenticated = useProctorStore((state) => state.isAuthenticated);
 
     return (
         <Router>
+            <ToastContainer />
             <Routes>
                 <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
                 <Route 

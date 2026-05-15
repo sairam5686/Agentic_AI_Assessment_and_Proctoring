@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import { useAgoraProctoring } from '../Components/AgoraProctoringWrapper';
+import API_USER_URL from '../Config/apiConfig';
 
 
 const Submission: React.FC = () => {
@@ -34,7 +35,7 @@ const Submission: React.FC = () => {
             const assessment_id = localStorage.getItem('assessment_id');
             const email = localStorage.getItem('candidate_email');
             if (assessment_id && email) {
-                const response = await fetch('http://127.0.0.1:8001/webcam/score/store', {
+                const response = await fetch(`${API_USER_URL}/webcam/score/store`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ assessment_id, email })
@@ -59,7 +60,7 @@ const Submission: React.FC = () => {
         localStorage.removeItem('sql_completed');
 
         // Signal mobile to cleanup
-        const socket = io('http://localhost:8000');
+        const socket = io(API_USER_URL);
         const assessment_id = localStorage.getItem('assessment_id');
         const email = localStorage.getItem('candidate_email');
         if (assessment_id && email) {
@@ -92,7 +93,7 @@ const Submission: React.FC = () => {
 
             <div className="flex-1 flex items-center justify-center p-6">
                 <div className="max-w-md w-full bg-white border border-gray-200 rounded-3xl p-12 text-center shadow-xl border-gray-100 transition-all hover:shadow-2xl">
-                    
+                   
                     {/* Success Circle (Empty) */}
                     <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-6 shadow-sm border border-green-100" />
 
@@ -151,34 +152,41 @@ const Submission: React.FC = () => {
 
                             const performCleanup = async () => {
                                 try {
-                                    console.log("Submission: Background cleanup starting...");
-                                    
-                                    await cleanup(); 
-
+                                    console.log("Submission: Background cleanup starting (Mobile First)...");
+                                   
                                     const a_id = localStorage.getItem("assessment_id")?.toString().trim().toLowerCase();
                                     const email = localStorage.getItem("candidate_email")?.toString().trim().toLowerCase();
 
+                                    // 1. Stop Mobile Monitoring first
                                     if (a_id && email) {
-                                        fetch("http://localhost:8001/stop", { method: "POST" }).catch(() => {});
-                                        fetch("http://localhost:8002/stop", { 
-                                            method: "POST", 
+                                        console.log("Submission: Signaling mobile to stop...");
+                                        await fetch("http://localhost:8002/stop", {
+                                            method: "POST",
                                             headers: { "Content-Type": "application/json" },
                                             body: JSON.stringify({ assessment_id: a_id, email_id: email })
-                                        }).catch(() => {});
+                                        }).catch(err => console.warn("Mobile stop failed:", err));
                                     }
-                                    
+
+                                    // 2. Stop Laptop Monitoring (Agora Tracks)
+                                    console.log("Submission: Cleaning up laptop webcam...");
+                                    await cleanup();
+
+                                    if (a_id && email) {
+                                        fetch(`${API_USER_URL}/stop`, { method: "POST" }).catch(() => {});
+                                    }
+                                   
                                     setTimeout(() => {
                                         console.log("Submission: Final reload to ensure camera off");
                                         window.location.reload();
                                     }, 1000);
-                                    
+                                   
                                 } catch (err) {
                                     console.error("Background cleanup failed:", err);
                                 }
                             };
 
-                            Mobile_Fetcher();
-                            fetcher();
+                            await Mobile_Fetcher();
+                            await fetcher();
                             performCleanup();
                         }}
                         className="w-full py-4 bg-gray-900 text-white text-sm font-bold rounded-2xl hover:bg-gray-800 transition-all active:scale-95 shadow-lg shadow-gray-200 cursor-pointer"

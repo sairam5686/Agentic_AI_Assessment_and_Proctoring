@@ -4,7 +4,8 @@ from Backend.Connection.Assessment_Connection_DB import (
     SQL_Questions_DB, SQL_TestCases_DB, Admin_Assessments_DB,
     Pipe_Puzzle_Sessions_DB, Gaming_DB, Enrollment_DB , 
     Candidate_Data_DB, Pipe_Puzzle_Results_DB,
-    Coding_Results, SQL_Results, MCQ_Results, FITB_Results
+    Coding_Results, SQL_Results, MCQ_Results, FITB_Results,
+    Mobile_Sessions_DB
 )
 
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,6 +38,8 @@ from Backend.ResultStorer.ResultModelSchema import CodingSaveResultsRequest, MCQ
 from Backend.ResultStorer.SQLResultStorer import SQL_Storer
 from Backend.Auth.OCRHelper import decode_base64_image, extract_id_info, verify_candidate_name
 from Backend.routers.essay_router import router as essay_router
+from Backend.routers.diagram_router import router as diagram_router
+from Backend.Connection.RateLimiter import check_rate_limit
 from pydantic import BaseModel
 
 app = FastAPI()
@@ -45,8 +48,7 @@ app = FastAPI()
 sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
 sio_app = socketio.ASGIApp(sio, other_asgi_app=app)
 
-# Track active mobile sessions by room_id: { "assessment_id_email": status }
-active_mobile_sessions = {}
+# In-memory fallback removed — now using Mobile_Sessions_DB (MongoDB) for shared state
 
 def get_local_ip():
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -69,6 +71,7 @@ app.add_middleware(
 
 # ── Feature routers ───────────────────────────────────────────────────────────
 app.include_router(essay_router, prefix="/api/essay", tags=["Essay Analyser"])
+app.include_router(diagram_router, prefix="/api/diagram", tags=["Diagram"])
 
 @sio.event
 async def connect(sid, environ):
@@ -82,8 +85,10 @@ async def handle_join(sid, data):
     await sio.enter_room(sid, room)
     print(f"Client {sid} joined room: {room}")
     
-    # If mobile is already active in this room, notify the laptop immediately on join
-    if active_mobile_sessions.get(room) == "active":
+    
+    # Check if mobile is already active in this room via MongoDB (shared state)
+    session = Mobile_Sessions_DB.find_one({"room_id": room})
+    if session and session.get("status") == "active":
         print(f"Notifying joining client {sid} that mobile is already active in room: {room}")
         await sio.emit("mobile_connected", {"status": "active"}, room=sid)
 
@@ -93,8 +98,12 @@ async def handle_mobile_ready(sid, data):
     email = str(data.get('email', '')).strip().lower()
     room = f"{a_id}_{email}"
     
-    # Store global state
-    active_mobile_sessions[room] = "active"
+    # Store global state in MongoDB so all Railway instances can see it
+    Mobile_Sessions_DB.update_one(
+        {"room_id": room},
+        {"$set": {"status": "active", "updated_at": datetime.now(timezone.utc)}},
+        upsert=True
+    )
     
     # Notify all clients in the room (including the laptop)
     await sio.emit("mobile_connected", {"status": "active"}, room=room)
@@ -116,9 +125,8 @@ async def handle_test_ended(sid, data):
     email = str(data.get('email', '')).strip().lower()
     room = f"{a_id}_{email}"
     
-    # Clear state
-    if room in active_mobile_sessions:
-        del active_mobile_sessions[room]
+    # Clear state in MongoDB
+    Mobile_Sessions_DB.delete_one({"room_id": room})
         
     # Notify the mobile app to cleanup
     await sio.emit("cleanup_mobile", {"message": "CANDIDATE TO EXIT FROM THE DASHBOARD"}, room=room)
@@ -142,13 +150,24 @@ async def disconnect(sid):
     print(f"Client disconnected: {sid}")
 
 @app.get("/api/get-server-ip")
-async def get_server_ip():
+async def get_server_ip(request: Request):
+    # Dynamically detect the host from the incoming request
+    # This works for both Railway (public URL) and Localhost
+    host = request.headers.get("host")
+    
+    if host:
+        # Strip port if present (e.g., localhost:8000 -> localhost)
+        hostname = host.split(":")[0]
+        return {"ip": hostname}
+    
+    # Fallback to local IP if host header is missing
     return {"ip": get_local_ip()}
 
 @app.get("/api/mobile/status/{room_id}")
 async def get_mobile_status(room_id: str):
     # room_id is assessment_id_email
-    status = active_mobile_sessions.get(room_id, "inactive")
+    session = Mobile_Sessions_DB.find_one({"room_id": room_id})
+    status = session.get("status", "inactive") if session else "inactive"
     return {"status": status}
 
 
@@ -199,6 +218,7 @@ async def get_assessment_questions(assessment_id: str):
 
 @app.post("/candidate/login")
 async def candidate_login(request: Request):
+    check_rate_limit(request, "auth")
     body = await request.json()
     identifier = body.get("identifier")
     assessment_id = body.get("assessment_id")
@@ -368,7 +388,8 @@ class FITBSaveResultsRequest(BaseModel):
     total_marks: float
 
 @app.post("/api/fitb/results")
-async def fitb_save_results(req: FITBSaveResultsRequest):
+async def fitb_save_results(req: FITBSaveResultsRequest, request: Request):
+    check_rate_limit(request, "submission")
     try:
         FITB_Results.insert_one({
             "assessment_id": req.assessment_id,
@@ -385,7 +406,8 @@ async def fitb_save_results(req: FITBSaveResultsRequest):
 
 
 @app.post("/api/mcq/results")
-async def mcq_save_results(req: MCQSaveResultsRequest):
+async def mcq_save_results(req: MCQSaveResultsRequest, request: Request):
+    check_rate_limit(request, "submission")
     try:
         MCQ_Results.insert_one({
             "assessment_id": req.assessment_id,
@@ -402,18 +424,21 @@ async def mcq_save_results(req: MCQSaveResultsRequest):
     
 
 @app.post("/api/coding/results")
-async def save_coding_results(req: CodingSaveResultsRequest):
+async def save_coding_results(req: CodingSaveResultsRequest, request: Request):
+    check_rate_limit(request, "submission")
     result = await Coding_store(req=req)
     return result
 
 @app.post("/api/sql/results")
-async def save_sql_results(req: SQLSaveResultsRequest):
+async def save_sql_results(req: SQLSaveResultsRequest, request: Request):
+    check_rate_limit(request, "submission")
     result = await SQL_Storer(req=req)
     return result
 
 
 @app.post("/run-code")
 async def run_code(request: Request):
+    check_rate_limit(request, "execution")
     body = await request.json()
 
     assessment_id = body.get("assessment_id")
@@ -426,6 +451,7 @@ async def run_code(request: Request):
 
 @app.post("/run-sql")
 async def run_sql(request: Request):
+    check_rate_limit(request, "execution")
     body = await request.json()
     assessment_id = body.get("assessment_id")
     question_id = body.get("question_id")

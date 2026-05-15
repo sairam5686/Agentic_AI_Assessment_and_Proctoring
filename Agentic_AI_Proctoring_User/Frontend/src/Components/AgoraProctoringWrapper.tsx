@@ -42,8 +42,8 @@ const AgoraProctoringWrapper: React.FC<Props> = ({ children }) => {
   const initTracks = useCallback(async () => {
     if (localVideoTrackRef.current) return; // Already have tracks
     if (isInitializingRef.current) return;
-
     isInitializingRef.current = true;
+
     setStatus("connecting");
     setErrorMsg("");
 
@@ -77,10 +77,13 @@ const AgoraProctoringWrapper: React.FC<Props> = ({ children }) => {
   const startStreaming = useCallback(async () => {
     if (isJoinedRef.current || !localVideoTrackRef.current) return;
     
+    if (isJoiningRef.current) return;
+    isJoiningRef.current = true;
+
+    setStatus("connecting");
+    console.log("Agora Wrapper: Starting Admin Stream...");
+    
     try {
-      setStatus("connecting");
-      console.log("Agora Wrapper: Starting Admin Stream...");
-      
       const assessmentId = localStorage.getItem('assessment_id')?.toString().trim().toLowerCase();
       const candidateId = localStorage.getItem('candidate_id')?.toString().trim().toLowerCase();
       
@@ -94,9 +97,6 @@ const AgoraProctoringWrapper: React.FC<Props> = ({ children }) => {
       if (!appId || appId.includes("Replace")) {
           throw new Error("Missing Agora App ID");
       }
-
-      if (isJoiningRef.current) return;
-      isJoiningRef.current = true;
 
       // Fetch dynamic token from backend
       const tokenResponse = await fetch(`${AGORA_CONFIG.tokenUrl}?channelName=${channelName}`);
@@ -149,8 +149,6 @@ const AgoraProctoringWrapper: React.FC<Props> = ({ children }) => {
     console.log("Agora Wrapper: Route check:", location.pathname, "isMatch:", isProctoringPage, "isStarted:", isStarted, "isJoined:", isJoinedRef.current);
 
     // CRITICAL: Do NOT auto-init tracks if we are on the submission page.
-    // If they are already active, they can stay, but if we just cleaned them up,
-    // don't bring them back.
     if (isProctoringPage && isStarted && !isSubmissionPage) {
         if (!isJoinedRef.current) {
             if (localVideoTrackRef.current) {
@@ -161,7 +159,7 @@ const AgoraProctoringWrapper: React.FC<Props> = ({ children }) => {
             }
         }
     }
-  }, [location.pathname, startStreaming, tracksVersion, initTracks]);
+  }, [location.pathname, startStreaming, initTracks]); // Removed tracksVersion to break the loop
 
   const cleanup = useCallback(async () => {
     console.log("Agora Wrapper: Full System Shutdown Initiated...");
@@ -215,16 +213,18 @@ const AgoraProctoringWrapper: React.FC<Props> = ({ children }) => {
     return () => document.removeEventListener('fullscreenchange', handleExitConditions);
   }, [cleanup]);
 
+  const contextValue = React.useMemo(() => ({ 
+    localVideoTrack: localVideoTrackRef.current, 
+    localAudioTrack: localAudioTrackRef.current,
+    status, 
+    errorMsg, 
+    initTracks,
+    cleanup,
+    tracksVersion 
+  }), [status, errorMsg, initTracks, cleanup, tracksVersion]);
+
   return (
-    <AgoraProctoringContext.Provider value={{ 
-      localVideoTrack: localVideoTrackRef.current, 
-      localAudioTrack: localAudioTrackRef.current,
-      status, 
-      errorMsg, 
-      initTracks,
-      cleanup,
-      tracksVersion 
-    }}>
+    <AgoraProctoringContext.Provider value={contextValue}>
       {children}
     </AgoraProctoringContext.Provider>
   );

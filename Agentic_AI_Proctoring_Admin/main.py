@@ -1,8 +1,9 @@
 from datetime import datetime
 from urllib import request
 import uuid
+import json
 from fastapi import FastAPI ,  HTTPException , Request ,  UploadFile, File, Form
-from Backend.Workers.Mail_Service import send_assessment_mail, send_proctor_mail, send_university_assessment_mail
+from Backend.Workers.Mail_Service import send_assessment_mail, send_proctor_mail, send_university_assessment_mail, send_certification_mail
 from Backend.Connection.Assessment_Connection import MCQ_DB, Admin_Assessments_DB, Coding_Questions_DB, Coding_TestCases_DB, Enrollment_DB, SQL_Questions_DB, SQL_TestCases_DB, Gaming_DB, Game_Sessions_DB, Invigilator_DB
 from Backend.Excels_Parsers.MCQ_Parser import mcq_parser
 from Backend.Excels_Parsers.FITB_Parser import fitb_parser
@@ -18,11 +19,14 @@ from Backend.Workers.Pipe_Puzzle_Logic import PipePuzzleLogic
 import time
 from agora_token_builder import RtcTokenBuilder, RtmTokenBuilder
 from Backend.Connection.Evdiences_log import Coding_collection, violation_logs_collection, Mobile_logs_collection
-from Backend.Connection.Assessment_Connection import MCQ_Results_DB, Coding_results_DB, SQL_Results_DB, Piped_Puzzle_DB, FITB_Results_DB
+from Backend.Connection.Assessment_Connection import MCQ_Results_DB, Coding_results_DB, SQL_Results_DB, Piped_Puzzle_DB, FITB_Results_DB, Essay_Results_DB, Diagram_Results_DB
 from Backend.Connection.Evdiences_log import Risk_Score_DB , Mobile_Risk_Score
 
 import os
 from dotenv import load_dotenv
+from Backend.Connection.RateLimiter import check_rate_limit
+import cloudinary
+import cloudinary.uploader
 
 load_dotenv()
 
@@ -30,6 +34,13 @@ load_dotenv()
 AGORA_APP_ID = os.getenv("AGORA_APP_ID", "").replace('"', '').strip()
 # IMPORTANT: Replace with your actual App Certificate from Agora Console
 AGORA_APP_CERTIFICATE = os.getenv("AGORA_APP_CERTIFICATE", "").replace('"', '').strip() 
+
+# Cloudinary Configuration
+cloudinary.config(
+    cloud_name=os.getenv("CLOUDINARY_LAPTOP_CLOUD_NAME"),
+    api_key=os.getenv("CLOUDINARY_LAPTOP_API_KEY"),
+    api_secret=os.getenv("CLOUDINARY_LAPTOP_API_SECRET")
+)
 
 
 
@@ -110,8 +121,25 @@ async def create_test(
     FITB_file: UploadFile = File(None),
     Gaming_enabled: str = Form("false"),
     Gaming_duration_per_round: str = Form(None),
-    Gaming_rounds_count: str = Form(None)
+    Gaming_rounds_count: str = Form(None),
+    Essay_enabled: str = Form("false"),
+    Essay_topic: str = Form(None),
+    Essay_instructions: str = Form(None),
+    Essay_duration: str = Form(None),
+    Essay_rubric: str = Form(None),
+    Certification_Track: str = Form(None),
+    Certification_Issuer: str = Form(None),
+    Certification_Title: str = Form(None),
+    Certification_Thresholds: str = Form(None),
+    Certification_Global_Threshold: str = Form(None),
+    Diagram_enabled: str = Form("false"),
+    Diagram_prompt: str = Form(None),
+    Diagram_master_json: str = Form(None),
+    Diagram_master_image: str = Form(None),
+    request: Request = None
 ):
+    if request:
+        check_rate_limit(request, "submission")
     TestId = uuid.uuid4()
 
 
@@ -124,6 +152,25 @@ async def create_test(
             MCQ_duration=MCQ_duration
         )
     
+    # Handle Diagram Master Image Upload to Cloudinary
+    final_master_image_url = None
+    if Diagram_enabled.lower() == "true" and Diagram_master_image:
+        try:
+            image_data = Diagram_master_image
+            if "," in image_data:
+                image_data = image_data.split(",")[1]
+            
+            upload_result = cloudinary.uploader.upload(
+                f"data:image/png;base64,{image_data}",
+                folder=f"assessments/{str(TestId)}/master",
+                public_id=f"master_{datetime.now().timestamp()}"
+            )
+            final_master_image_url = upload_result.get("secure_url")
+            print(f"Diagram Master Image uploaded to Cloudinary: {final_master_image_url}")
+        except Exception as e:
+            print(f"Cloudinary Upload Error: {e}")
+            final_master_image_url = Diagram_master_image # Fallback to base64 if upload fails
+
     Admin_Assessments_DB.insert_one({
             "admin_id": Admin_id,
             "test_id": str(TestId),
@@ -134,6 +181,22 @@ async def create_test(
             "subject_code": Subject_Code,
             "regulation": Regulation,
             "subject_name": Subject_Name,
+            "essay_enabled": Essay_enabled.lower() == "true",
+            "essay_topic": Essay_topic if Essay_enabled.lower() == "true" else None,
+            "essay_instructions": Essay_instructions if Essay_enabled.lower() == "true" else None,
+            "essay_duration": int(Essay_duration) if Essay_duration and Essay_duration.isdigit() else None,
+            "essay_rubric": json.loads(Essay_rubric) if Essay_rubric and Essay_enabled.lower() == "true" else None,
+            "certification_config": {
+                "track_name": Certification_Track,
+                "issuer": Certification_Issuer,
+                "title": Certification_Title,
+                "thresholds": json.loads(Certification_Thresholds) if Certification_Thresholds else {},
+                "global_threshold": int(Certification_Global_Threshold) if Certification_Global_Threshold else 60
+            } if Category == "Certification" else None,
+            "diagram_enabled": Diagram_enabled.lower() == "true",
+            "diagram_prompt": Diagram_prompt if Diagram_enabled.lower() == "true" else None,
+            "diagram_master_json": json.loads(Diagram_master_json) if Diagram_master_json and Diagram_enabled.lower() == "true" else None,
+            "diagram_master_image": final_master_image_url if Diagram_enabled.lower() == "true" else None,
             "created_at": datetime.now(),
             "status": "active"
         })
@@ -217,11 +280,25 @@ async def get_test_preview(assessment_id: str):
     assessment_info = Admin_Assessments_DB.find_one({"test_id": assessment_id})
     status = assessment_info.get("status", "draft") if assessment_info else "draft"
 
-    # If status is terminated, candidates (and preview) should be aware
-    if status == "terminated":
-         # We still return the info for preview but add a flag or raise if needed
-         # For now, let's just make sure the status is passed correctly.
-         pass
+    # Build essay config from assessment metadata
+    essay = None
+    if assessment_info and assessment_info.get("essay_enabled"):
+        essay = {
+            "enabled": True,
+            "topic": assessment_info.get("essay_topic", ""),
+            "duration": assessment_info.get("essay_duration"),
+            "rubric": assessment_info.get("essay_rubric"),
+        }
+
+    # Build diagram config
+    diagram = None
+    if assessment_info and assessment_info.get("diagram_enabled"):
+        diagram = {
+            "enabled": True,
+            "prompt": assessment_info.get("diagram_prompt", ""),
+            "master_json": assessment_info.get("diagram_master_json"),
+            "master_image": assessment_info.get("diagram_master_image"),
+        }
 
     # 🔥 SERIALIZE EVERYTHING
     response = {
@@ -232,8 +309,12 @@ async def get_test_preview(assessment_id: str):
         "MCQ": mcq,
         "SQL": sql,
         "Gaming": gaming,
-        "FITB": fitb,
-        "TestCases": testcases
+        "FITB": serialize_mongo(fitb),
+        "Essay": essay,
+        "Diagram": diagram,
+        "TestCases": testcases,
+        "category": assessment_info.get("category") if assessment_info else "Hiring",
+        "certification_config": assessment_info.get("certification_config") if assessment_info else None
     }
 
     return serialize_mongo(response)
@@ -286,7 +367,8 @@ async def pipe_puzzle_action(session_id: str = Form(...), row: int = Form(...), 
     return {"tile": tile}
 
 @app.post("/game/pipe-puzzle/submit")
-async def submit_pipe_puzzle(session_id: str = Form(...)):
+async def submit_pipe_puzzle(request: Request, session_id: str = Form(...)):
+    check_rate_limit(request, "submission")
     session = Game_Sessions_DB.find_one({"session_id": session_id})
     if not session:
         raise HTTPException(status_code=404, detail="Session not found")
@@ -306,7 +388,8 @@ async def save_test(assessment_id: str = Form(...), file: UploadFile = File(...)
 
 
 @app.post("/initiate-test")
-async def initiate_test(assessment_id: str = Form(...)):
+async def initiate_test(request: Request, assessment_id: str = Form(...)):
+    check_rate_limit(request, "submission")
     enrollment = Enrollment_DB.find_one({"assessment_id": assessment_id})
     if not enrollment:
         raise HTTPException(status_code=404, detail="Enrollment data not found")
@@ -394,7 +477,61 @@ async def get_assessment_candidates(assessment_id: str):
     enrollment = Enrollment_DB.find_one({"assessment_id": assessment_id})
     if not enrollment:
         return []
-    return serialize_mongo(enrollment.get("candidates", []))
+        
+    candidates = enrollment.get("candidates", [])
+    
+    # Check test metadata for rubrics/max marks
+    test_info = Admin_Assessments_DB.find_one({"test_id": assessment_id})
+    
+    for cand in candidates:
+        email = cand.get("email")
+        query = {"assessment_id": assessment_id, "email": email}
+        
+        total_score = 0
+        
+        # MCQ
+        mcq_results = list(MCQ_Results_DB.find(query))
+        if mcq_results:
+            best_mcq = max(mcq_results, key=lambda x: x.get("user_total_marks", 0))
+            total_score += best_mcq.get("user_total_marks", 0)
+            
+        # Coding
+        cod_results = list(Coding_results_DB.find(query))
+        if cod_results:
+            best_cod = max(cod_results, key=lambda x: x.get("total_marks", 0))
+            total_score += best_cod.get("total_marks", 0)
+            
+        # SQL
+        sql_results = list(SQL_Results_DB.find(query))
+        if sql_results:
+            best_sql = max(sql_results, key=lambda x: x.get("total_marks", 0))
+            total_score += best_sql.get("total_marks", 0)
+            
+        # FITB
+        fitb_results = list(FITB_Results_DB.find(query))
+        if fitb_results:
+            best_fitb = max(fitb_results, key=lambda x: x.get("user_total_marks", 0))
+            total_score += best_fitb.get("user_total_marks", 0)
+            
+        # Essay
+        if Essay_Results_DB is not None:
+            essay_res = Essay_Results_DB.find_one(query)
+            if essay_res:
+                ev = essay_res.get("result") or essay_res.get("evaluation") or {}
+                total_score += float(ev.get("total_score") or ev.get("score") or 0)
+                
+        # Confidence/Trust Score
+        risk_doc = Risk_Score_DB.find_one(query)
+        if risk_doc:
+            vid_trust = risk_doc.get("video_proctoring", {}).get("trust_score", 0)
+            code_trust = risk_doc.get("code_analysis", {}).get("trust_score", 0)
+            cand["confidence_score"] = round((vid_trust + code_trust) / 2)
+                
+        # Attach to candidate if they have any score or if they've started
+        if total_score > 0 or cand.get("status") in ["Joined", "Completed"]:
+            cand["total_score"] = round(total_score, 2)
+            
+    return serialize_mongo(candidates)
 
 @app.get("/admin/test/{assessment_id}/candidate/{candidate_id}/analytics")
 async def get_candidate_analytics(assessment_id: str, candidate_id: str):
@@ -451,7 +588,8 @@ async def get_agora_rtm_token(userAccount: str):
         raise HTTPException(status_code=500, detail=f"Token Generation Failed: {str(e)}")
 
 @app.delete("/delete-test/{assessment_id}")
-async def delete_test(assessment_id: str):
+async def delete_test(request: Request, assessment_id: str):
+    check_rate_limit(request, "submission")
     try:
         from bson import ObjectId
         
@@ -541,6 +679,15 @@ async def get_candidate_results(assessment_id: str, candidate_email: str):
     SQL_results = list(SQL_Results_DB.find(query))
     FITB_results = list(FITB_Results_DB.find(query))
     Pipe_Puzzle_results = list(Piped_Puzzle_DB.find(query))
+    Diagram_results = list(Diagram_Results_DB.find(query))
+
+    # Essay results use email and assessment_id
+    essay_result = None
+    if Essay_Results_DB is not None:
+        essay_result = Essay_Results_DB.find_one(
+            {"assessment_id": assessment_id, "email": candidate_email},
+            {"_id": 0}
+        )
     
     combined_results = {
         "assessment_id": assessment_id,
@@ -548,8 +695,10 @@ async def get_candidate_results(assessment_id: str, candidate_email: str):
         "MCQ": MCQ_results,
         "Coding": Coding_results,
         "SQL": SQL_results,
-        "FITB": FITB_results,
-        "Pipe_Puzzle": Pipe_Puzzle_results,
+        "FITB": serialize_mongo(FITB_results),
+        "Gaming": serialize_mongo(Pipe_Puzzle_results),
+        "Diagram": serialize_mongo(Diagram_results),
+        "Essay": essay_result,
         "summary": {
             "total_MCQ": len(MCQ_results),
             "total_Coding": len(Coding_results),
@@ -559,8 +708,21 @@ async def get_candidate_results(assessment_id: str, candidate_email: str):
             "total_questions": len(MCQ_results) + len(Coding_results) + len(SQL_results) + len(Pipe_Puzzle_results) + len(FITB_results)
         }
     }
-    print(combined_results)
     return serialize_mongo(combined_results)
+
+
+@app.get("/candidate/{assessment_id}/{candidate_email}/essay-result")
+async def get_essay_result(assessment_id: str, candidate_email: str):
+    """Dedicated endpoint for fetching a single candidate's essay evaluation."""
+    if Essay_Results_DB is None:
+        raise HTTPException(status_code=503, detail="Essay results database unavailable.")
+    record = Essay_Results_DB.find_one(
+        {"assessment_id": assessment_id, "email": candidate_email},
+        {"_id": 0}
+    )
+    if not record:
+        raise HTTPException(status_code=404, detail="No essay result found for this candidate.")
+    return serialize_mongo(record)
 
 # ─── Proctor Management Endpoints ─────────────────────────────────────────────
 
@@ -629,11 +791,35 @@ async def assign_proctor(
         "email_sent": success
     })
 
+@app.post("/admin/send-certificate")
+async def send_certificate(
+    email: str = Form(...),
+    name: str = Form(...),
+    track_name: str = Form(...),
+    certificate_id: str = Form(...),
+    score: str = Form(...),
+    issuer: str = Form("TEAM_TITANS"),
+    Certificate_Image: str = Form(None) # Base64 string of the certificate
+):
+    # If image is provided, strip the data:image/png;base64, prefix if present
+    attachment_content = None
+    if Certificate_Image and "," in Certificate_Image:
+        attachment_content = Certificate_Image.split(",")[1]
+    elif Certificate_Image:
+        attachment_content = Certificate_Image
+
+    success = send_certification_mail(email, name, track_name, certificate_id, score, attachment_content, issuer)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to send certificate email")
+    return {"message": "Certificate sent successfully"}
+
 @app.post("/proctor/login")
 async def proctor_login(
+    request: Request,
     assessment_id: str = Form(...),
     passkey: str = Form(...)
 ):
+    check_rate_limit(request, "auth")
     assessment_id = assessment_id.strip()
     passkey = passkey.strip().upper()
     print(f"Login attempt: ID={assessment_id}, Passkey={passkey}")

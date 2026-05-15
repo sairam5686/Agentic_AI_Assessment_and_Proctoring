@@ -24,7 +24,11 @@ const Login: React.FC = () => {
         navigate('/query');
       }
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Login failed. Please check your credentials.');
+      if (err.response && err.response.status === 429) {
+        setError('Too many login attempts. Please wait a minute.');
+      } else {
+        setError(err.response?.data?.detail || 'Login failed. Please check your credentials.');
+      }
     } finally {
       setLoading(false);
     }

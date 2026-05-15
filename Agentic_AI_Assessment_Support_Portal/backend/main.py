@@ -6,6 +6,8 @@ from Engine import ai_engine
 from services import pdf_service
 from services import email_service
 import os
+from RateLimiter import check_rate_limit
+from fastapi import Request
 
 app = FastAPI(title="Assessment Support Portal API")
 
@@ -28,14 +30,16 @@ class QueryRequest(BaseModel):
     query: str
 
 @app.post("/login")
-async def login(req: LoginRequest):
+async def login(req: LoginRequest, request: Request):
+    check_rate_limit(request, "auth")
     is_valid, message = await database.verify_candidate(req.email, req.assessment_id)
     if not is_valid:
         raise HTTPException(status_code=401, detail=message)
     return {"status": "success", "message": "Verified"}
 
 @app.post("/submit-query")
-async def submit_query(req: QueryRequest, background_tasks: BackgroundTasks):
+async def submit_query(req: QueryRequest, background_tasks: BackgroundTasks, request: Request):
+    check_rate_limit(request, "execution")
     # 1. Save query to DB
     await database.save_query_data(req.email, req.assessment_id, req.query)
     

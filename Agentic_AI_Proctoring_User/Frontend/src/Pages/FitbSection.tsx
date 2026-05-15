@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useLocalPersist } from '../hooks/useLocalPersist'
+import API_USER_URL from '../Config/apiConfig'
 
 const FitbSection = () => {
   const Locator = useLocation()
@@ -154,7 +155,7 @@ const FitbSection = () => {
         total_marks
       };
 
-      const response = await fetch("http://127.0.0.1:8000/api/fitb/results", {
+      const response = await fetch(`${API_USER_URL}/api/fitb/results`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -185,7 +186,7 @@ const FitbSection = () => {
       if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
         // Move to next section
         const nextSection = enabledSections[currentIdx + 1];
-        navigate(`/section/${nextSection.key}`, { state: assessmentState });
+        navigate(`/section/${nextSection.key}`, { state: { ...assessmentState } });
         return;
       }
     }
@@ -231,10 +232,10 @@ const FitbSection = () => {
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Section Completed!</h2>
             <p className="text-sm text-gray-500 mb-8">Your responses have been recorded successfully.</p>
             <button
-              onClick={() => navigate('/dashboard')}
-              className="w-full py-4 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 transition-all cursor-pointer"
+              onClick={handleFinishAssessment}
+              className="w-full py-4 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 transition-all cursor-pointer uppercase tracking-wide"
             >
-              Back to Dashboard →
+              Continue to next step →
             </button>
           </div>
         </div>

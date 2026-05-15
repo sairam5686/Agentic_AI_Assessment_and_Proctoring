@@ -31,7 +31,11 @@ const QueryForm: React.FC = () => {
         navigate('/thank-you');
       }
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Submission failed. Please try again.');
+      if (err.response && err.response.status === 429) {
+        setError('Submission rate limit reached. Please wait a few seconds.');
+      } else {
+        setError(err.response?.data?.detail || 'Submission failed. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

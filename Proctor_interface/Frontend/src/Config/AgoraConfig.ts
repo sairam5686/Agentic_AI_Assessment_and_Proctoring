@@ -6,5 +6,5 @@
  */
 export const AGORA_CONFIG = {
   appId: (import.meta.env.VITE_AGORA_APP_ID || "").replace(/"/g, '').trim(),
-  tokenUrl: "http://localhost:8000/agora/token"
+  tokenUrl: "https://agenticaiassessmentandproctoring-production.up.railway.app/agora/token"
 };

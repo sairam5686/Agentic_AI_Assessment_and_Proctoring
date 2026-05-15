@@ -8,6 +8,8 @@ python-socketio
 requests
 pymongo
 easyocr
-opencv-python
+opencv-python-headless
 numpy
-google-generativeai
+google-genai
+httpx
+cloudinary

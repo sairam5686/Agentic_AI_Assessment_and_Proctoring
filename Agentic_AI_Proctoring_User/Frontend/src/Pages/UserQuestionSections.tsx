@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback } from 'react'
 import { useNavigate, useLocation } from 'react-router';
+import API_USER_URL from '../Config/apiConfig';
 
 
 const UserQuestionSections = () => {
@@ -31,7 +32,7 @@ const UserQuestionSections = () => {
       const assessment_id = localStorage.getItem('assessment_id');
       if (!assessment_id) throw new Error('No assessment ID found. Please login again.');
 
-      const response = await fetch(`http://127.0.0.1:8000/assessment/${assessment_id}/questions`)
+      const response = await fetch(`${API_USER_URL}/assessment/${assessment_id}/questions`)
       if (!response.ok) {
         const data = await response.json()
         throw new Error(data.detail || 'Failed to fetch questions for this assessment')
@@ -59,47 +60,67 @@ const UserQuestionSections = () => {
 
   const isUniversity = QuestionsJson?.Assessment_Info?.category?.toLowerCase().includes('university') || localStorage.getItem('login_mode') === 'University';
 
-  const sections = QuestionsJson ? [
-    // Only show Gaming if it's NOT a university exam and is enabled
-    ...(!isUniversity && QuestionsJson.Gaming_Config?.games?.[0]?.enabled ? [{ 
-      key: 'gaming', 
-      label: 'Game Assessments', 
-      sub: 'Pipe Puzzle · Test your logic and problem solving', 
-      tag: 'Games', tagColor: '#f97316', tagBg: '#fff7ed' 
-    }] : []),
+  const sections = useMemo(() => {
+    if (!QuestionsJson) return [];
     
-    // Only show MCQ if there are questions
-    ...(QuestionsJson.MCQ_Questions?.length > 0 ? [{ 
-      key: 'mcq', 
-      label: 'Multiple Choice Questions', 
-      sub: `Knowledge Check · ${QuestionsJson.MCQ_Questions.length} items`, 
-      tag: 'MCQ', tagColor: '#6366f1', tagBg: '#eef2ff' 
-    }] : []),
-    
-    // Only show Coding if there are questions
-    ...(QuestionsJson.Coding_Questions?.length > 0 ? [{ 
-      key: 'coding', 
-      label: 'Coding Challenges', 
-      sub: `Algorithm & Logic · ${QuestionsJson.Coding_Questions.length} challenges`, 
-      tag: 'Programming', tagColor: '#3b82f6', tagBg: '#eff6ff' 
-    }] : []),
-    
-    // Only show SQL if there are questions
-    ...(QuestionsJson.SQL_Questions?.length > 0 ? [{ 
-      key: 'sql', 
-      label: 'SQL Database', 
-      sub: `Queries · ${QuestionsJson.SQL_Questions.length} queries`, 
-      tag: 'Database', tagColor: '#10b981', tagBg: '#ecfdf5' 
-    }] : []),
+    return [
+      // Only show Gaming if it's NOT a university exam and is enabled
+      ...(!isUniversity && QuestionsJson.Gaming_Config?.games?.[0]?.enabled ? [{ 
+        key: 'pipe-puzzle', 
+        label: 'Game Assessments', 
+        sub: 'Pipe Puzzle · Test your logic and problem solving', 
+        tag: 'Games', tagColor: '#f97316', tagBg: '#fff7ed' 
+      }] : []),
+      
+      // Only show MCQ if there are questions
+      ...(QuestionsJson.MCQ_Questions?.length > 0 ? [{ 
+        key: 'mcq', 
+        label: 'Multiple Choice Questions', 
+        sub: `Knowledge Check · ${QuestionsJson.MCQ_Questions.length} items`, 
+        tag: 'MCQ', tagColor: '#6366f1', tagBg: '#eef2ff' 
+      }] : []),
+      
+      // Only show Coding if there are questions
+      ...(QuestionsJson.Coding_Questions?.length > 0 ? [{ 
+        key: 'coding', 
+        label: 'Coding Challenges', 
+        sub: `Algorithm & Logic · ${QuestionsJson.Coding_Questions.length} challenges`, 
+        tag: 'Programming', tagColor: '#3b82f6', tagBg: '#eff6ff' 
+      }] : []),
+      
+      // Only show SQL if there are questions
+      ...(QuestionsJson.SQL_Questions?.length > 0 ? [{ 
+        key: 'sql', 
+        label: 'SQL Database', 
+        sub: `Queries · ${QuestionsJson.SQL_Questions.length} queries`, 
+        tag: 'Database', tagColor: '#10b981', tagBg: '#ecfdf5' 
+      }] : []),
 
-    // Only show FITB if there are questions
-    ...(QuestionsJson.FITB_Questions?.length > 0 ? [{ 
-      key: 'fitb', 
-      label: 'Fill in the Blanks', 
-      sub: `Concepts · ${QuestionsJson.FITB_Questions.length} items`, 
-      tag: 'Theory', tagColor: '#f59e0b', tagBg: '#fffbeb' 
-    }] : []),
-  ] : [];
+      // Only show FITB if there are questions
+      ...(QuestionsJson.FITB_Questions?.length > 0 ? [{ 
+        key: 'fitb', 
+        label: 'Fill in the Blanks', 
+        sub: `Concepts · ${QuestionsJson.FITB_Questions.length} items`, 
+        tag: 'Theory', tagColor: '#f59e0b', tagBg: '#fffbeb' 
+      }] : []),
+
+      // Only show Essay if it's enabled in Assessment_Info
+      ...(QuestionsJson.Assessment_Info?.essay_enabled ? [{
+        key: 'essay',
+        label: 'Essay Assessment',
+        sub: `Analytical Writing · ${QuestionsJson.Assessment_Info?.essay_topic || 'Standard Topic'}`,
+        tag: 'Writing', tagColor: '#ec4899', tagBg: '#fdf2f8'
+      }] : []),
+
+      // Only show Diagram if it's enabled
+      ...(QuestionsJson.Assessment_Info?.diagram_enabled ? [{
+        key: 'diagram',
+        label: 'System Design / Diagram',
+        sub: 'Visual Logic · Create a structural diagram',
+        tag: 'Architecture', tagColor: '#f97316', tagBg: '#fff7ed'
+      }] : []),
+    ];
+  }, [QuestionsJson, isUniversity]);
 
   useEffect(() => {
     if (sections.length > 0) {
@@ -107,11 +128,11 @@ const UserQuestionSections = () => {
     }
   }, [sections]);
 
-  const handleSectionClick = (sectionKey: string) => {
+  const handleSectionClick = useCallback((sectionKey: string) => {
     navigator(`/section/${sectionKey}`, {
-      state: { ...QuestionsJson.Assessment_Info, ...QuestionsJson }
+      state: { ...QuestionsJson?.Assessment_Info, ...QuestionsJson }
     });
-  };
+  }, [navigator, QuestionsJson]);
 
 
   return (

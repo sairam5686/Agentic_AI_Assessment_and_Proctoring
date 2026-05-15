@@ -1,5 +1,6 @@
 fastapi
 uvicorn
+gunicorn
 python-multipart
 openpyxl
 pymongo
@@ -9,3 +10,5 @@ python-dotenv
 httpx
 pandas
 google-generativeai
+cloudinary
+resend

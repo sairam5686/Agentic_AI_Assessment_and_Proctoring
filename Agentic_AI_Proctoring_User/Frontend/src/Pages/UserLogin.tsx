@@ -1,5 +1,8 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
+import { toast, ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import API_USER_URL from '../Config/apiConfig';
 
 const UserLogin = () => {
   const [identifier, setIdentifier] = useState('');
@@ -20,13 +23,22 @@ const UserLogin = () => {
     try {
       const payload = { identifier, assessment_id: assessmentId };
 
-      const response = await fetch('http://127.0.0.1:8000/candidate/login', {
+      const response = await fetch(`${API_USER_URL}/candidate/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
       const data = await response.json();
+      
+      if (response.status === 429) {
+        toast.error("Too many login attempts. Please wait a minute.", {
+          position: "top-right",
+          autoClose: 5000,
+          theme: "colored",
+        });
+        return;
+      }
 
       if (response.ok && data.status === "success") {
         // Store all candidate details in localStorage
@@ -52,6 +64,7 @@ const UserLogin = () => {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-6 font-['Inter']">
+      <ToastContainer />
       {/* Logo */}
       <div className="mb-8">
         <img src="https://pbs.twimg.com/profile_images/1973372506271584256/Sb4wfgD0_400x400.jpg" alt="Virtusa" className="h-10 rounded-xl" />

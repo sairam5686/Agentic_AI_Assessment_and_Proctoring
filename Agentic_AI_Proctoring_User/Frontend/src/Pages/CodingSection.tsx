@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router'
+import { toast } from 'react-toastify'
 import Editor from '@monaco-editor/react'
 import { useLocalPersist } from '../hooks/useLocalPersist'
+import API_USER_URL from '../Config/apiConfig'
 
 const LANGUAGE_TEMPLATES: Record<string, string> = {
   Python: `# Write your solution here\ndef solution():\n    pass\n`,
@@ -134,7 +136,7 @@ const CodingSection = () => {
       code: currentCode,
     } 
     try {
-      fetch("http://127.0.0.1:8001/Code/Checker" , {
+      fetch(`${API_USER_URL}/Code/Checker` , {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
@@ -161,11 +163,20 @@ const CodingSection = () => {
     }
 
     try {
-      const response = await fetch('http://127.0.0.1:8000/run-code', {
+      const response = await fetch(`${API_USER_URL}/run-code`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       })
+
+      if (response.status === 429) {
+        toast.error("You are running code too frequently. Please wait a few seconds.", {
+          position: "top-right",
+          theme: "colored"
+        });
+        setIsRunning(false);
+        return;
+      }
 
       if (!response.ok) {
         throw new Error(`Server error: ${response.status} ${response.statusText}`)
@@ -268,7 +279,7 @@ const CodingSection = () => {
       
       if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
         const nextSection = enabledSections[currentIdx + 1];
-        navigate(`/section/${nextSection.key}`, { state: assessmentState });
+        navigate(`/section/${nextSection.key}`, { state: { ...assessmentState } });
         return;
       }
     }
@@ -321,7 +332,7 @@ const CodingSection = () => {
     );
 
     try {
-      const resp = await fetch("http://127.0.0.1:8000/api/coding/results", {
+      const resp = await fetch(`${API_USER_URL}/api/coding/results`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -332,6 +343,14 @@ const CodingSection = () => {
           total_marks,
         }),
       });
+
+      if (resp.status === 429) {
+        toast.error("Submission rate limit reached. Please try again in a moment.", {
+          position: "top-right",
+          theme: "colored"
+        });
+        return;
+      }
 
       if (!resp.ok) {
         throw new Error("Failed to save Coding results");
@@ -380,9 +399,9 @@ const CodingSection = () => {
             
             <button
               onClick={handleNextFlow}
-              className="w-full py-4 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 active:scale-95 transition-all duration-150 cursor-pointer"
+              className="w-full py-4 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 active:scale-95 transition-all duration-150 cursor-pointer uppercase tracking-wide"
             >
-              Move to Next Session →
+              Continue to next step →
             </button>
           </div>
         </div>
@@ -891,7 +910,7 @@ const CodingSection = () => {
                   );
 
                   try {
-                    const resp = await fetch("http://127.0.0.1:8000/api/coding/results", {
+                    const resp = await fetch(`${API_USER_URL}/api/coding/results`, {
                       method: "POST",
                       headers: { "Content-Type": "application/json" },
                       body: JSON.stringify({
@@ -932,13 +951,13 @@ const CodingSection = () => {
                     if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
                       const nextSection = enabledSections[currentIdx + 1];
                       setSubmitted(true);
-                      navigate(`/section/${nextSection.key}`, { state: assessmentState });
+                      navigate('/guiding-page', { state: { ...assessmentState, nextSection: nextSection.key } });
                       return;
                     }
                   }
                   
                   setSubmitted(true);
-                  navigate('/submission');
+                  navigate('/guiding-page', { state: { ...assessmentState, nextSection: 'Finish' } });
                 }}
                 className="flex-1 py-3 bg-red-600 text-white text-sm font-bold rounded-xl hover:bg-red-700 active:scale-95 transition-all cursor-pointer uppercase tracking-wide shadow-md"
               >

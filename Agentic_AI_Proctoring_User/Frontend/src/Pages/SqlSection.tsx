@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router'
+import { toast } from 'react-toastify'
 import Editor from '@monaco-editor/react'
 import { useLocalPersist } from '../hooks/useLocalPersist'
+import API_USER_URL from '../Config/apiConfig'
 
 const SQL_TEMPLATE = `-- Write your SQL query below\n`
 
@@ -180,7 +182,7 @@ const SqlSection = () => {
 
         try {
             const email = localStorage.getItem("candidate_email");
-            fetch("http://127.0.0.1:8001/Code/Checker", {
+            fetch(`${API_USER_URL}/Code/Checker`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -198,13 +200,22 @@ const SqlSection = () => {
                 code: currentCode,
             }
 
-            const response = await fetch('http://127.0.0.1:8000/run-sql', {
+            const response = await fetch(`${API_USER_URL}/run-sql`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data),
             })
 
             const result = await response.json()
+
+            if (response.status === 429) {
+                toast.error("You are running queries too frequently. Please wait a few seconds.", {
+                    position: "top-right",
+                    theme: "colored"
+                });
+                setIsRunning(false);
+                return;
+            }
 
             if (!response.ok) {
                 const message =
@@ -279,7 +290,7 @@ const SqlSection = () => {
         );
 
         try {
-            const resp = await fetch("http://127.0.0.1:8000/api/sql/results", {
+            const resp = await fetch(`${API_USER_URL}/api/sql/results`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -290,6 +301,14 @@ const SqlSection = () => {
                     total_marks,
                 }),
             });
+
+            if (resp.status === 429) {
+                toast.error("Submission rate limit reached. Please try again in a moment.", {
+                    position: "top-right",
+                    theme: "colored"
+                });
+                return;
+            }
 
             if (!resp.ok) {
                 throw new Error("Failed to save SQL results");
@@ -345,15 +364,15 @@ const SqlSection = () => {
                                   
                                   if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
                                     const nextSection = enabledSections[currentIdx + 1];
-                                    navigate(`/section/${nextSection.key}`, { state: assessmentState });
+                                    navigate(`/section/${nextSection.key}`, { state: { ...assessmentState } });
                                     return;
                                   }
                                 }
                                 navigate('/submission');
                             }}
-                            className="w-full py-4 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 active:scale-95 transition-all duration-150 cursor-pointer"
+                            className="w-full py-4 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-gray-700 active:scale-95 transition-all duration-150 cursor-pointer uppercase tracking-wide"
                         >
-                            Finish & Submit Assessment →
+                            Continue to next step →
                         </button>
                     </div>
                 </div>
@@ -884,7 +903,7 @@ const SqlSection = () => {
                                     );
 
                                     try {
-                                        const resp = await fetch("http://127.0.0.1:8000/api/sql/results", {
+                                        const resp = await fetch(`${API_USER_URL}/api/sql/results`, {
                                             method: "POST",
                                             headers: { "Content-Type": "application/json" },
                                             body: JSON.stringify({
@@ -924,7 +943,7 @@ const SqlSection = () => {
                                       
                                       if (currentIdx !== -1 && currentIdx < enabledSections.length - 1) {
                                         const nextSection = enabledSections[currentIdx + 1];
-                                        navigate(`/section/${nextSection.key}`, { state: assessmentState });
+                                        navigate(`/section/${nextSection.key}`, { state: { ...assessmentState } });
                                         return;
                                       }
                                     }

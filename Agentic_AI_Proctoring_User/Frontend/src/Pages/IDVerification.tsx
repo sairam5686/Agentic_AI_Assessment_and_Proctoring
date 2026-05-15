@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router';
 import { FaCamera, FaCheckCircle, FaExclamationTriangle } from 'react-icons/fa';
+import API_USER_URL from '../Config/apiConfig';
 
 const IDVerification: React.FC = () => {
     const navigate = useNavigate();
@@ -75,7 +76,7 @@ const IDVerification: React.FC = () => {
         setErrorMsg('');
         
         try {
-            const response = await fetch('http://127.0.0.1:8000/api/verify-id', {
+            const response = await fetch(`${API_USER_URL}/api/verify-id`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

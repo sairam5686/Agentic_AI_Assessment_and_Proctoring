@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router'
 import { toast } from 'react-toastify'
 import { motion, AnimatePresence } from 'framer-motion'
+import { Code2, FileText, Database, Puzzle, PenLine, Palette, BarChart3, BookOpen } from 'lucide-react'
 
 interface TestCase {
   title: string
@@ -131,11 +132,28 @@ interface FITBSectionData {
 interface AssessmentData {
   assessment_id: string
   status: string
+  category?: string
+  metadata?: any
+  certification_config?: any
   Coding: CodingSection | null
   MCQ: MCQSectionData | null
   SQL: SQLSectionData | null
   Gaming: GamingSectionData | null
   FITB: FITBSectionData | null
+  Essay: {
+    enabled: boolean;
+    topic: string;
+    duration: number | null;
+    rubric?: {
+      sections: Record<string, { name: string; max_marks: number; criteria: string[] }>
+    } | null
+  } | null;
+  Diagram: {
+    enabled: boolean;
+    prompt: string;
+    master_json: any;
+    master_image: string | null;
+  } | null;
 }
 
 const difficultyColors: Record<string, string> = {
@@ -146,8 +164,8 @@ const difficultyColors: Record<string, string> = {
 
 const typeColors: Record<string, string> = {
   Default: 'bg-blue-100 text-blue-700',
-  Basic: 'bg-purple-100 text-purple-700',
-  Necessary: 'bg-orange-100 text-orange-700',
+  Basic: 'bg-indigo-50 text-indigo-700',
+  Necessary: 'bg-indigo-50 text-indigo-700',
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -165,9 +183,9 @@ const normaliseTestCases = (
 }
 
 /** Empty-state banner used in both tabs */
-const EmptyState = ({ icon, message }: { icon: string; message: string }) => (
+const EmptyState = ({ icon, message }: { icon: React.ReactNode; message: string }) => (
   <div className="bg-white rounded-xl border border-dashed border-gray-200 shadow-sm p-12 flex flex-col items-center gap-3 text-center">
-    <span className="text-4xl">{icon}</span>
+    <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-400">{icon}</div>
     <p className="text-sm text-gray-400 max-w-xs">{message}</p>
   </div>
 )
@@ -179,20 +197,20 @@ const PreviewTest = () => {
   const [data, setData] = useState<AssessmentData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState<'coding' | 'mcq' | 'sql' | 'gaming' | 'fitb' | null>(null)
+  const [activeTab, setActiveTab] = useState<'coding' | 'mcq' | 'sql' | 'gaming' | 'fitb' | 'essay' | 'diagram' | null>(null)
   const [expandedQuestion, setExpandedQuestion] = useState<string | number | null>(null)
   const [showStopModal, setShowStopModal] = useState(false)
 
-  const navigator = useNavigate()
+  const navigate = useNavigate()
 
   const fetcher = async (assessment_id: string) => {
     try {
-      const response = await fetch(`http://localhost:8000/admin/test/${assessment_id}/Preview`)
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/admin/test/${assessment_id}/Preview`)
       const json = await response.json()
       console.log('API response:', json)
 
       // Accept data even if sections are null — just not all missing entirely
-      if (!json?.Coding && !json?.MCQ && !json?.SQL && !json?.Gaming && !json?.FITB) {
+      if (!json?.Coding && !json?.MCQ && !json?.SQL && !json?.Gaming && !json?.FITB && !json?.Essay) {
         setError(`Unexpected data shape: ${JSON.stringify(Object.keys(json))}`)
         return
       }
@@ -200,12 +218,13 @@ const PreviewTest = () => {
       setData(json)
 
       // Auto-select a tab that actually has data
-      const hasGaming = json.Gaming && json.Gaming.games?.[0]?.enabled
+      const hasGaming = !!(json.Gaming && json.Gaming.games?.[0]?.enabled)
       if (hasGaming) setActiveTab('gaming')
       else if (json.MCQ && json.MCQ.total_questions > 0) setActiveTab('mcq')
       else if (json.Coding && json.Coding.total_questions > 0) setActiveTab('coding')
       else if (json.SQL && json.SQL.total_questions > 0) setActiveTab('sql')
       else if (json.FITB && json.FITB.total_questions > 0) setActiveTab('fitb')
+      else if (json.Diagram && json.Diagram.enabled) setActiveTab('diagram')
     } catch (err) {
       console.error(err)
       setError('Failed to load assessment data.')
@@ -231,14 +250,14 @@ const PreviewTest = () => {
       formData.append('assessment_id', data.assessment_id);
       formData.append('status', 'terminated');
 
-      const response = await fetch('http://localhost:8000/update-test-status', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/update-test-status`, {
         method: 'POST',
         body: formData,
       });
 
       if (!response.ok) throw new Error('Failed to update status');
 
-      setData({ ...data, status: 'terminated' });
+      setData(prev => prev ? { ...prev, status: 'terminated' } : null);
       toast.success("Assessment has been terminated successfully.");
       setShowStopModal(false);
     } catch (err) {
@@ -262,6 +281,8 @@ const PreviewTest = () => {
   const hasSQL = !!(data?.SQL?.questions?.length)
   const hasFITB = !!(data?.FITB?.sections?.length)
   const hasGaming = !!(data?.Gaming && data?.Gaming?.games?.[0]?.enabled)
+  const hasEssay = !!(data?.Essay?.enabled)
+  const hasDiagram = !!(data?.Diagram?.enabled)
 
   // ── Render guards ──────────────────────────────────────────────────────────
 
@@ -295,25 +316,36 @@ const PreviewTest = () => {
       <div className="bg-white border-b border-gray-200 px-6 py-5 sticky top-0 z-10 shadow-sm">
         <div className="max-w-6xl mx-auto flex items-center justify-between">
           <div>
-            <button onClick={() => navigator(-1)} className="flex gap-2 items-center text-gray-500 hover:text-gray-700">
+            <button onClick={() => navigate(-1)} className="flex gap-2 items-center text-gray-500 hover:text-gray-700">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg> Back
             </button>
             <h1 className="text-xl font-bold text-gray-900">
-              {data.Gaming?.test_title ?? data.Coding?.test_title ?? data.MCQ?.test_title ?? data.FITB?.test_title ?? 'Assessment Preview'}
+              {data.category === 'Certification'
+                ? `${data.certification_config?.track_name} Assessment`
+                : (data.Coding?.test_title ?? data.MCQ?.test_title ?? data.SQL?.test_title ?? data.FITB?.test_title ?? 'Assessment Preview')
+              }
             </h1>
-            <p className="text-xs text-gray-400 mt-0.5">ID: {data.assessment_id}</p>
+            <div className="flex items-center gap-2 mt-0.5">
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wider">ID: {data.assessment_id}</p>
+              {data.certification_config && (
+                <>
+                  <span className="text-gray-300">•</span>
+                  <p className="text-xs text-blue-600 font-bold uppercase tracking-wider">{data.certification_config.issuer}</p>
+                </>
+              )}
+            </div>
           </div>
           <div className="flex items-center gap-4">
             <div className="flex gap-4 text-sm text-gray-600">
               {data.Gaming && data.Gaming.games?.[0]?.enabled && (
-                <div className="flex items-center gap-1.5 bg-orange-50 text-orange-700 px-3 py-1.5 rounded-lg">
+                <div className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg">
                   <span>Gaming Duration: {data.Gaming.games[0].total_duration} mins</span>
                 </div>
               )}
               {data.MCQ && (
-                <div className="flex items-center gap-1.5 bg-purple-50 text-purple-700 px-3 py-1.5 rounded-lg">
+                <div className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg">
                   <span>MCQ Duration: {formatDuration(data.MCQ.mcq_duration)}</span>
                 </div>
               )}
@@ -323,7 +355,7 @@ const PreviewTest = () => {
                 </div>
               )}
               {data.SQL && (
-                <div className="flex items-center gap-1.5 bg-teal-50 text-teal-700 px-3 py-1.5 rounded-lg">
+                <div className="flex items-center gap-1.5 bg-indigo-50 text-indigo-700 px-3 py-1.5 rounded-lg">
                   <span>SQL Duration: {formatDuration(data.SQL.sql_duration)}</span>
                 </div>
               )}
@@ -339,9 +371,9 @@ const PreviewTest = () => {
           {[
             {
               label: 'Gaming Rounds',
-              value: data.Gaming?.games[0]?.rounds_count ?? 0,
+              value: data.Gaming?.games?.[0]?.rounds_count ?? 0,
               color: 'orange',
-              show: data.Gaming && data.Gaming.games?.[0]?.enabled
+              show: !!(data.Gaming && data.Gaming.games?.[0]?.enabled)
             },
             {
               label: 'MCQ Questions',
@@ -367,6 +399,18 @@ const PreviewTest = () => {
               color: 'amber',
               show: !!(data.FITB?.total_questions)
             },
+            {
+              label: 'Essay',
+              value: '50 marks',
+              color: 'violet',
+              show: hasEssay
+            },
+            {
+              label: 'Diagram Question',
+              value: '10 marks',
+              color: 'orange',
+              show: hasDiagram
+            },
           ].filter(card => card.show).map(({ label, value, color }) => (
             <div key={label} className="bg-white rounded-xl border border-gray-100 shadow-sm p-4">
               <p className="text-sm text-gray-500">{label}</p>
@@ -381,7 +425,7 @@ const PreviewTest = () => {
             <button
               onClick={() => setActiveTab('gaming')}
               className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'gaming'
-                ? 'bg-orange-600 text-white shadow'
+                ? 'bg-indigo-600 text-white shadow'
                 : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                 }`}
             >
@@ -392,7 +436,7 @@ const PreviewTest = () => {
             <button
               onClick={() => setActiveTab('mcq')}
               className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'mcq'
-                ? 'bg-purple-600 text-white shadow'
+                ? 'bg-indigo-600 text-white shadow'
                 : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                 }`}
             >
@@ -414,7 +458,7 @@ const PreviewTest = () => {
             <button
               onClick={() => setActiveTab('sql')}
               className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'sql'
-                ? 'bg-teal-600 text-white shadow'
+                ? 'bg-indigo-600 text-white shadow'
                 : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                 }`}
             >
@@ -425,11 +469,33 @@ const PreviewTest = () => {
             <button
               onClick={() => setActiveTab('fitb')}
               className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'fitb'
-                ? 'bg-amber-500 text-white shadow'
+                ? 'bg-indigo-600 text-white shadow'
                 : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
                 }`}
             >
-              ✏️ Fill in the Blanks
+              Fill in the Blanks
+            </button>
+          )}
+          {hasEssay && (
+            <button
+              onClick={() => setActiveTab('essay')}
+              className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'essay'
+                ? 'bg-indigo-600 text-white shadow'
+                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                }`}
+            >
+              Essay
+            </button>
+          )}
+          {hasDiagram && (
+            <button
+              onClick={() => setActiveTab('diagram')}
+              className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${activeTab === 'diagram'
+                ? 'bg-indigo-600 text-white shadow'
+                : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+                }`}
+            >
+              Diagram
             </button>
           )}
         </div>
@@ -441,7 +507,7 @@ const PreviewTest = () => {
               <div key={game.game_id} className="bg-white rounded-xl border border-gray-100 shadow-sm p-6">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center text-2xl">🧩</div>
+                    <div className="w-12 h-12 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-400"><Puzzle size={24} /></div>
                     <div>
                       <h3 className="font-bold text-gray-800 capitalize">{game.game_id.replace('-', ' ')}</h3>
                       <p className="text-xs text-gray-500">{game.rounds_count} Rounds • {game.duration_per_round} mins per round</p>
@@ -460,7 +526,7 @@ const PreviewTest = () => {
                       <p className="text-xs font-bold text-gray-400 mb-2 uppercase tracking-wider">Round {round.round}</p>
                       <div className="flex items-center justify-between">
                         <span className="text-sm text-gray-700">Grid Size</span>
-                        <span className="text-sm font-bold text-orange-600">{round.grid_size}x{round.grid_size}</span>
+                        <span className="text-sm font-bold text-indigo-600">{round.grid_size}x{round.grid_size}</span>
                       </div>
                     </div>
                   ))}
@@ -474,7 +540,7 @@ const PreviewTest = () => {
         {activeTab === 'coding' && (
           <>
             {!hasCoding ? (
-              <EmptyState icon="💻" message="No coding questions have been added to this assessment yet." />
+              <EmptyState icon={<Code2 size={28} />} message="No coding questions have been added to this assessment yet." />
             ) : (
               <div className="space-y-4">
                 {data.Coding!.questions.map((q, idx) => {
@@ -627,7 +693,7 @@ const PreviewTest = () => {
         {activeTab === 'mcq' && (
           <>
             {!hasMCQ ? (
-              <EmptyState icon="📝" message="No MCQ sections have been added to this assessment yet." />
+              <EmptyState icon={<FileText size={28} />} message="No MCQ sections have been added to this assessment yet." />
             ) : (
               <div className="space-y-6">
                 {data.MCQ!.sections.map((section) => (
@@ -639,12 +705,12 @@ const PreviewTest = () => {
                     <div className="px-6 py-4 bg-gradient-to-r from-purple-50 to-indigo-50 border-b border-gray-100">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="w-6 h-6 bg-purple-600 text-white text-xs font-bold rounded-md flex items-center justify-center">
+                          <span className="w-6 h-6 bg-indigo-600 text-white text-xs font-bold rounded-md flex items-center justify-center">
                             {section.section_id}
                           </span>
                           <h2 className="font-semibold text-gray-800 text-sm">{section.section_name}</h2>
                         </div>
-                        <span className="text-xs text-purple-600 bg-purple-100 px-2.5 py-1 rounded-full">
+                        <span className="text-xs text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
                           {section.questions?.length ?? 0} questions
                         </span>
                       </div>
@@ -723,7 +789,7 @@ const PreviewTest = () => {
         {activeTab === 'sql' && (
           <>
             {!hasSQL ? (
-              <EmptyState icon="🗄️" message="No SQL questions have been added to this assessment yet." />
+              <EmptyState icon={<Database size={28} />} message="No SQL questions have been added to this assessment yet." />
             ) : (
               <div className="space-y-4">
                 {data.SQL!.questions.map((q, idx) => (
@@ -741,7 +807,7 @@ const PreviewTest = () => {
                       className="w-full text-left px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="w-8 h-8 bg-teal-100 text-teal-700 text-sm font-bold rounded-lg flex items-center justify-center">
+                        <span className="w-8 h-8 bg-indigo-50 text-indigo-700 text-sm font-bold rounded-lg flex items-center justify-center">
                           {idx + 1}
                         </span>
                         <div>
@@ -770,14 +836,14 @@ const PreviewTest = () => {
                         {q.table_display && (
                           <div className="mb-4">
                             <h4 className="text-sm font-semibold text-gray-700 mb-2">
-                              📊 Table: <span className="text-teal-600">{q.table_display.table_name}</span>
+                              Table: <span className="text-indigo-600">{q.table_display.table_name}</span>
                             </h4>
                             <div className="overflow-x-auto">
                               <table className="min-w-full text-xs border border-gray-200 rounded-lg overflow-hidden">
                                 <thead>
-                                  <tr className="bg-teal-50">
+                                  <tr className="bg-indigo-50">
                                     {q.table_display.columns.map((col) => (
-                                      <th key={col} className="px-4 py-2 text-left font-semibold text-teal-700 border-b border-gray-200">
+                                      <th key={col} className="px-4 py-2 text-left font-semibold text-indigo-700 border-b border-gray-200">
                                         {col}
                                       </th>
                                     ))}
@@ -811,7 +877,7 @@ const PreviewTest = () => {
         {activeTab === 'fitb' && (
           <>
             {!hasFITB ? (
-              <EmptyState icon="✏️" message="No Fill in the Blanks questions have been added to this assessment yet." />
+              <EmptyState icon={<BookOpen size={28} />} message="No Fill in the Blanks questions have been added to this assessment yet." />
             ) : (
               <div className="space-y-6">
                 {data.FITB!.sections.map((section) => (
@@ -823,12 +889,12 @@ const PreviewTest = () => {
                     <div className="px-6 py-4 bg-gradient-to-r from-amber-50 to-yellow-50 border-b border-amber-100">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
-                          <span className="w-6 h-6 bg-amber-500 text-white text-xs font-bold rounded-md flex items-center justify-center">
+                          <span className="w-6 h-6 bg-indigo-500 text-white text-xs font-bold rounded-md flex items-center justify-center">
                             {section.section_id}
                           </span>
                           <h2 className="font-semibold text-gray-800 text-sm">{section.section_name}</h2>
                         </div>
-                        <span className="text-xs text-amber-700 bg-amber-100 px-2.5 py-1 rounded-full">
+                        <span className="text-xs text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded-full">
                           {section.questions?.length ?? 0} questions
                         </span>
                       </div>
@@ -867,7 +933,7 @@ const PreviewTest = () => {
                                       <span key={i}>
                                         {part}
                                         {i < parts.length - 1 && (
-                                          <span className="inline-block mx-1 px-3 py-0.5 bg-amber-100 border border-amber-300 text-amber-700 rounded text-xs font-mono align-middle">
+                                          <span className="inline-block mx-1 px-3 py-0.5 bg-indigo-50 border border-indigo-300 text-indigo-700 rounded text-xs font-mono align-middle">
                                             _blank_{i + 1}_
                                           </span>
                                         )}
@@ -875,9 +941,8 @@ const PreviewTest = () => {
                                     ))}
                                   </p>
                                   <div className="flex items-center gap-2 shrink-0">
-                                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-                                      difficultyColors[q.difficulty] ?? 'bg-gray-100 text-gray-600'
-                                    }`}>
+                                    <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${difficultyColors[q.difficulty] ?? 'bg-gray-100 text-gray-600'
+                                      }`}>
                                       {q.difficulty}
                                     </span>
                                     <span className="text-xs text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
@@ -894,11 +959,10 @@ const PreviewTest = () => {
                                 <div className="mt-4 ml-9 space-y-3">
                                   {/* Partial marks badge */}
                                   <div className="flex items-center gap-2">
-                                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
-                                      q.partial_marks
+                                    <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${q.partial_marks
                                         ? 'bg-green-100 text-green-700'
                                         : 'bg-gray-100 text-gray-500'
-                                    }`}>
+                                      }`}>
                                       {q.partial_marks ? '✓ Partial Marks Enabled' : '✗ Full Marks Only'}
                                     </span>
                                     <span className="text-xs text-gray-400">
@@ -911,7 +975,7 @@ const PreviewTest = () => {
                                     <p className="text-xs font-semibold text-gray-600">Accepted Answers:</p>
                                     {q.blanks.map((accepted, bIdx) => (
                                       <div key={bIdx} className="flex items-center gap-2">
-                                        <span className="text-xs text-amber-700 bg-amber-100 border border-amber-200 px-2 py-0.5 rounded font-mono whitespace-nowrap">
+                                        <span className="text-xs text-indigo-700 bg-indigo-50 border border-indigo-200 px-2 py-0.5 rounded font-mono whitespace-nowrap">
                                           Blank {bIdx + 1}
                                         </span>
                                         <div className="flex flex-wrap gap-1">
@@ -940,10 +1004,174 @@ const PreviewTest = () => {
             )}
           </>
         )}
+
+        {/* ── Essay Tab ── */}
+        {activeTab === 'essay' && hasEssay && data.Essay && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-400 shadow-sm"><PenLine size={28} /></div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Essay / Long Answer Preview</h3>
+                  <p className="text-sm text-gray-500 font-medium">AI-powered evaluation based on custom rubric</p>
+                </div>
+                <div className="ml-auto flex items-center gap-4">
+                  <div className="text-right">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Time Limit</p>
+                    <p className="text-lg font-black text-indigo-600 leading-none">{data.Essay.duration || 30} Mins</p>
+                  </div>
+                  <div className="w-px h-8 bg-gray-100 mx-2"></div>
+                  <div className="text-right">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest leading-none mb-1">Max Score</p>
+                    <p className="text-lg font-black text-gray-800 leading-none">50 Marks</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Topic */}
+              <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 mb-8">
+                <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
+                  Prompt / Topic for Candidate
+                </div>
+                <p className="text-lg font-bold text-gray-800 leading-relaxed">
+                  {data.Essay.topic || "No topic provided for this essay."}
+                </p>
+              </div>
+
+              {/* Rubric Breakdown */}
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">
+                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
+                  Grading Rubric Configuration
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {Object.entries(data.Essay.rubric?.sections || {}).map(([key, section]) => (
+                    <div key={key} className="bg-white border border-gray-100 rounded-2xl p-5 hover:border-violet-200 transition-colors shadow-sm group">
+                      <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">🎯</span>
+                          <h4 className="text-sm font-black text-gray-900 uppercase tracking-tight">{section.name}</h4>
+                        </div>
+                        <span className="px-2.5 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-black rounded-lg border border-indigo-100">
+                          {section.max_marks} MARKS
+                        </span>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        {section.criteria.map((c, i) => (
+                          <div key={i} className="flex items-start gap-2 text-[11px] text-gray-500 font-medium leading-relaxed">
+                            <span className="text-indigo-400 mt-1 shrink-0">✓</span>
+                            <span>{c}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+            </div>
+          </div>
+        )}
+
+        {/* ── Diagram Tab ── */}
+        {activeTab === 'diagram' && hasDiagram && data.Diagram && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">
+              <div className="flex items-center gap-4 mb-8">
+                <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-400 shadow-sm"><Palette size={28} /></div>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">System Design / Diagram Preview</h3>
+                  <p className="text-sm text-gray-500 font-medium">Visual high-fidelity master solution & requirements</p>
+                </div>
+                <div className="ml-auto flex items-center gap-2">
+                  <span className="px-3 py-1 bg-indigo-50 text-indigo-600 text-[10px] font-black uppercase tracking-widest rounded-lg border border-indigo-100">
+                    Master Solution
+                  </span>
+                </div>
+              </div>
+
+              {/* Question Text */}
+              <div className="bg-gray-50 border border-gray-100 rounded-2xl p-6 mb-8">
+                <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">
+                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
+                  Problem Statement / Prompt
+                </div>
+                <p className="text-base font-semibold text-gray-800 leading-relaxed">
+                  {data.Diagram.prompt || "No prompt provided for this diagram question."}
+                </p>
+              </div>
+
+              {/* Master Diagram Image */}
+              <div className="relative group">
+                <div className="flex items-center gap-2 text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">
+                  <div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
+                  Master Solution PNG Snapshot
+                </div>
+
+                <div className="bg-white border-2 border-dashed border-gray-200 rounded-3xl p-4 min-h-[400px] flex items-center justify-center overflow-hidden transition-all group-hover:border-indigo-200 group-hover:bg-indigo-50/10">
+                  {data.Diagram.master_image ? (
+                    <img
+                      src={data.Diagram.master_image}
+                      alt="Master Diagram Solution"
+                      className="max-w-full max-h-[600px] object-contain rounded-xl shadow-lg transition-transform duration-500 group-hover:scale-[1.02]"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/800x450?text=Diagram+Image+Load+Failed';
+                      }}
+                    />
+                  ) : (
+                    <div className="text-center">
+                      <div className="text-4xl mb-4 opacity-20">🖼️</div>
+                      <p className="text-sm font-bold text-gray-400">No master diagram image found.</p>
+                      <p className="text-xs text-gray-300 mt-1 uppercase tracking-widest font-black">Admin must capture & save the diagram first</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Overlay Badge */}
+                {data.Diagram.master_image && (
+                  <div className="absolute top-12 right-6 px-4 py-2 bg-black/60 backdrop-blur-md text-white rounded-xl text-[10px] font-bold uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+                    High Fidelity Preview
+                  </div>
+                )}
+              </div>
+
+              {/* Metadata Stats */}
+              <div className="mt-10 grid grid-cols-4 gap-4">
+                <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 leading-none">Max Marks</p>
+                  <p className="text-lg font-black text-gray-800 leading-none">10 Marks</p>
+                </div>
+                <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 leading-none">Node Count</p>
+                  <p className="text-lg font-black text-gray-800 leading-none">
+                    {data.Diagram.master_json?.nodes?.length || 0} Nodes
+                  </p>
+                </div>
+                <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 leading-none">Edge Count</p>
+                  <p className="text-lg font-black text-gray-800 leading-none">
+                    {data.Diagram.master_json?.edges?.length || 0} Links
+                  </p>
+                </div>
+                <div className="bg-white border border-gray-100 rounded-xl p-4 shadow-sm">
+                  <p className="text-[9px] font-black text-gray-400 uppercase tracking-widest mb-1 leading-none">Evaluation</p>
+                  <p className="text-lg font-black text-indigo-600 leading-none flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+                    AI Assisted
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
       </div>
 
       {data.status !== 'terminated' && (
-        <button onClick={() => navigator("/start-test", { state: { assessment_id: data.assessment_id } })}
+        <button onClick={() => navigate("/start-test", { state: { assessment_id: data.assessment_id } })}
           className="fixed right-6 bottom-6 group flex items-center gap-2 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white px-5 py-3 rounded-2xl shadow-lg hover:shadow-indigo-300 hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5 active:scale-95 active:translate-y-0">
           {/* Pulsing dot */}
           <span className="relative flex h-2.5 w-2.5">

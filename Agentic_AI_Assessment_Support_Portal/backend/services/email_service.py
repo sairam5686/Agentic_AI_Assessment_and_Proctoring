@@ -6,9 +6,9 @@ load_dotenv()
 
 # use SMTP_ prefix as requested
 conf = ConnectionConfig(
-    MAIL_USERNAME = os.getenv("SMTP_USERNAME"),
-    MAIL_PASSWORD = os.getenv("SMTP_PASSWORD"),
-    MAIL_FROM = os.getenv("SMTP_USERNAME"), # Defaulting to SMTP_USERNAME if MAIL_FROM not provided
+    MAIL_USERNAME = os.getenv("SMTP_USER"),
+    MAIL_PASSWORD = os.getenv("SMTP_PASS"),
+    MAIL_FROM = os.getenv("SMTP_USER"), # Defaulting to SMTP_USER if MAIL_FROM not provided
     MAIL_PORT = int(os.getenv("SMTP_PORT", 587)),
     MAIL_SERVER = os.getenv("SMTP_HOST", "smtp.gmail.com"),
     MAIL_STARTTLS = os.getenv("MAIL_STARTTLS", "True") == "True",
