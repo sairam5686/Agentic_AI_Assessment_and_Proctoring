@@ -1,14 +1,30 @@
-ultralytics
-mediapipe
-reportlab
-numpy
-scikit-learn
-SpeechRecognition
-PyAudio
+# ── Web framework ────────────────────────────────────────────────────────────
 fastapi
-uvicorn
-jinja2
-pymongo
-cloudinary
+uvicorn[standard]
 python-multipart
 python-dotenv
+jinja2
+aiofiles
+
+# ── Vision / ML ──────────────────────────────────────────────────────────────
+opencv-python-headless
+numpy
+mediapipe
+ultralytics
+torch
+torchvision
+scikit-learn
+
+# ── Audio ────────────────────────────────────────────────────────────────────
+SpeechRecognition
+PyAudio
+
+# ── Database / Storage ───────────────────────────────────────────────────────
+pymongo
+cloudinary
+
+# ── PDF reporting ────────────────────────────────────────────────────────────
+reportlab
+
+# ── Misc ─────────────────────────────────────────────────────────────────────
+requests

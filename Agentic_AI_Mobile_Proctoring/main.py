@@ -1,4 +1,4 @@
-﻿import sys
+import sys
 import asyncio
 
 # CRITICAL for Windows: Use ProactorEventLoop to avoid the 64-socket 'select()' limit
@@ -322,6 +322,11 @@ async def stop_proctoring(data: dict = None):
         traceback.print_exc()
         print(f"[MobileAgent] Error in /stop: {str(e)}")
         return {"status": "error", "message": str(e)}
+
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 @app.on_event("shutdown")
 def shutdown_event():

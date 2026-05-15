@@ -325,3 +325,12 @@ async def store_scores(request: Request):
     except Exception as e:
         print(f"[Server] MongoDB insert FAILED: {e}")
         return JSONResponse({"Status": False, "error": str(e)}, status_code=500)
+
+
+# ---------------------------------------------------------------------------
+# Entrypoint — Railway injects $PORT; default to 8001 locally
+# ---------------------------------------------------------------------------
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=int(os.getenv("PORT", 8001)))
