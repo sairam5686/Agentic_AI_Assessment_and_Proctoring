@@ -18,7 +18,7 @@ const Submission: React.FC = () => {
                     assessment_id: assessment_id,
                     email: email
                 }
-                const response = await fetch(`${import.meta.env.VITE_MOBILE_PROCTOR_URL}/mobile/score`, {
+                const response = await fetch('http://localhost:8002/mobile/score', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(dataval)
@@ -160,7 +160,7 @@ const Submission: React.FC = () => {
                                     // 1. Stop Mobile Monitoring first
                                     if (a_id && email) {
                                         console.log("Submission: Signaling mobile to stop...");
-                                        await fetch(`${import.meta.env.VITE_MOBILE_PROCTOR_URL}/stop`, {
+                                        await fetch("http://localhost:8002/stop", {
                                             method: "POST",
                                             headers: { "Content-Type": "application/json" },
                                             body: JSON.stringify({ assessment_id: a_id, email_id: email })

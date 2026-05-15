@@ -48,7 +48,7 @@ const ProctoringWrapper = ({ children }: Props) => {
       const email_id = localStorage.getItem("candidate_email")?.toString().trim().toLowerCase();
 
       try {
-        await fetch(`${import.meta.env.VITE_VIDEO_PROCTOR_URL}/video/frame`, {
+        await fetch("http://localhost:8001/video/frame", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

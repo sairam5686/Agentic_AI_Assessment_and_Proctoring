@@ -134,16 +134,14 @@ async def handle_test_ended(sid, data):
 
     # Explicitly stop the backend proctoring agents
     try:
-        # Stop Laptop Proctor
-        video_proctor_url = os.getenv("VIDEO_PROCTOR_URL", "http://localhost:8001")
-        requests.post(f"{video_proctor_url}/stop", timeout=1)
+        # Stop Laptop Proctor (8001)
+        requests.post("http://localhost:8001/stop", timeout=1)
     except Exception as e:
         print(f"Failed to stop laptop proctor: {e}")
 
     try:
-        # Stop Mobile Proctor
-        mobile_proctor_url = os.getenv("MOBILE_PROCTOR_URL", "http://localhost:8002")
-        requests.post(f"{mobile_proctor_url}/stop", json={"assessment_id": a_id, "email_id": email}, timeout=1)
+        # Stop Mobile Proctor (8002)
+        requests.post("http://localhost:8002/stop", json={"assessment_id": a_id, "email_id": email}, timeout=1)
     except Exception as e:
         print(f"Failed to stop mobile proctor: {e}")
 
@@ -460,11 +458,6 @@ async def run_sql(request: Request):
     code = body.get("code")
     result  = await SQL_Runner(assessment_id=assessment_id, question_id=question_id, code=code)
     return result
-
-
-@app.get("/health")
-def health():
-    return {"status": "ok"}
 
 
 # Wrap the FastAPI app with technical middleware if needed
