@@ -2,6 +2,7 @@ FROM python:3.11-slim
 
 # System dependencies required by OpenCV-headless, MediaPipe, and PyAudio
 RUN apt-get update && apt-get install -y \
+    gcc \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
