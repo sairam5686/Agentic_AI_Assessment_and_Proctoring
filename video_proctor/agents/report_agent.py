@@ -1,5 +1,6 @@
 import json
 import os
+import time
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
@@ -11,8 +12,13 @@ from Connections.ViolationLogsDB import Risk_Score_DB
 class ReportAgent:
 
     def __init__(self, risk_agent, violation_agent):
-        self.risk_agent      = risk_agent
-        self.violation_agent = violation_agent
+        """
+        Args:
+            risk_agent:       RiskAgent instance — provides scores and timeline.
+            violation_agent:  ViolationAgent instance — provides violation list.
+        """
+        self.risk_agent       = risk_agent
+        self.violation_agent  = violation_agent
 
     # ─────────────────────────────────────────────────────────────
     # Public API
@@ -72,6 +78,7 @@ class ReportAgent:
         # ── PDF ───────────────────────────────────────────────────
         self._write_pdf(analytics)
         print("[Report] report.pdf saved.")
+
 
     # ─────────────────────────────────────────────────────────────
     # PDF builder

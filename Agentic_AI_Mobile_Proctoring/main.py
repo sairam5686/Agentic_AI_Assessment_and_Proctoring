@@ -233,7 +233,7 @@ async def stop_proctoring(data: dict = None):
                 duration = time.time() - session.session_start
                 session.report_agent.generate_reports(duration, label=session_key)
                 session.close()  # Clean up agents (MediaPipe/YOLO)
-                
+
                 # Final Summary
                 score = session.risk_agent.suspicion_score
                 trust = session.risk_agent.get_trust_score()
@@ -274,11 +274,12 @@ async def stop_proctoring(data: dict = None):
                 duration = time.time() - session.session_start
                 session.report_agent.generate_reports(duration, label=key)
                 session.close()  # Clean up agents (MediaPipe/YOLO)
-                
+
                 # Final Summary
                 score = session.risk_agent.suspicion_score
                 trust = session.risk_agent.get_trust_score()
                 count = len(session.violation_agent.violations)
+
                 
                 # Auto-save for global stop too
                 a_id_from_key, email_from_key = key.split("_", 1)

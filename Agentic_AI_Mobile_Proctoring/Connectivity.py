@@ -96,6 +96,7 @@ class ProctoringSession:
             del buf[:-n]
         return len(buf) == n and all(buf)
 
+
     def close(self):
         """
         Explicitly close all resource-heavy agents and the thread-pool executor.
@@ -108,6 +109,8 @@ class ProctoringSession:
         if hasattr(self, "gesture_agent"):
             self.gesture_agent.close()
         print("[MobileProctor] Session resources closed.")
+
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────

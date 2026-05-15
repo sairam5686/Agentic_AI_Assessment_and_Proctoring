@@ -60,6 +60,7 @@ class SupervisorAgent:
             "spoofing": None,
         }
 
+
     # ─────────────────────────────────────────────────────────────
     # Frame-consolidation helper
     # ─────────────────────────────────────────────────────────────
@@ -78,6 +79,7 @@ class SupervisorAgent:
         if len(buf) > n:
             del buf[:-n]
         return len(buf) == n and all(buf)
+
 
     # ─────────────────────────────────────────────────────────────
     # Mini-method: Vision checks

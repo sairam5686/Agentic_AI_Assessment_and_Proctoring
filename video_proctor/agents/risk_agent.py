@@ -76,6 +76,8 @@ class RiskAgent:
         self.alert_messages      = []
         self.cutoff_breach_count = 0
 
+
+
     def update_risk(self, event: str) -> None:
         now = time.time()
         if self.test_terminated: return
@@ -108,6 +110,7 @@ class RiskAgent:
         self._set_warning(event, repeat, penalty)
         self._check_burst(now, event)
         self._check_trust_cutoff()
+
 
         # ── Update shared state ───────────────────────────────────
         import state
@@ -178,3 +181,4 @@ class RiskAgent:
 
     def get_pattern_summary(self) -> dict:
         return {e: {"count": c} for e, c in self.violation_counts.items()}
+
