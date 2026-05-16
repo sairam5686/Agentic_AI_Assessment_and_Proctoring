@@ -1,0 +1,15 @@
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.git
+.env
+venv/
+*.pt
+*.mp4
+*.avi
+outputs/
+.vscode/
+rsync_portable/
+node_modules/
+*.log
