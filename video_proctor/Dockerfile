@@ -11,6 +11,8 @@ RUN apt-get update && apt-get install -y \
     libgstreamer1.0-0 \
     portaudio19-dev \
     libgl1 \
+    libgles2 \
+    libegl1 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
