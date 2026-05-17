@@ -18,8 +18,7 @@ const Submission: React.FC = () => {
                     assessment_id: assessment_id,
                     email: email
                 }
-                const mobileProctorUrl = import.meta.env.VITE_MOBILE_PROCTOR_URL || "http://localhost:8002";
-                const response = await fetch(`${mobileProctorUrl}/mobile/score`, {
+                const response = await fetch(`https://agenticaimobileproctoring-production.up.railway.app/mobile/score`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(dataval)
@@ -161,8 +160,7 @@ const Submission: React.FC = () => {
                                     // 1. Stop Mobile Monitoring first
                                     if (a_id && email) {
                                         console.log("Submission: Signaling mobile to stop...");
-                                        const mobileProctorUrl = import.meta.env.VITE_MOBILE_PROCTOR_URL || "http://localhost:8002";
-                                        await fetch(`${mobileProctorUrl}/stop`, {
+                                        await fetch(`https://agenticaimobileproctoring-production.up.railway.app/stop`, {
                                             method: "POST",
                                             headers: { "Content-Type": "application/json" },
                                             body: JSON.stringify({ assessment_id: a_id, email_id: email })
