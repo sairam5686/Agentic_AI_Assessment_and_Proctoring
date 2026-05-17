@@ -6,17 +6,17 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Configuration from environment variables
-SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
+BREVO_API_KEY = os.getenv("BREVO_API_KEY")
 SENDER_EMAIL = os.getenv("SENDER_EMAIL")
 FROM_NAME = os.getenv("FROM_NAME", "TEAM_TITANS")
-SENDGRID_URL = "https://api.sendgrid.com/v3/mail/send"
+BREVO_URL = "https://api.brevo.com/v3/smtp/email"
 
 async def send_report_email(recipient_email: str, assessment_id: str, pdf_path: str):
     """
-    Sends the assessment query report via SendGrid API with PDF attachment.
+    Sends the assessment query report via Brevo API with PDF attachment.
     """
-    if not SENDGRID_API_KEY or not SENDER_EMAIL:
-        print("DEBUG: SendGrid API Key or Sender Email missing in environment variables.")
+    if not BREVO_API_KEY or not SENDER_EMAIL:
+        print("DEBUG: Brevo API Key or Sender Email missing in environment variables.")
         return False
 
     # 1. Read and encode the PDF attachment to Base64
@@ -33,23 +33,22 @@ async def send_report_email(recipient_email: str, assessment_id: str, pdf_path: 
         print(f"DEBUG: Failed to process PDF attachment: {e}")
         return False
 
-    # 2. Prepare SendGrid API Request
+    # 2. Prepare Brevo API Request
     headers = {
-        "Authorization": f"Bearer {SENDGRID_API_KEY}",
-        "Content-Type": "application/json"
+        "accept": "application/json",
+        "api-key": BREVO_API_KEY,
+        "content-type": "application/json"
     }
 
     payload = {
-        "personalizations": [{"to": [{"email": recipient_email}]}],
-        "from": {"email": SENDER_EMAIL, "name": FROM_NAME},
+        "sender": {"name": FROM_NAME, "email": SENDER_EMAIL},
+        "to": [{"email": recipient_email}],
         "subject": f"Assessment Query Report - {assessment_id}",
-        "content": [{"type": "text/plain", "value": f"Hello,\n\nPlease find the attached report regarding your query for Assessment {assessment_id}.\n\nBest regards,\n{FROM_NAME}"}],
-        "attachments": [
+        "textContent": f"Hello,\n\nPlease find the attached report regarding your query for Assessment {assessment_id}.\n\nBest regards,\n{FROM_NAME}",
+        "attachment": [
             {
                 "content": pdf_content,
-                "filename": file_name,
-                "type": "application/pdf",
-                "disposition": "attachment"
+                "name": file_name
             }
         ]
     }
@@ -57,14 +56,14 @@ async def send_report_email(recipient_email: str, assessment_id: str, pdf_path: 
     # 3. Send the request asynchronously
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.post(SENDGRID_URL, headers=headers, json=payload)
+            response = await client.post(BREVO_URL, headers=headers, json=payload)
             
             if response.status_code in [200, 201, 202]:
                 print(f"DEBUG: Email sent successfully to {recipient_email}")
                 return True
             else:
-                print(f"DEBUG: SendGrid API error: {response.status_code} - {response.text}")
+                print(f"DEBUG: Brevo API error: {response.status_code} - {response.text}")
                 return False
     except Exception as e:
-        print(f"DEBUG: Failed to send email via SendGrid: {e}")
+        print(f"DEBUG: Failed to send email via Brevo: {e}")
         return False

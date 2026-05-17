@@ -5,53 +5,52 @@ import httpx
 load_dotenv()
 
 # Configuration
-SENDGRID_API_KEY = os.getenv("SENDGRID_API_KEY")
-SENDER_EMAIL = os.getenv("SENDER_EMAIL") # Your verified email address in SendGrid
+BREVO_API_KEY = os.getenv("BREVO_API_KEY")
+SENDER_EMAIL = os.getenv("SENDER_EMAIL") # Your verified Gmail address in Brevo
 FROM_NAME = os.getenv("FROM_NAME", "TEAM_TITANS")
 
 # Support portal and Mobile App links
 CANDIDATE_SUPPORT_URL = os.getenv("SUPPORT_PORTAL_URL")
 MOBILE_APP_URL = os.getenv("MOBILE_APP_URL")
 
-SENDGRID_URL = "https://api.sendgrid.com/v3/mail/send"
+BREVO_URL = "https://api.brevo.com/v3/smtp/email"
 
-def send_mail_via_sendgrid(to_email, subject, body, attachment_content=None, attachment_name=None):
-    if not SENDGRID_API_KEY or not SENDER_EMAIL:
-        print("SendGrid API Key or Sender Email missing in environment variables.")
+def send_mail_via_brevo(to_email, subject, body, attachment_content=None, attachment_name=None):
+    if not BREVO_API_KEY or not SENDER_EMAIL:
+        print("Brevo API Key or Sender Email missing in environment variables.")
         return False
 
     headers = {
-        "Authorization": f"Bearer {SENDGRID_API_KEY}",
-        "Content-Type": "application/json"
+        "accept": "application/json",
+        "api-key": BREVO_API_KEY,
+        "content-type": "application/json"
     }
 
     payload = {
-        "personalizations": [{"to": [{"email": to_email}]}],
-        "from": {"email": SENDER_EMAIL, "name": FROM_NAME},
+        "sender": {"name": FROM_NAME, "email": SENDER_EMAIL},
+        "to": [{"email": to_email}],
         "subject": subject,
-        "content": [{"type": "text/plain", "value": body}]
+        "textContent": body
     }
 
     if attachment_content and attachment_name:
-        payload["attachments"] = [
+        payload["attachment"] = [
             {
                 "content": attachment_content,
-                "filename": attachment_name,
-                "type": "image/png",
-                "disposition": "attachment"
+                "name": attachment_name
             }
         ]
 
     try:
         with httpx.Client() as client:
-            response = client.post(SENDGRID_URL, headers=headers, json=payload)
-            if response.status_code in [200, 202]:
+            response = client.post(BREVO_URL, headers=headers, json=payload)
+            if response.status_code in [201, 200, 202]:
                 return True
             else:
-                print(f"SendGrid API error: {response.status_code} - {response.text}")
+                print(f"Brevo API error: {response.status_code} - {response.text}")
                 return False
     except Exception as e:
-        print(f"Failed to send email to {to_email} via SendGrid: {e}")
+        print(f"Failed to send email to {to_email} via Brevo: {e}")
         return False
 
 def send_assessment_mail(to_email, candidate_name, assessment_title, assessment_id, assessment_link, valid_from, valid_to):
@@ -100,7 +99,7 @@ def send_assessment_mail(to_email, candidate_name, assessment_title, assessment_
     Best regards,
     {FROM_NAME} Team
     """
-    return send_mail_via_sendgrid(to_email, subject, body)
+    return send_mail_via_brevo(to_email, subject, body)
 
 def send_university_assessment_mail(to_email, candidate_name, registration_number, assessment_title, assessment_id, assessment_link, valid_from, valid_to):
     subject = f"Invitation to University Exam: {assessment_title}"
@@ -148,7 +147,7 @@ def send_university_assessment_mail(to_email, candidate_name, registration_numbe
     Best regards,
     {FROM_NAME} Team
     """
-    return send_mail_via_sendgrid(to_email, subject, body)
+    return send_mail_via_brevo(to_email, subject, body)
 
 def send_proctor_mail(to_email, proctor_name, assessment_title, assessment_id, passkey):
     subject = f"Invigilator Access: {assessment_title}"
@@ -166,7 +165,7 @@ def send_proctor_mail(to_email, proctor_name, assessment_title, assessment_id, p
     Best regards,
     {FROM_NAME} Team
     """
-    return send_mail_via_sendgrid(to_email, subject, body)
+    return send_mail_via_brevo(to_email, subject, body)
 
 def send_certification_mail(to_email, candidate_name, track_name, certificate_id, score, attachment_content=None, issuer="TEAM_TITANS"):
     subject = f"Congratulations! Your Professional Certification for {track_name}"
@@ -190,4 +189,4 @@ def send_certification_mail(to_email, candidate_name, track_name, certificate_id
     Best regards,
     {issuer}
     """
-    return send_mail_via_sendgrid(to_email, subject, body, attachment_content, "Certificate.png")
+    return send_mail_via_brevo(to_email, subject, body, attachment_content, "Certificate.png")
