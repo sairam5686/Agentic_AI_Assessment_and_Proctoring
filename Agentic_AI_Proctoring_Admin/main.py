@@ -64,7 +64,12 @@ def serialize_mongo(data):
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=[
+        "https://agentic-admin-portal.vercel.app",
+        "https://proctor-interface.vercel.app",
+        "https://agentic-candidate-portal.vercel.app",
+        "https://ai-candidate-support-portal.vercel.app"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -31,9 +31,14 @@ app = FastAPI()
 # Add CORS middleware to allow cross-origin requests from the frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allow all origins for dev; narrow this in production
+    allow_origins=[
+        "https://agentic-admin-portal.vercel.app",
+        "https://proctor-interface.vercel.app",
+        "https://agentic-candidate-portal.vercel.app",
+        "https://ai-candidate-support-portal.vercel.app"
+    ],
     allow_credentials=True,
-    allow_methods=["*"],  # Allow all methods (POST, OPTIONS, etc.)
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
