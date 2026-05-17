@@ -12,9 +12,22 @@ _reader = None
 def get_reader():
     global _reader
     if _reader is None:
+        import sys
+        import os
         print("[OCR] Loading EasyOCR model (first time only)...")
-        # Initialize for English
-        _reader = easyocr.Reader(['en'], gpu=False)
+        # Silence stdout and stderr to prevent download progress bar from spamming Railway logs
+        devnull = open(os.devnull, 'w')
+        old_stdout = sys.stdout
+        old_stderr = sys.stderr
+        try:
+            sys.stdout = devnull
+            sys.stderr = devnull
+            # Initialize for English
+            _reader = easyocr.Reader(['en'], gpu=False, verbose=False)
+        finally:
+            sys.stdout = old_stdout
+            sys.stderr = old_stderr
+            devnull.close()
         print("[OCR] EasyOCR model loaded.")
     return _reader
 
