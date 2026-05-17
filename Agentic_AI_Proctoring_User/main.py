@@ -143,7 +143,7 @@ async def handle_test_ended(sid, data):
 
     try:
         # Stop Mobile Proctor (8002)
-        mobile_proctor_url = os.getenv("MOBILE_PROCTOR_URL", "http://localhost:8002")
+        mobile_proctor_url = os.getenv("MOBILE_PROCTOR_URL", "https://agenticaimobileproctoring-production.up.railway.app")
         requests.post(f"{mobile_proctor_url}/stop", json={"assessment_id": a_id, "email_id": email}, timeout=1)
     except Exception as e:
         print(f"Failed to stop mobile proctor: {e}")

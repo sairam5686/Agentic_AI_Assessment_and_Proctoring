@@ -484,7 +484,7 @@ class _ThirdEyeAppState extends State<ThirdEyeApp> with WidgetsBindingObserver {
       final base64Image = "data:image/jpeg;base64,${base64Encode(bytes)}";
       
       // Send to analytics server on port 8002
-      final url = "http://$_serverIp:8002/video/frame/mobile";
+      final url = "$baseUrl/video/frame/mobile";
       
       await http.post(
         Uri.parse(url),
