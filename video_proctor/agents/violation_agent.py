@@ -7,10 +7,11 @@ from Connections.ViolationLogsDB import violation_logs_collection
 
 class ViolationAgent:
 
-    def __init__(self, cooldown: int = 5):
+    def __init__(self, cooldown: int = 5, session=None):
         self.violations:      list[dict] = []
         self.last_violation:  dict[str, float] = {}
         self.cooldown = cooldown
+        self.session  = session
 
     # ─────────────────────────────────────────────────────────────
     # Public API
@@ -42,8 +43,10 @@ class ViolationAgent:
         ts = time.strftime("%H_%M_%S") + f"_{int(time.time() * 1000) % 1000:03d}"
 
         # ── Cloudinary upload ─────────────────────────────────────
-        safe_email = state.Email_id.replace("@", "%40")
-        cloud_path = f"{state.Assessment_id}/{safe_email}/{vtype}_{ts}"
+        email_id      = self.session.email_id      if self.session else state.Email_id
+        assessment_id = self.session.assessment_id if self.session else state.Assessment_id
+        safe_email    = email_id.replace("@", "%40")
+        cloud_path    = f"{assessment_id}/{safe_email}/{vtype}_{ts}"
         cloud_url  = None
 
         try:
@@ -60,8 +63,8 @@ class ViolationAgent:
 
         # ── Build record ──────────────────────────────────────────
         record = {
-            "assessment_id": state.Assessment_id,
-            "email":         state.Email_id,
+            "assessment_id": assessment_id,
+            "email":         email_id,
             "time":          ts,
             "type":          vtype,
             "detail":        extra or "",

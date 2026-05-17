@@ -61,56 +61,42 @@ _supervisor = CodeSupervisorAgent(plagiarism_agent, ai_agent)
 @app.on_event("shutdown")
 def shutdown_event():
     print("[Server] Shutdown signal received. Cleaning up...")
-    if getattr(state, "proctoring_active", False):
-        state.proctoring_active = False
-        # Wait a moment for the thread to finish and save state
-        if proctor_thread and proctor_thread.is_alive():
-            proctor_thread.join(timeout=2.0)
+    # Terminate all active sessions
+    for session in state.sessions.values():
+        session.proctoring_active = False
+    
+    # Wait for all threads to finish
+    for key, t in proctor_threads.items():
+        if t.is_alive():
+            t.join(timeout=2.0)
     print("[Server] Shutdown complete.")
-
-
-
-# ── Ensure state fields exist ────────────────────────────────────────────────
-if not hasattr(state, "latest_frame"):       state.latest_frame       = None
-if not hasattr(state, "latest_frame_time"):  state.latest_frame_time  = 0.0
-if not hasattr(state, "proctoring_active"):  state.proctoring_active  = False
-if not hasattr(state, "Assessment_id"):      state.Assessment_id      = None
-if not hasattr(state, "Email_id"):           state.Email_id           = None
-
-if not hasattr(state, "risk_score"):         state.risk_score         = 0
-if not hasattr(state, "trust_score"):        state.trust_score        = 50
-if not hasattr(state, "violation_score"):    state.violation_score    = 0
-
-if not hasattr(state, "code_risk_score"):      state.code_risk_score      = 0
-if not hasattr(state, "code_trust_score"):     state.code_trust_score     = 20
-if not hasattr(state, "code_violation_score"): state.code_violation_score = 0
 
 
 # ---------------------------------------------------------------------------
 # Proctoring thread management
 # ---------------------------------------------------------------------------
 
-proctor_thread: threading.Thread | None = None
+proctor_threads: dict[str, threading.Thread] = {}
 
-
-def start_proctoring() -> None:
-    global proctor_thread
-    if proctor_thread is None or not proctor_thread.is_alive():
-        print("[Server] Starting AI Proctoring Thread...")
-        proctor_thread = threading.Thread(target=run_proctoring, daemon=True)
-        proctor_thread.start()
-    else:
-        pass
+def start_proctoring(session) -> None:
+    key = f"{session.assessment_id}_{session.email_id}"
+    existing = proctor_threads.get(key)
+    if existing is None or not existing.is_alive():
+        print(f"[Server] Starting proctoring thread for {key}")
+        t = threading.Thread(target=run_proctoring, args=(session,), daemon=True)
+        proctor_threads[key] = t
+        t.start()
 
 
 # ---------------------------------------------------------------------------
 # MJPEG stream helper
 # ---------------------------------------------------------------------------
 
-def _generate_frames():
-    """MJPEG generator — reads front-cam frames from state."""
+def _generate_frames(session=None):
+    """MJPEG generator — reads front-cam frames from state/session."""
     while True:
-        frame = state.latest_frame
+        s = session or state.get_latest_session()
+        frame = s.latest_frame if s else None
         if frame is None:
             time.sleep(0.03)
             continue
@@ -136,15 +122,33 @@ async def dashboard(request: Request):
 
 
 @app.get("/video", summary="MJPEG front-cam stream")
-def video_feed():
+def video_feed(assessment_id: str = None, email_id: str = None):
+    session = None
+    if assessment_id and email_id:
+        key = f"{assessment_id}_{email_id}"
+        session = state.sessions.get(key)
     return StreamingResponse(
-        _generate_frames(),
+        _generate_frames(session),
         media_type="multipart/x-mixed-replace; boundary=frame",
     )
 
 
 @app.get("/analytics", summary="Live analytics snapshot")
-def get_analytics():
+def get_analytics(assessment_id: str = None, email_id: str = None):
+    if assessment_id and email_id:
+        key = f"{assessment_id}_{email_id}"
+        session = state.sessions.get(key)
+    else:
+        session = state.get_latest_session()
+
+    if session is None:
+        return JSONResponse({
+            "suspicion_score": 0, "max_score": 30, "trust_score": 30,
+            "risk_level": "NORMAL", "flagged": False, "violation_count": 0,
+            "violations": [], "timeline": [], "proctoring_active": False,
+            "assessment_id": None, "email_id": None,
+        })
+
     suspicion_score = 0
     risk_level      = "NORMAL"
     trust_score     = 30
@@ -152,15 +156,15 @@ def get_analytics():
     timeline        = []
     violations      = []
 
-    if state.risk_agent is not None:
-        suspicion_score = state.risk_agent.suspicion_score
-        risk_level      = state.risk_agent.get_risk_level()   # fixed: was .risk_level (no such attribute)
-        trust_score     = state.risk_agent.get_trust_score()
-        flagged         = state.risk_agent.is_flagged()
-        timeline        = state.risk_agent.timeline
+    if session.risk_agent is not None:
+        suspicion_score = session.risk_agent.suspicion_score
+        risk_level      = session.risk_agent.get_risk_level()
+        trust_score     = session.risk_agent.get_trust_score()
+        flagged         = session.risk_agent.is_flagged()
+        timeline        = session.risk_agent.timeline
 
-    if state.violation_agent is not None:
-        violations = state.violation_agent.violations
+    if session.violation_agent is not None:
+        violations = session.violation_agent.violations
 
     return JSONResponse({
         "suspicion_score":   suspicion_score,
@@ -171,22 +175,29 @@ def get_analytics():
         "violation_count":   len(violations),
         "violations":        violations,
         "timeline":          timeline,
-        "proctoring_active": getattr(state, "proctoring_active", False),
-        "assessment_id":     getattr(state, "Assessment_id", None),
-        "email_id":          getattr(state, "Email_id", None),
+        "proctoring_active": session.proctoring_active,
+        "assessment_id":     session.assessment_id,
+        "email_id":          session.email_id,
     })
 
 
 @app.post("/video/frame", summary="Receive a base64-encoded frame from browser")
 async def receive_frame(request: Request):
-    state.proctoring_active = True
-
     data = await request.json()
 
-    image_b64           = data.get("image", "")
-    state.Assessment_id = data.get("assessment_id", "")
-    state.Email_id      = data.get("email_id", "")
+    assessment_id = data.get("assessment_id", "")
+    email_id      = data.get("email_id", "")
 
+    if not assessment_id or not email_id:
+        return JSONResponse(
+            {"status": "error", "detail": "assessment_id and email_id are required"},
+            status_code=400,
+        )
+
+    session = state.get_or_create_session(assessment_id, email_id)
+    session.proctoring_active = True
+
+    image_b64 = data.get("image", "")
     try:
         header, encoded = image_b64.split(",", 1)
         img_bytes = base64.b64decode(encoded)
@@ -199,41 +210,57 @@ async def receive_frame(request: Request):
                 status_code=400,
             )
 
-        state.latest_frame      = frame
-        state.latest_frame_time = time.time()
+        session.latest_frame      = frame
+        session.latest_frame_time = time.time()
 
     except Exception as exc:
-        return JSONResponse(
-            {"status": "error", "detail": str(exc)},
-            status_code=400,
-        )
+        return JSONResponse({"status": "error", "detail": str(exc)}, status_code=400)
 
-    start_proctoring()
+    start_proctoring(session)
 
     return {
         "status":        "frame received",
-        "assessment_id": state.Assessment_id,
-        "email_id":      state.Email_id,
+        "assessment_id": assessment_id,
+        "email_id":      email_id,
     }
 
 
-@app.post("/stop", summary="Stop the current proctoring session")
-def stop_proctoring():
-    if not getattr(state, "proctoring_active", False):
-        return {"status": "proctoring already stopped"}
+@app.post("/stop", summary="Stop the proctoring session")
+async def stop_proctoring(request: Request):
+    try:
+        data = await request.json()
+    except Exception:
+        data = {}
     
-    print("[VideoProctor] STOP signal received. Finalizing session...")
-    state.proctoring_active = False
-    return {"status": "proctoring stopped"}
-
+    assessment_id = data.get("assessment_id")
+    email_id      = data.get("email_id")
+    
+    if assessment_id and email_id:
+        key = f"{assessment_id}_{email_id}"
+        session = state.sessions.get(key)
+        if session:
+            print(f"[VideoProctor] STOP signal received for {key}. Finalizing session...")
+            session.proctoring_active = False
+            return {"status": f"proctoring stopped for {key}"}
+    
+    # Fallback: stop all
+    print("[VideoProctor] STOP signal received. Finalizing all sessions...")
+    for session in state.sessions.values():
+        session.proctoring_active = False
+    return {"status": "all proctoring stopped"}
 
 
 @app.get("/report", summary="Download the latest exam report (JSON)")
-def get_report():
-    report_path = "outputs/analytics.json"
+def get_report(assessment_id: str = None, email_id: str = None):
+    if assessment_id and email_id:
+        session_key = f"{assessment_id}_{email_id}"
+        report_path = f"outputs/analytics_{session_key}.json"
+    else:
+        report_path = "outputs/analytics.json"
+        
     if not os.path.exists(report_path):
         return JSONResponse(
-            {"status": "no_report", "detail": "No report generated yet."},
+            {"status": "no_report", "detail": f"No report generated yet at {report_path}."},
             status_code=404,
         )
     with open(report_path, "r") as f:
@@ -243,93 +270,97 @@ def get_report():
 
 @app.get("/health", summary="Health check")
 def health_check():
+    session = state.get_latest_session()
     return {
         "status":            "ok",
-        "proctoring_active": getattr(state, "proctoring_active", False),
-        "has_frame":         state.latest_frame is not None,
+        "proctoring_active": session.proctoring_active if session else False,
+        "has_frame":         (session.latest_frame is not None) if session else False,
     }
-
 
 
 @app.post("/Code/Checker", summary="Analyse candidate code for anomalies")
 async def code_checker(request: Request):
-    
-    data = await request.json() 
+    data = await request.json()
 
-    code         = data.get("code")
-    email = data.get("email")
-    language = data.get("language")
+    code          = data.get("code")
+    email         = data.get("email")
+    language      = data.get("language")
     question_id   = data.get("question_id")
     assessment_id = data.get("assessment_id")
-    result = _supervisor.analyze(code , language)
-    
-    # ── Update state scores with latest analysis results ───────────────────
-    summary = result.get("risk", {})
-    state.code_risk_score      = summary.get("suspicion_score", 0)
-    state.code_trust_score     = 20 - state.code_risk_score
-    state.code_violation_score = sum(summary.get("violations", {}).values())
-    state.save_state()
 
-    print(f"[Server] Code analysis complete. State updated: risk={state.code_risk_score}")
+    result = _supervisor.analyze(code, language)
 
-    val  = {
-        "code" : code , 
-        "language" :language,
-        "email": email,
-        "question_id" : question_id , 
-        "assessment_id" : assessment_id , 
-        "result" : result 
+    # Update the correct candidate's session, not global state
+    key     = f"{assessment_id}_{email}"
+    session = state.sessions.get(key)
+    if session:
+        summary = result.get("risk", {})
+        session.code_risk_score      = summary.get("suspicion_score", 0)
+        session.code_trust_score     = 20 - session.code_risk_score
+        session.code_violation_score = sum(summary.get("violations", {}).values())
+        session.save_state()
+
+    val = {
+        "code": code, "language": language, "email": email,
+        "question_id": question_id, "assessment_id": assessment_id,
+        "result": result,
     }
     CodeEvaluation_collection.insert_one(val)
     return {"status": "success", "result": result}
+
 
 @app.post("/webcam/score/store")
 async def store_scores(request: Request):
     print("\n" + "="*50)
     print("[Server] FINAL SCORE STORAGE TRIGGERED")
     print("="*50)
-    
+
     try:
         data_json = await request.json()
     except Exception as e:
-        print(f"[Server] Error parsing JSON body: {e}")
         return JSONResponse({"Status": False, "error": "Invalid JSON"}, status_code=400)
 
-    email = data_json.get("email", "unknown")
+    email         = data_json.get("email", "unknown")
     assessment_id = data_json.get("assessment_id", "unknown")
-    
-    print(f"[Server] Storing scores for: {email} | Assessment: {assessment_id}")
-    print(f"[Server] Current Video State: risk={state.risk_score}, trust={state.trust_score}, violations={state.violation_score}")
-    print(f"[Server] Current Code State:  risk={state.code_risk_score}, trust={state.code_trust_score}, violations={state.code_violation_score}")
+
+    key     = f"{assessment_id}_{email}"
+    session = state.sessions.get(key)
+
+    if session is None:
+        print(f"[Server] WARNING: No active session found for {key}. Using zeros.")
+        video_risk = video_trust = video_viol = 0
+        code_risk  = code_viol  = 0
+        code_trust = 20
+    else:
+        video_risk  = session.risk_score
+        video_trust = session.trust_score
+        video_viol  = session.violation_score
+        code_risk   = session.code_risk_score
+        code_trust  = session.code_trust_score
+        code_viol   = session.code_violation_score
 
     data = {
-        "assessment_id" : assessment_id,
-        "email"         : email,
+        "assessment_id": assessment_id,
+        "email":         email,
         "video_proctoring": {
-            "risk_score"    : state.risk_score,
-            "trust_score"   : state.trust_score,
-            "violation_score": state.violation_score,
+            "risk_score":      video_risk,
+            "trust_score":     video_trust,
+            "violation_score": video_viol,
         },
         "code_analysis": {
-            "risk_score"    : state.code_risk_score,
-            "trust_score"   : state.code_trust_score,
-            "violation_score": state.code_violation_score
+            "risk_score":      code_risk,
+            "trust_score":     code_trust,
+            "violation_score": code_viol,
         },
-        "timestamp"     : time.strftime("%Y-%m-%d %H:%M:%S")
+        "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
     }
-    
+
     try:
         res = Risk_Score_DB.insert_one(data)
-        print(f"[Server] MongoDB insert success. ID: {res.inserted_id}")
         return {"Status": True, "id": str(res.inserted_id)}
     except Exception as e:
-        print(f"[Server] MongoDB insert FAILED: {e}")
         return JSONResponse({"Status": False, "error": str(e)}, status_code=500)
 
-
-# ---------------------------------------------------------------------------
-# Entrypoint — Railway injects $PORT; default to 8001 locally
-# ---------------------------------------------------------------------------
 
 if __name__ == "__main__":
     import uvicorn

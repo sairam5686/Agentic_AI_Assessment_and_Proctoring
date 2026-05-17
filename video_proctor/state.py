@@ -1,85 +1,88 @@
 """
-Shared runtime state between:
-- main.py (AI agents + OpenCV)
-- server.py (FastAPI streaming)
+state.py
+Session-isolated proctoring state. Each candidate gets a ProctoringSession instance.
+Module-level globals are kept only for backward compatibility with /analytics fallback.
 """
 import os
+import json
 
-# Latest webcam frame for MJPEG streaming
-# Shared runtime state
+class ProctoringSession:
+    def __init__(self, assessment_id: str, email_id: str):
+        self.assessment_id = assessment_id
+        self.email_id      = email_id
 
-latest_frame = None
-risk_agent = None
-violation_agent = None
-latest_frame = None
-latest_frame_time = 0
-proctoring_active = False
-side_frame = None
-side_frame_time = 0
-Assessment_id = ""
-Email_id = ""
+        # Frame state
+        self.latest_frame      = None
+        self.latest_frame_time = 0.0
+        self.proctoring_active = False
+        self.frame_count       = 0
 
-# Dynamic Video Scores (Capped at 50)
-risk_score = 25
-trust_score = 25
-violation_score = 6
+        # Agent references (set by main.py)
+        self.risk_agent      = None
+        self.violation_agent = None
 
-# Dynamic Code Scores (Capped at 20)
-code_risk_score = 0
-code_trust_score = 20
-code_violation_score = 0
+        # Video scores (capped at 50)
+        self.risk_score      = 25
+        self.trust_score     = 25
+        self.violation_score = 6
 
-def save_state():
-    """Persist current scores to state.json."""
-    import json
-    data = {
-        "video": {
-            "risk_score": risk_score,
-            "trust_score": trust_score,
-            "violation_score": violation_score
-        },
-        "code": {
-            "risk_score": code_risk_score,
-            "trust_score": code_trust_score,
-            "violation_score": code_violation_score
-        },
-        "assessment_id": Assessment_id,
-        "email_id": Email_id
-    }
-    try:
-        with open("state.json", "w") as f:
-            json.dump(data, f, indent=4)
-        # print("[State] Persistent scores saved to state.json.")
-    except Exception as e:
-        print(f"[State] Error saving state: {e}")
+        # Code scores (capped at 20)
+        self.code_risk_score      = 0
+        self.code_trust_score     = 20
+        self.code_violation_score = 0
 
-def load_state():
-    """Load scores from state.json if it exists."""
-    import json
-    global risk_score, trust_score, violation_score
-    global code_risk_score, code_trust_score, code_violation_score
-    global Assessment_id, Email_id
-    
-    if os.path.exists("state.json"):
+    def save_state(self):
+        data = {
+            "video": {
+                "risk_score":      self.risk_score,
+                "trust_score":     self.trust_score,
+                "violation_score": self.violation_score,
+            },
+            "code": {
+                "risk_score":      self.code_risk_score,
+                "trust_score":     self.code_trust_score,
+                "violation_score": self.code_violation_score,
+            },
+            "assessment_id": self.assessment_id,
+            "email_id":      self.email_id,
+        }
+        os.makedirs("outputs/states", exist_ok=True)
+        path = f"outputs/states/state_{self.assessment_id}_{self.email_id}.json"
         try:
-            with open("state.json", "r") as f:
-                data = json.load(f)
-            
-            v = data.get("video", {})
-            risk_score      = v.get("risk_score", risk_score)
-            trust_score     = v.get("trust_score", trust_score)
-            violation_score = v.get("violation_score", violation_score)
-            
-            c = data.get("code", {})
-            code_risk_score      = c.get("risk_score", code_risk_score)
-            code_trust_score     = c.get("trust_score", code_trust_score)
-            code_violation_score = c.get("violation_score", code_violation_score)
-            
-            Assessment_id = data.get("assessment_id", Assessment_id)
-            Email_id      = data.get("email_id", Email_id)
-            # print("[State] Scores loaded from state.json.")
+            with open(path, "w") as f:
+                json.dump(data, f, indent=4)
         except Exception as e:
-            print(f"[State] Error loading state: {e}")
+            print(f"[State] Error saving state for {self.email_id}: {e}")
 
-# Load state on module import
-load_state()
+
+# ---------------------------------------------------------------------------
+# Session registry — keyed by f"{assessment_id}_{email_id}"
+# ---------------------------------------------------------------------------
+sessions: dict[str, ProctoringSession] = {}
+
+
+def get_or_create_session(assessment_id: str, email_id: str) -> ProctoringSession:
+    key = f"{assessment_id}_{email_id}"
+    if key not in sessions:
+        sessions[key] = ProctoringSession(assessment_id, email_id)
+        print(f"[State] New session created: {key}")
+    return sessions[key]
+
+
+def get_latest_session() -> ProctoringSession | None:
+    """Fallback: return the most recently active session, for debug endpoints."""
+    if not sessions:
+        return None
+    return list(sessions.values())[-1]
+
+
+# ---------------------------------------------------------------------------
+# Backward-compat shims — so any old code that does `import state; state.X`
+# still works by proxying to the latest session. These are NOT used in the
+# refactored hot paths.
+# ---------------------------------------------------------------------------
+def __getattr__(name):
+    session = get_latest_session()
+    if session and hasattr(session, name):
+        return getattr(session, name)
+    raise AttributeError(f"module 'state' has no attribute '{name}'")

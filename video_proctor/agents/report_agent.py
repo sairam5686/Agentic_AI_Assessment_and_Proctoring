@@ -11,14 +11,16 @@ from Connections.ViolationLogsDB import Risk_Score_DB
 
 class ReportAgent:
 
-    def __init__(self, risk_agent, violation_agent):
+    def __init__(self, risk_agent, violation_agent, session=None):
         """
         Args:
             risk_agent:       RiskAgent instance — provides scores and timeline.
             violation_agent:  ViolationAgent instance — provides violation list.
+            session:          ProctoringSession instance.
         """
         self.risk_agent       = risk_agent
         self.violation_agent  = violation_agent
+        self.session          = session
 
     # ─────────────────────────────────────────────────────────────
     # Public API
@@ -39,6 +41,9 @@ class ReportAgent:
         trust_score     = self.risk_agent.get_trust_score()
         violations      = self.violation_agent.violations
 
+        assessment_id = self.session.assessment_id if self.session else state.Assessment_id
+        email_id      = self.session.email_id      if self.session else state.Email_id
+
         # ── JSON ──────────────────────────────────────────────────
         def json_serial(obj):
             """JSON serializer for objects not serializable by default json code"""
@@ -51,8 +56,8 @@ class ReportAgent:
             raise TypeError(f"Type {type(obj)} not serializable")
 
         analytics = {
-            "assessment_id":state.Assessment_id ,
-            "email":state.Email_id,
+            "assessment_id": assessment_id,
+            "email":         email_id,
             "duration":        round(duration, 2),
             "avg_attention":   round(avg_attention, 2),
             "violations":      violations,
@@ -68,24 +73,37 @@ class ReportAgent:
             "pattern_summary": self.risk_agent.get_pattern_summary(),
         }
 
-        
+        # Isolated paths to prevent multi-candidate file overrides
+        if assessment_id and email_id:
+            safe_email = email_id.replace("@", "_").replace(".", "_")
+            json_path = f"outputs/analytics_{assessment_id}_{safe_email}.json"
+            pdf_path  = f"outputs/report_{assessment_id}_{safe_email}.pdf"
+        else:
+            json_path = "outputs/analytics.json"
+            pdf_path  = "outputs/report.pdf"
 
-        with open("outputs/analytics.json", "w") as f:
+        # Also write to global outputs/analytics.json for backward compatibility
+        try:
+            with open("outputs/analytics.json", "w") as f:
+                json.dump(analytics, f, indent=2, default=json_serial)
+        except Exception:
+            pass
+
+        with open(json_path, "w") as f:
             json.dump(analytics, f, indent=2, default=json_serial)
 
-        print("[Report] analytics.json saved.")
+        print(f"[Report] analytics saved to {json_path}")
 
         # ── PDF ───────────────────────────────────────────────────
-        self._write_pdf(analytics)
-        print("[Report] report.pdf saved.")
-
+        self._write_pdf(analytics, pdf_path)
+        print(f"[Report] report PDF saved to {pdf_path}")
 
     # ─────────────────────────────────────────────────────────────
     # PDF builder
     # ─────────────────────────────────────────────────────────────
 
-    def _write_pdf(self, data: dict) -> None:
-        pdf  = canvas.Canvas("outputs/report.pdf", pagesize=A4)
+    def _write_pdf(self, data: dict, path: str) -> None:
+        pdf  = canvas.Canvas(path, pagesize=A4)
         w, h = A4
 
         # ── Header ────────────────────────────────────────────────
