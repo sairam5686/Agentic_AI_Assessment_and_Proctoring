@@ -16,6 +16,7 @@ import os
 import socket
 import time
 import requests
+import httpx
 import socketio
 import random
 import uuid
@@ -263,6 +264,28 @@ async def verify_id(req: IDVerifyRequest):
     except Exception as e:
         print(f"[OCR ERROR] {str(e)}")
         raise HTTPException(status_code=500, detail=f"Verification internal error: {str(e)}")
+
+
+@app.post("/video/frame/mobile")
+async def proxy_mobile_frame(request: Request):
+    """
+    Proxy endpoint: Receives frames from the mobile APK and forwards them 
+    to the separated Mobile Proctor Railway backend. This avoids needing 
+    to recompile the hardcoded APK.
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        return {"status": "error", "message": "Invalid JSON"}
+        
+    mobile_proctor_url = os.getenv("MOBILE_PROCTOR_URL", "https://agenticaimobileproctoring-production.up.railway.app")
+    async with httpx.AsyncClient() as client:
+        try:
+            # Forward the frame to the real mobile proctor backend
+            resp = await client.post(f"{mobile_proctor_url}/video/frame/mobile", json=body, timeout=3.0)
+            return resp.json()
+        except Exception as e:
+            return {"status": "error", "message": str(e)}
 
 
 @app.post("/api/pipe-puzzle/game/start")
