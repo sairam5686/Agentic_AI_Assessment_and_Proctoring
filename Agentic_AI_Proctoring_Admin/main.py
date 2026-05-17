@@ -536,19 +536,30 @@ async def get_assessment_candidates(assessment_id: str):
         
     candidates = enrollment.get("candidates", [])
     
-    # 1. Fetch all records for the assessment ONCE (Batch Query)
+    import concurrent.futures
+    
     base_query = {"assessment_id": assessment_id}
     
-    all_mcq = list(MCQ_Results_DB.find(base_query))
-    all_cod = list(Coding_results_DB.find(base_query))
-    all_sql = list(SQL_Results_DB.find(base_query))
-    all_fitb = list(FITB_Results_DB.find(base_query))
-    
-    all_essay = []
-    if Essay_Results_DB is not None:
-        all_essay = list(Essay_Results_DB.find(base_query))
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        f_mcq = executor.submit(lambda: list(MCQ_Results_DB.find(base_query)))
+        f_cod = executor.submit(lambda: list(Coding_results_DB.find(base_query)))
+        f_sql = executor.submit(lambda: list(SQL_Results_DB.find(base_query)))
+        f_fitb = executor.submit(lambda: list(FITB_Results_DB.find(base_query)))
         
-    all_risk = list(Risk_Score_DB.find(base_query))
+        def fetch_essay():
+            if Essay_Results_DB is not None:
+                return list(Essay_Results_DB.find(base_query))
+            return []
+            
+        f_essay = executor.submit(fetch_essay)
+        f_risk = executor.submit(lambda: list(Risk_Score_DB.find(base_query)))
+        
+        all_mcq = f_mcq.result()
+        all_cod = f_cod.result()
+        all_sql = f_sql.result()
+        all_fitb = f_fitb.result()
+        all_essay = f_essay.result()
+        all_risk = f_risk.result()
     
     # 2. Map results by email for O(1) lookup
     def build_map(results_list):
