@@ -14,7 +14,12 @@ app = FastAPI(title="Assessment Support Portal API")
 # Setup CORS for Frontend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Adjust in production
+    allow_origins=[
+        "https://agentic-admin-portal.vercel.app",
+        "https://proctor-interface.vercel.app",
+        "https://agentic-candidate-portal.vercel.app",
+        "https://ai-candidate-support-portal.vercel.app"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

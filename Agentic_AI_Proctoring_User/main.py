@@ -46,7 +46,15 @@ from pydantic import BaseModel
 app = FastAPI()
 
 # Socket.io setup
-sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
+sio = socketio.AsyncServer(
+    async_mode='asgi', 
+    cors_allowed_origins=[
+        "https://agentic-admin-portal.vercel.app",
+        "https://proctor-interface.vercel.app",
+        "https://agentic-candidate-portal.vercel.app",
+        "https://ai-candidate-support-portal.vercel.app"
+    ]
+)
 sio_app = socketio.ASGIApp(sio, other_asgi_app=app)
 
 # In-memory fallback removed — now using Mobile_Sessions_DB (MongoDB) for shared state
