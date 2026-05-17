@@ -81,15 +81,31 @@ app.add_middleware(
 @app.get("/admin/{admin_id}/tests")
 async def get_admin_tests(admin_id: str):
     tests = []
-    # Return only tests that are "active" (Running) or "terminated" (Terminated)
-    for doc in Admin_Assessments_DB.find({"admin_id": admin_id, "status": {"$in": ["active", "terminated"]}}):
+    # 1. Fetch all tests for this admin
+    tests_cursor = list(Admin_Assessments_DB.find({"admin_id": admin_id, "status": {"$in": ["active", "terminated"]}}))
+    
+    if not tests_cursor:
+        return []
+        
+    # 2. Extract all test IDs
+    test_ids = [doc["test_id"] for doc in tests_cursor if "test_id" in doc]
+    
+    # 3. Fetch all enrollments for these tests in ONE query
+    enrollments = list(Enrollment_DB.find({"assessment_id": {"$in": test_ids}}))
+    
+    # 4. Create a lookup map for candidate counts
+    enrollment_map = {
+        e["assessment_id"]: len(e.get("candidates", []))
+        for e in enrollments if "assessment_id" in e
+    }
+    
+    # 5. Build final response
+    for doc in tests_cursor:
         doc["_id"] = str(doc["_id"])
-        
-        # Fetch candidate count from Enrollment_DB
-        enrollment = Enrollment_DB.find_one({"assessment_id": doc["test_id"]})
-        doc["candidate_count"] = len(enrollment.get("candidates", [])) if enrollment else 0
-        
+        test_id = doc.get("test_id")
+        doc["candidate_count"] = enrollment_map.get(test_id, 0)
         tests.append(doc)
+        
     return tests
 
 @app.post("/update-test-status")
@@ -486,49 +502,76 @@ async def get_assessment_candidates(assessment_id: str):
         
     candidates = enrollment.get("candidates", [])
     
-    # Check test metadata for rubrics/max marks
-    test_info = Admin_Assessments_DB.find_one({"test_id": assessment_id})
+    # 1. Fetch all records for the assessment ONCE (Batch Query)
+    base_query = {"assessment_id": assessment_id}
     
+    all_mcq = list(MCQ_Results_DB.find(base_query))
+    all_cod = list(Coding_results_DB.find(base_query))
+    all_sql = list(SQL_Results_DB.find(base_query))
+    all_fitb = list(FITB_Results_DB.find(base_query))
+    
+    all_essay = []
+    if Essay_Results_DB is not None:
+        all_essay = list(Essay_Results_DB.find(base_query))
+        
+    all_risk = list(Risk_Score_DB.find(base_query))
+    
+    # 2. Map results by email for O(1) lookup
+    def build_map(results_list):
+        result_map = {}
+        for r in results_list:
+            email = r.get("email")
+            if email:
+                if email not in result_map:
+                    result_map[email] = []
+                result_map[email].append(r)
+        return result_map
+
+    mcq_map = build_map(all_mcq)
+    cod_map = build_map(all_cod)
+    sql_map = build_map(all_sql)
+    fitb_map = build_map(all_fitb)
+    
+    essay_map = {r.get("email"): r for r in all_essay if r.get("email")}
+    risk_map = {r.get("email"): r for r in all_risk if r.get("email")}
+    
+    # 3. Calculate scores in memory instantly
     for cand in candidates:
         email = cand.get("email")
-        query = {"assessment_id": assessment_id, "email": email}
-        
+        if not email:
+            continue
+            
         total_score = 0
         
         # MCQ
-        mcq_results = list(MCQ_Results_DB.find(query))
-        if mcq_results:
-            best_mcq = max(mcq_results, key=lambda x: x.get("user_total_marks", 0))
+        if email in mcq_map:
+            best_mcq = max(mcq_map[email], key=lambda x: x.get("user_total_marks", 0))
             total_score += best_mcq.get("user_total_marks", 0)
             
         # Coding
-        cod_results = list(Coding_results_DB.find(query))
-        if cod_results:
-            best_cod = max(cod_results, key=lambda x: x.get("total_marks", 0))
+        if email in cod_map:
+            best_cod = max(cod_map[email], key=lambda x: x.get("total_marks", 0))
             total_score += best_cod.get("total_marks", 0)
             
         # SQL
-        sql_results = list(SQL_Results_DB.find(query))
-        if sql_results:
-            best_sql = max(sql_results, key=lambda x: x.get("total_marks", 0))
+        if email in sql_map:
+            best_sql = max(sql_map[email], key=lambda x: x.get("total_marks", 0))
             total_score += best_sql.get("total_marks", 0)
             
         # FITB
-        fitb_results = list(FITB_Results_DB.find(query))
-        if fitb_results:
-            best_fitb = max(fitb_results, key=lambda x: x.get("user_total_marks", 0))
+        if email in fitb_map:
+            best_fitb = max(fitb_map[email], key=lambda x: x.get("user_total_marks", 0))
             total_score += best_fitb.get("user_total_marks", 0)
             
         # Essay
-        if Essay_Results_DB is not None:
-            essay_res = Essay_Results_DB.find_one(query)
-            if essay_res:
-                ev = essay_res.get("result") or essay_res.get("evaluation") or {}
-                total_score += float(ev.get("total_score") or ev.get("score") or 0)
+        if email in essay_map:
+            essay_res = essay_map[email]
+            ev = essay_res.get("result") or essay_res.get("evaluation") or {}
+            total_score += float(ev.get("total_score") or ev.get("score") or 0)
                 
         # Confidence/Trust Score
-        risk_doc = Risk_Score_DB.find_one(query)
-        if risk_doc:
+        if email in risk_map:
+            risk_doc = risk_map[email]
             vid_trust = risk_doc.get("video_proctoring", {}).get("trust_score", 0)
             code_trust = risk_doc.get("code_analysis", {}).get("trust_score", 0)
             cand["confidence_score"] = round((vid_trust + code_trust) / 2)
