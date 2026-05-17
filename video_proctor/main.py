@@ -15,7 +15,7 @@ Concurrency model
   using an immutable frame_snapshot so no thread races on the frame.
 • Each future is resolved with .result(timeout=2.0) in its own
   try/except; on failure a safe default dict is substituted.
-• Only the main thread writes to state.*  No worker thread touches state.
+• Only the main thread writes to session.*  No worker thread touches global state.
 """
 
 import cv2
@@ -35,22 +35,6 @@ from agents.report_agent     import ReportAgent
 from agents.risk_agent       import RiskAgent
 from agents.audio_agent      import AudioAgent
 from agents.spoofing_agent   import SpoofingAgent
-
-
-# ─────────────────────────────────────────────────────────────
-# Initialize agents
-# ─────────────────────────────────────────────────────────────
-vision_agent    = VisionAgent()
-attention_agent = AttentionAgent()
-
-state.risk_agent      = RiskAgent()
-state.violation_agent = ViolationAgent()
-
-supervisor_agent = SupervisorAgent(state.risk_agent, state.violation_agent)
-report_agent     = ReportAgent(state.risk_agent, state.violation_agent)
-
-audio_agent    = AudioAgent()
-spoofing_agent = SpoofingAgent()
 
 
 # ─────────────────────────────────────────────────────────────
@@ -82,7 +66,7 @@ _DEFAULT_SPOOF = {
 # ─────────────────────────────────────────────────────────────
 # Audio background worker
 # ─────────────────────────────────────────────────────────────
-def _audio_worker(audio_q: queue.Queue, stop_event: threading.Event) -> None:
+def _audio_worker(audio_agent, audio_q: queue.Queue, stop_event: threading.Event) -> None:
     """Continuously calls audio_agent.analyze_audio() and enqueues results."""
     while not stop_event.is_set():
         try:
@@ -96,7 +80,19 @@ def _audio_worker(audio_q: queue.Queue, stop_event: threading.Event) -> None:
 # ─────────────────────────────────────────────────────────────
 # Front-cam proctoring loop
 # ─────────────────────────────────────────────────────────────
-def run_proctoring():
+def run_proctoring(session):
+    # Create fresh agent instances isolated to this session
+    vision_agent    = VisionAgent()
+    attention_agent = AttentionAgent()
+    audio_agent     = AudioAgent()
+    spoofing_agent  = SpoofingAgent()
+
+    session.risk_agent      = RiskAgent()
+    session.violation_agent = ViolationAgent(session=session)
+
+    supervisor_agent = SupervisorAgent(session.risk_agent, session.violation_agent)
+    report_agent     = ReportAgent(session.risk_agent, session.violation_agent, session=session)
+
     attention_scores = []
     audio_agent.start()
 
@@ -108,11 +104,11 @@ def run_proctoring():
 
     with ThreadPoolExecutor(max_workers=4) as executor:
         # Launch dedicated audio thread inside the executor
-        executor.submit(_audio_worker, audio_q, stop_event)
+        executor.submit(_audio_worker, audio_agent, audio_q, stop_event)
 
-        while state.proctoring_active:
-            frame     = state.latest_frame
-            frame_age = time.time() - state.latest_frame_time
+        while session.proctoring_active:
+            frame     = session.latest_frame
+            frame_age = time.time() - session.latest_frame_time
 
             if frame is None or frame_age > 2.0:
                 time.sleep(0.03)
@@ -166,7 +162,7 @@ def run_proctoring():
             try:
                 cv2.putText(
                     frame_snapshot,
-                    f"Suspicion:{state.risk_agent.suspicion_score}",
+                    f"Suspicion:{session.risk_agent.suspicion_score}",
                     (10, 30),
                     cv2.FONT_HERSHEY_SIMPLEX,
                     0.7,
@@ -175,14 +171,14 @@ def run_proctoring():
                 )
 
                 # ── Periodic Report Update (every 30 frames) ───
-                state.frame_count = getattr(state, "frame_count", 0) + 1
-                if state.frame_count % 30 == 0:
+                session.frame_count = getattr(session, "frame_count", 0) + 1
+                if session.frame_count % 30 == 0:
                     avg_attention = int(np.mean(attention_scores)) if attention_scores else 0
                     elapsed = time.time() - start
                     report_agent.generate_reports(elapsed, avg_attention)
-                    print(f"[FRONT] Periodic report updated (Frame {state.frame_count})")
+                    print(f"[FRONT] Periodic report updated for {session.email_id} (Frame {session.frame_count})")
 
-                state.latest_frame = frame_snapshot
+                session.latest_frame = frame_snapshot
 
             except Exception as e:
                 print(f"[MAIN] state-write error: {e}")
@@ -204,14 +200,9 @@ def run_proctoring():
     report_agent.generate_reports(elapsed, avg_attention)
 
     # ── Final Score Sync  (main thread only) ─────────
-    state.risk_score      = state.risk_agent.suspicion_score
-    state.trust_score     = state.risk_agent.get_trust_score()
-    state.violation_score = sum(state.risk_agent.violation_counts.values())
-    state.save_state()
+    session.risk_score      = session.risk_agent.suspicion_score
+    session.trust_score     = session.risk_agent.get_trust_score()
+    session.violation_score = sum(session.risk_agent.violation_counts.values())
+    session.save_state()
 
-    print("FRONT CAM PROCTORING DONE ✅")
-
-
-# ─────────────────────────────────────────────────────────────
-# Code Analysis (CLI testing)
-# ─────────────────────────────────────────────────────────────
+    print(f"FRONT CAM PROCTORING DONE FOR {session.email_id} ✅")
