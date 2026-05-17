@@ -283,22 +283,42 @@ async def create_test(
 @app.get("/admin/test/{assessment_id}/Preview")
 async def get_test_preview(assessment_id: str):
 
-    mcq = MCQ_DB.find_one({"assessment_id": assessment_id})
-    coding = Coding_Questions_DB.find_one({"assessment_id": assessment_id})
-    sql = SQL_Questions_DB.find_one({"assessment_id": assessment_id})
-    gaming = Gaming_DB.find_one({"assessment_id": assessment_id})
-    fitb = FITB_DB.find_one({"assessment_id": assessment_id})
+    import concurrent.futures
+    
+    def fetch_data():
+        return {
+            "mcq": MCQ_DB.find_one({"assessment_id": assessment_id}),
+            "coding": Coding_Questions_DB.find_one({"assessment_id": assessment_id}),
+            "sql": SQL_Questions_DB.find_one({"assessment_id": assessment_id}),
+            "gaming": Gaming_DB.find_one({"assessment_id": assessment_id}),
+            "fitb": FITB_DB.find_one({"assessment_id": assessment_id}),
+            "testcases_list": list(Coding_TestCases_DB.find({"assessment_id": assessment_id})),
+            "assessment_info": Admin_Assessments_DB.find_one({"test_id": assessment_id})
+        }
 
-    testcases_cursor = Coding_TestCases_DB.find(
-        {"assessment_id": assessment_id}
-    )
+    # Execute all 7 queries concurrently using threads (PyMongo is thread-safe)
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        f_mcq = executor.submit(lambda: MCQ_DB.find_one({"assessment_id": assessment_id}))
+        f_coding = executor.submit(lambda: Coding_Questions_DB.find_one({"assessment_id": assessment_id}))
+        f_sql = executor.submit(lambda: SQL_Questions_DB.find_one({"assessment_id": assessment_id}))
+        f_gaming = executor.submit(lambda: Gaming_DB.find_one({"assessment_id": assessment_id}))
+        f_fitb = executor.submit(lambda: FITB_DB.find_one({"assessment_id": assessment_id}))
+        f_tc = executor.submit(lambda: list(Coding_TestCases_DB.find({"assessment_id": assessment_id})))
+        f_info = executor.submit(lambda: Admin_Assessments_DB.find_one({"test_id": assessment_id}))
+
+        mcq = f_mcq.result()
+        coding = f_coding.result()
+        sql = f_sql.result()
+        gaming = f_gaming.result()
+        fitb = f_fitb.result()
+        testcases_list = f_tc.result()
+        assessment_info = f_info.result()
 
     testcases = {}
-    for tc in testcases_cursor:
+    for tc in testcases_list:
         testcases[tc["question_id"]] = tc["testcases"]
 
     # Get assessment status and other metadata
-    assessment_info = Admin_Assessments_DB.find_one({"test_id": assessment_id})
     status = assessment_info.get("status", "draft") if assessment_info else "draft"
 
     # Build essay config from assessment metadata
@@ -425,12 +445,11 @@ async def initiate_test(request: Request, assessment_id: str = Form(...)):
     raw_category = str(test_info.get("category", "Hiring") if test_info else "Hiring").strip().lower()
     is_university = "university" in raw_category
     
-    for candidate in candidates:
+    import concurrent.futures
+    
+    def process_candidate(candidate):
         link = os.getenv("ASSESSMENT_URL")
-
-        
         if is_university:
-            # UNIVERSITY EXAM EMAIL
             success = send_university_assessment_mail(
                 candidate["email"],
                 candidate["name"],
@@ -442,7 +461,6 @@ async def initiate_test(request: Request, assessment_id: str = Form(...)):
                 candidate.get("valid_to", "N/A")
             )
         else:
-            # HIRING ASSESSMENT EMAIL
             success = send_assessment_mail(
                 candidate["email"], 
                 candidate["name"], 
@@ -452,19 +470,23 @@ async def initiate_test(request: Request, assessment_id: str = Form(...)):
                 candidate.get("valid_from", "N/A"),
                 candidate.get("valid_to", "N/A")
             )
-        if success:
-            status_text = "invitation sent to candidate"
-            sent_count += 1
-        else:
-            status_text = "mail not sent"
             
-        # Update status in DB for each candidate
+        status_text = "invitation sent to candidate" if success else "mail not sent"
+        
+        # Update status in DB for this candidate
         Enrollment_DB.update_one(
             {"assessment_id": assessment_id, "candidates.email": candidate["email"]},
-            {"$set": {
-                "candidates.$.status": status_text
-            }}
+            {"$set": {"candidates.$.status": status_text}}
         )
+        return success
+        
+    sent_count = 0
+    # Process all candidates concurrently
+    with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+        futures = [executor.submit(process_candidate, cand) for cand in candidates]
+        for future in concurrent.futures.as_completed(futures):
+            if future.result():
+                sent_count += 1
             
     # Update assessment status to active
     Admin_Assessments_DB.update_one(
@@ -477,13 +499,25 @@ async def initiate_test(request: Request, assessment_id: str = Form(...)):
 
 @app.get("/dashboard-stats")
 async def get_dashboard_stats():
-    assessments_created = Admin_Assessments_DB.count_documents({})
+    import concurrent.futures
 
-    candidates_enrolled = 0
-    for doc in Enrollment_DB.find({}):
-        candidates_enrolled += len(doc.get("candidates", []))
+    def get_stats():
+        assessments_created = Admin_Assessments_DB.count_documents({})
+        tests_deployed = Admin_Assessments_DB.count_documents({"status": "active"})
+        
+        # Use aggregation pipeline to sum array sizes without fetching data into memory
+        pipeline = [
+            {"$project": {"count": {"$size": {"$ifNull": ["$candidates", []]}}}},
+            {"$group": {"_id": None, "total": {"$sum": "$count"}}}
+        ]
+        result = list(Enrollment_DB.aggregate(pipeline))
+        candidates_enrolled = result[0]["total"] if result else 0
+        
+        return assessments_created, tests_deployed, candidates_enrolled
 
-    tests_deployed = Admin_Assessments_DB.count_documents({"status": "active"})
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        future = executor.submit(get_stats)
+        assessments_created, tests_deployed, candidates_enrolled = future.result()
 
     return {
         "assessments_created": assessments_created,
@@ -721,22 +755,32 @@ async def get_coding_analytics(assessment_id: str, candidate_email: str):
 
 @app.get("/candidate/{assessment_id}/{candidate_email}/results")
 async def get_candidate_results(assessment_id: str, candidate_email: str):
+    import concurrent.futures
+
     query = {"assessment_id": assessment_id, "email": candidate_email}
     
-    MCQ_results = list(MCQ_Results_DB.find(query))
-    Coding_results = list(Coding_results_DB.find(query))
-    SQL_results = list(SQL_Results_DB.find(query))
-    FITB_results = list(FITB_Results_DB.find(query))
-    Pipe_Puzzle_results = list(Piped_Puzzle_DB.find(query))
-    Diagram_results = list(Diagram_Results_DB.find(query))
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        f_mcq = executor.submit(lambda: list(MCQ_Results_DB.find(query)))
+        f_coding = executor.submit(lambda: list(Coding_results_DB.find(query)))
+        f_sql = executor.submit(lambda: list(SQL_Results_DB.find(query)))
+        f_fitb = executor.submit(lambda: list(FITB_Results_DB.find(query)))
+        f_pipe = executor.submit(lambda: list(Piped_Puzzle_DB.find(query)))
+        f_diag = executor.submit(lambda: list(Diagram_Results_DB.find(query)))
+        
+        def fetch_essay():
+            if Essay_Results_DB is not None:
+                return Essay_Results_DB.find_one({"assessment_id": assessment_id, "email": candidate_email}, {"_id": 0})
+            return None
+            
+        f_essay = executor.submit(fetch_essay)
 
-    # Essay results use email and assessment_id
-    essay_result = None
-    if Essay_Results_DB is not None:
-        essay_result = Essay_Results_DB.find_one(
-            {"assessment_id": assessment_id, "email": candidate_email},
-            {"_id": 0}
-        )
+        MCQ_results = f_mcq.result()
+        Coding_results = f_coding.result()
+        SQL_results = f_sql.result()
+        FITB_results = f_fitb.result()
+        Pipe_Puzzle_results = f_pipe.result()
+        Diagram_results = f_diag.result()
+        essay_result = f_essay.result()
     
     combined_results = {
         "assessment_id": assessment_id,
