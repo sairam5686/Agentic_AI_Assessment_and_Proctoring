@@ -44,7 +44,7 @@ cloudinary.config(
 
 
 
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
 # IMPORTANT FUNCTION 
 

@@ -26,7 +26,7 @@ from Connection.ViolationLogs import Risk_Score_Mobile_collection
 executor = ThreadPoolExecutor(max_workers=4)
 
 
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
 # Add CORS middleware to allow cross-origin requests from the frontend
 app.add_middleware(

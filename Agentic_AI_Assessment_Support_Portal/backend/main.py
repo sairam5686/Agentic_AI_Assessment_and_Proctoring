@@ -9,7 +9,7 @@ import os
 from RateLimiter import check_rate_limit
 from fastapi import Request
 
-app = FastAPI(title="Assessment Support Portal API")
+app = FastAPI(title="Assessment Support Portal API", docs_url=None, redoc_url=None, openapi_url=None)
 
 # Setup CORS for Frontend
 app.add_middleware(

@@ -37,6 +37,9 @@ app = FastAPI(
     title="Video Proctor",
     description="AI-powered exam proctoring + code analysis API",
     version="2.0.0",
+    docs_url=None, 
+    redoc_url=None, 
+    openapi_url=None
 )
 
 app.add_middleware(

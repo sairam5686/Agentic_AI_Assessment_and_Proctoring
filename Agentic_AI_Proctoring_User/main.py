@@ -43,7 +43,7 @@ from Backend.routers.diagram_router import router as diagram_router
 from Backend.Connection.RateLimiter import check_rate_limit
 from pydantic import BaseModel
 
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
 # Socket.io setup
 sio = socketio.AsyncServer(
