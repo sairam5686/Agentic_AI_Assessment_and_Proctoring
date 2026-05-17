@@ -309,14 +309,14 @@ async def stop_proctoring(data: dict = None):
                 print(f"[MobileAgent] Session {key} finalized via global /stop")
         
         # Trigger graceful shutdown of the process with a small delay for response
-        print(f"[MobileAgent] Assessment complete. Triggering server shutdown in 0.5s...")
-        async def delayed_shutdown():
-            await asyncio.sleep(0.5)
-            os.kill(os.getpid(), signal.SIGINT)
-        
-        asyncio.create_task(delayed_shutdown())
+        # print(f"[MobileAgent] Assessment complete. Triggering server shutdown in 0.5s...")
+        # async def delayed_shutdown():
+        #     await asyncio.sleep(0.5)
+        #     os.kill(os.getpid(), signal.SIGINT)
+        # 
+        # asyncio.create_task(delayed_shutdown())
 
-        return {"status": "success", "message": "Proctoring finalized and score saved. Server shutting down."}
+        return {"status": "success", "message": "Proctoring finalized and score saved."}
     except Exception as e:
         import traceback
         traceback.print_exc()
