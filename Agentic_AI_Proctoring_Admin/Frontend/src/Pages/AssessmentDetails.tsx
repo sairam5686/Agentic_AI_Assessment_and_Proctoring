@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router';
 import { toast } from 'react-toastify';
@@ -14,7 +14,8 @@ import {
     Trash2,
     SlidersHorizontal,
     X,
-    FileSpreadsheet
+    FileSpreadsheet,
+    Award
 } from 'lucide-react';
 import NavBar from '../Components/NavBar';
 
@@ -47,6 +48,12 @@ const AssessmentDetails = () => {
     // ── Download modal state ──────────────────────────────────────────────────
     const [showDownloadModal, setShowDownloadModal] = useState(false);
     const [downloadFileName, setDownloadFileName] = useState('');
+
+    // ── Certificate deployment state ─────────────────────────────────────────
+    const [deployingCerts, setDeployingCerts] = useState(false);
+    const [showDeployModal, setShowDeployModal] = useState(false);
+    const [bulkDeployCandidate, setBulkDeployCandidate] = useState<any | null>(null);
+    const bulkCertRef = useRef<HTMLDivElement>(null);
     const fetchProctors = async () => {
         try {
             const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/test/${testData.test_id}/proctor`);
@@ -139,6 +146,86 @@ const AssessmentDetails = () => {
         setFilterScoreMax('');
         setFilterConfMin('');
         setFilterConfMax('');
+    };
+
+    // ── Certification helpers ─────────────────────────────────────────────────
+    const isCertificationTest = testData?.category === 'Certification' ||
+        fullTestData?.category === 'Certification' ||
+        fullTestData?.certification_config != null;
+
+    const certConfig = fullTestData?.certification_config;
+    const globalThreshold = certConfig?.global_threshold ?? 60;
+
+    const eligibleCandidates = filteredCandidates.filter(c => c.status === 'Completed');
+
+    const handleDeployCertificates = async () => {
+        if (eligibleCandidates.length === 0) return;
+        setDeployingCerts(true);
+        try {
+            const { toPng } = await import('html-to-image');
+            let sent = 0;
+            let failed = 0;
+
+            for (const c of eligibleCandidates) {
+                // Set active candidate to render the hidden certificate
+                setBulkDeployCandidate(c);
+                
+                // Wait for React to render and paint the certificate container
+                await new Promise(resolve => setTimeout(resolve, 180));
+
+                let dataUrl = '';
+                if (bulkCertRef.current) {
+                    try {
+                        dataUrl = await toPng(bulkCertRef.current, { quality: 0.95, pixelRatio: 1.5 });
+                    } catch (imageErr) {
+                        console.error('Error capturing bulk certificate for', c.email, imageErr);
+                    }
+                }
+
+                const fd = new FormData();
+                fd.append('email', c.email);
+                fd.append('name', c.name);
+                fd.append('track_name', certConfig?.track_name || certConfig?.trackName || testData?.test_title || 'Assessment');
+                fd.append('certificate_id', `CERT-${testData?.test_id?.slice(-6).toUpperCase()}-${c.reg_no || c.email.split('@')[0]}`);
+                fd.append('score', String(c.total_score ?? 0));
+                fd.append('issuer', certConfig?.issuer || 'TEAM_TITANS');
+                if (dataUrl) {
+                    fd.append('Certificate_Image', dataUrl);
+                }
+
+                try {
+                    const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/send-certificate`, {
+                        method: 'POST',
+                        body: fd
+                    });
+                    if (res.ok) {
+                        sent++;
+                    } else {
+                        failed++;
+                        console.error('Failed to send certificate for', c.email);
+                    }
+                } catch (fetchErr) {
+                    failed++;
+                    console.error('Error sending certificate for', c.email, fetchErr);
+                }
+            }
+
+            // Reset active certificate candidate
+            setBulkDeployCandidate(null);
+            setShowDeployModal(false);
+
+            if (failed === 0) {
+                toast.success(`🎓 Certificates deployed successfully to all ${sent} filtered candidates!`);
+            } else {
+                toast.success(`🎓 Deployed ${sent} certificates. ${failed} failed — check console.`);
+            }
+        } catch (e) {
+            toast.error('Certificate deployment failed.');
+            console.error(e);
+            setBulkDeployCandidate(null);
+        } finally {
+            setDeployingCerts(false);
+        }
     };
 
     // ── Excel export ──────────────────────────────────────────────────────────
@@ -343,8 +430,8 @@ const AssessmentDetails = () => {
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-slate-800">
                     {/* Sidebar */}
-                    <div className="lg:col-span-3 space-y-6">
-                        <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100">
+                    <div className="lg:col-span-2 space-y-6">
+                        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
                             <h2 className="text-lg font-black text-gray-900 mb-6 uppercase tracking-wider">Test Details</h2>
 
                             {loading ? (
@@ -447,7 +534,7 @@ const AssessmentDetails = () => {
                     </div>
 
                     {/* Main Content */}
-                    <div className="lg:col-span-9 space-y-8">
+                    <div className="lg:col-span-10 space-y-8">
                         {/* Tabs */}
                         <div className="flex items-center justify-between border-b border-gray-200 px-2">
                             <div className="flex gap-12">
@@ -466,13 +553,35 @@ const AssessmentDetails = () => {
                                     {activeTab === 'invigilator' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#4F46E5]" />}
                                 </button>
                             </div>
-                            <button
-                                onClick={handleExcelDownload}
-                                className="flex items-center gap-2 text-indigo-600 text-[11px] font-black uppercase tracking-widest pb-4 hover:opacity-70 transition-opacity"
-                            >
-                                <FileSpreadsheet size={14} />
-                                Export Excel
-                            </button>
+                            <div className="flex items-center gap-3 pb-4">
+                                {isCertificationTest && (
+                                    <button
+                                        onClick={() => eligibleCandidates.length > 0 && setShowDeployModal(true)}
+                                        disabled={eligibleCandidates.length === 0}
+                                        title={eligibleCandidates.length === 0 ? "No completed candidates match active filters" : `Deploy certificates to ${eligibleCandidates.length} completed candidate(s) matching active filters`}
+                                        className={`flex items-center gap-2 text-[11px] font-black uppercase tracking-widest transition-all rounded-xl px-4 py-2 ${
+                                            eligibleCandidates.length > 0
+                                                ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-md active:scale-95'
+                                                : 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                                        }`}
+                                    >
+                                        <Award size={14} />
+                                        Deploy Certificate
+                                        {eligibleCandidates.length > 0 && (
+                                            <span className="bg-white/20 text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center">
+                                                {eligibleCandidates.length}
+                                            </span>
+                                        )}
+                                    </button>
+                                )}
+                                <button
+                                    onClick={handleExcelDownload}
+                                    className="flex items-center gap-2 text-indigo-600 text-[11px] font-black uppercase tracking-widest hover:opacity-70 transition-opacity"
+                                >
+                                    <FileSpreadsheet size={14} />
+                                    Export Excel
+                                </button>
+                            </div>
                         </div>
 
                         {/* Candidates Tab Content */}
@@ -588,22 +697,23 @@ const AssessmentDetails = () => {
                                 </AnimatePresence>
 
                                 <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden text-slate-800">
-                                    <div className="overflow-x-auto">
+                                    <div className="overflow-x-auto no-scrollbar">
                                          <table className="w-full text-left">
                                              <thead>
                                                  <tr className="bg-gray-50/50 border-b border-gray-100">
-                                                     <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Candidate</th>
-                                                     <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Registration Number</th>
-                                                     <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
-                                                     <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Score</th>
-                                                     <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Confidence</th>
-                                                     <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Action</th>
+                                                     <th className="px-3 py-3.5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Candidate</th>
+                                                     <th className="px-3 py-3.5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Reg No</th>
+                                                     <th className="px-3 py-3.5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
+                                                     <th className="px-3 py-3.5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Score</th>
+                                                     <th className="px-3 py-3.5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Confidence</th>
+                                                     {isCertificationTest && <th className="px-3 py-3.5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Eligibility</th>}
+                                                     <th className="px-3 py-3.5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Action</th>
                                                  </tr>
                                              </thead>
                                              <tbody className="divide-y divide-gray-50">
                                                  {filteredCandidates.map((candidate, idx) => (
                                                      <tr key={idx} className="hover:bg-gray-50/30 transition-colors group">
-                                                         <td className="px-4 py-4">
+                                                         <td className="px-3 py-3.5">
                                                              <div className="flex items-center gap-4">
                                                                  <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 font-black">
                                                                      {(candidate.name || '').charAt(0)}
@@ -614,26 +724,43 @@ const AssessmentDetails = () => {
                                                                  </div>
                                                              </div>
                                                          </td>
-                                                         <td className="px-4 py-4">
+                                                         <td className="px-3 py-3.5">
                                                              <span className="text-sm font-bold text-gray-600">{candidate.reg_no}</span>
                                                          </td>
-                                                         <td className="px-4 py-4">
+                                                         <td className="px-3 py-3.5">
                                                              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border whitespace-nowrap ${candidate.status === 'Completed' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-blue-50 text-blue-700 border-blue-100'
                                                                  }`}>
                                                                  {candidate.status.replace(/_/g, ' ')}
                                                              </span>
                                                          </td>
-                                                         <td className="px-4 py-4">
+                                                         <td className="px-3 py-3.5">
                                                              <span className="text-sm font-black text-gray-900">
                                                                  {candidate.total_score !== undefined ? candidate.total_score : '--'}
                                                              </span>
                                                          </td>
-                                                         <td className="px-4 py-4">
+                                                         <td className="px-3 py-3.5">
                                                              <span className={`text-sm font-black ${candidate.confidence_score !== undefined && candidate.confidence_score !== null ? (candidate.confidence_score >= 70 ? 'text-green-600' : candidate.confidence_score >= 40 ? 'text-yellow-600' : 'text-red-600') : 'text-gray-900'}`}>
                                                                  {candidate.confidence_score !== undefined && candidate.confidence_score !== null ? `${candidate.confidence_score}%` : '--'}
                                                              </span>
                                                          </td>
-                                                         <td className="px-4 py-4 text-right">
+                                                         {isCertificationTest && (
+                                                             <td className="px-3 py-3.5">
+                                                                 {candidate.status === 'Completed' ? (
+                                                                     (candidate.total_score ?? 0) >= globalThreshold ? (
+                                                                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-100">
+                                                                             <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Eligible
+                                                                         </span>
+                                                                     ) : (
+                                                                         <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-red-50 text-red-600 border border-red-100">
+                                                                             <span className="w-1.5 h-1.5 rounded-full bg-red-400"></span> Not Eligible
+                                                                         </span>
+                                                                     )
+                                                                 ) : (
+                                                                     <span className="text-[10px] font-bold text-gray-300">--</span>
+                                                                 )}
+                                                             </td>
+                                                         )}
+                                                         <td className="px-3 py-3.5 text-right">
                                                              <button
                                                                  onClick={() => navigate('/candidate-analytics', { state: { candidate, testId: testData?.test_id } })}
                                                                  className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-md active:scale-95 whitespace-nowrap"
@@ -861,6 +988,79 @@ const AssessmentDetails = () => {
             </div>
         </div>
 
+        {/* ── Deploy Certificate Confirmation Modal ── */}
+        <AnimatePresence>
+        {showDeployModal && (
+            <motion.div
+                key="deploy-modal"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm flex items-center justify-center px-4"
+                onClick={() => setShowDeployModal(false)}
+            >
+                <motion.div
+                    initial={{ scale: 0.93, opacity: 0, y: 16 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    exit={{ scale: 0.93, opacity: 0, y: 16 }}
+                    transition={{ duration: 0.22 }}
+                    className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-8 w-full max-w-md"
+                    onClick={e => e.stopPropagation()}
+                >
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-11 h-11 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
+                            <Award size={22} />
+                        </div>
+                        <div>
+                            <h3 className="text-base font-black text-gray-900 uppercase tracking-tight">Deploy Certificates</h3>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                {eligibleCandidates.length} candidate(s) · matching active filters
+                            </p>
+                        </div>
+                        <button onClick={() => setShowDeployModal(false)} className="ml-auto p-1.5 text-gray-300 hover:text-gray-600 transition-colors">
+                            <X size={18} />
+                        </button>
+                    </div>
+
+                    <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-4 mb-6">
+                        <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-3">Recipients</p>
+                        <div className="space-y-2 max-h-40 overflow-y-auto">
+                            {eligibleCandidates.map((c, i) => (
+                                <div key={i} className="flex items-center justify-between">
+                                    <div>
+                                        <p className="text-xs font-black text-gray-800">{c.name}</p>
+                                        <p className="text-[9px] font-bold text-gray-400">{c.email}</p>
+                                    </div>
+                                    <span className="text-[10px] font-black text-emerald-700">{c.total_score} pts</span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="bg-gray-50 rounded-xl border border-gray-100 p-3 mb-6">
+                        <p className="text-[9px] font-bold text-gray-500">
+                            Certificates will be emailed to all eligible candidates with their score and a unique certificate ID.
+                        </p>
+                    </div>
+
+                    <div className="flex gap-3">
+                        <button onClick={() => setShowDeployModal(false)}
+                            className="flex-1 py-3 border border-gray-200 text-gray-600 text-sm font-bold rounded-xl hover:bg-gray-50 transition-all">
+                            Cancel
+                        </button>
+                        <button
+                            onClick={handleDeployCertificates}
+                            disabled={deployingCerts}
+                            className="flex-1 py-3 bg-emerald-600 text-white text-sm font-black rounded-xl hover:bg-emerald-700 active:scale-95 transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-60"
+                        >
+                            {deployingCerts ? 'Sending...' : <><Award size={15} /> Send Certificates</>}
+                        </button>
+                    </div>
+                </motion.div>
+            </motion.div>
+        )}
+        </AnimatePresence>
+
         {/* ── Excel Download Modal ── */}
         <AnimatePresence>
         {showDownloadModal && (
@@ -935,6 +1135,98 @@ const AssessmentDetails = () => {
             </motion.div>
         )}
         </AnimatePresence>
+        {/* Hidden Container for Bulk Certificate Generation */}
+        {bulkDeployCandidate && (
+            <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
+                <div 
+                    ref={bulkCertRef} 
+                    className="w-full max-w-[760px] aspect-[1.414/1] bg-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] border-[1px] border-slate-200 p-12 flex flex-col items-center justify-between relative overflow-hidden text-left"
+                    style={{ minHeight: '537px', width: '760px', height: '537px' }}
+                >
+                    {/* Subtle Texture Background */}
+                    <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#1e293b 1px, transparent 0)', backgroundSize: '24px 24px' }} />
+                    
+                    {/* Elegant Border Frame */}
+                    <div className="absolute inset-4 border-[1px] border-slate-100" />
+                    <div className="absolute inset-8 border-[2px] border-slate-200" />
+                    
+                    {/* Header Section */}
+                    <div className="z-10 flex flex-col items-center mt-6 mb-4 w-full text-center">
+                      <div className="w-12 h-12 bg-blue-600 rounded-xl rotate-45 flex items-center justify-center shadow-lg shadow-blue-100 mb-6 border-2 border-white">
+                        <span className="text-xl font-black text-white -rotate-45">V</span>
+                      </div>
+                      <h4 className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-400 mb-1">Official Certification</h4>
+                      <h2 className="text-xl font-black uppercase tracking-[0.1em] text-slate-800 border-b-2 border-blue-600 pb-1 px-4">
+                        {certConfig?.title || certConfig?.certificateTitle || "Certificate of Achievement"}
+                      </h2>
+                    </div>
+
+                    {/* Recipient Section */}
+                    <div className="z-10 flex flex-col items-center text-center px-12 mb-4 w-full">
+                      <p className="text-[9px] text-slate-400 uppercase tracking-[0.3em] font-bold mb-2">This acknowledges that</p>
+                      <h3 className="text-3xl font-serif italic text-slate-900 mb-2">{bulkDeployCandidate.name}</h3>
+                      <div className="w-32 h-px bg-slate-200 mb-3" />
+                      <p className="text-[9px] text-slate-400 uppercase tracking-[0.15em] font-bold leading-tight max-w-[440px]">
+                        has demonstrated exceptional proficiency and successfully met all requirements for the certification in
+                      </p>
+                    </div>
+
+                    {/* Track Section */}
+                    <div className="z-10 mb-4 text-center w-full">
+                      <p className="text-[11px] font-bold text-slate-800 uppercase tracking-[0.2em]">
+                        {certConfig?.track_name || certConfig?.trackName || testData?.test_title || 'Technical Specialization'}
+                      </p>
+                    </div>
+
+                    {/* Dynamic Performance Metrics */}
+                    <div className="z-10 flex gap-8 mb-12 items-center justify-center w-full">
+                      <div className="flex flex-col items-center">
+                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Overall Score</span>
+                        <span className="text-sm font-black text-slate-800">{bulkDeployCandidate.total_score ?? 0}%</span>
+                      </div>
+                      <div className="w-px h-6 bg-slate-200" />
+                      <div className="flex flex-col items-center">
+                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Grade</span>
+                        <span className="text-sm font-black text-blue-600">
+                          {(bulkDeployCandidate.total_score ?? 0) >= 90 ? 'DISTINCTION' : (bulkDeployCandidate.total_score ?? 0) >= 75 ? 'EXCELLENT' : 'PASS'}
+                        </span>
+                      </div>
+                      <div className="w-px h-6 bg-slate-200" />
+                      <div className="flex flex-col items-center">
+                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Verification ID</span>
+                        <span className="text-[8px] font-mono text-slate-500">{`CERT-${testData?.test_id?.slice(-6).toUpperCase()}-${bulkDeployCandidate.reg_no || bulkDeployCandidate.email.split('@')[0]}`}</span>
+                      </div>
+                    </div>
+
+                    {/* Footer Section */}
+                    <div className="absolute bottom-10 left-0 right-0 px-16 flex justify-between items-end w-full">
+                      <div className="flex flex-col items-center">
+                        <div className="w-28 h-px bg-slate-300 mb-2" />
+                        <p className="text-[8px] font-black text-slate-800 uppercase tracking-widest">{certConfig?.issuer || "Virtusa Authority"}</p>
+                        <p className="text-[7px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">Issuing Organization</p>
+                      </div>
+                      
+                      <div className="flex flex-col items-center">
+                        <div className="w-28 h-px bg-slate-300 mb-2" />
+                        <p className="text-[8px] font-black text-slate-800 uppercase tracking-widest">
+                          {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        </p>
+                        <p className="text-[7px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">Date of Issue</p>
+                      </div>
+                    </div>
+
+                    {/* Security Seal Decor */}
+                    <div className="absolute top-10 left-10 w-24 h-24 opacity-[0.08] pointer-events-none">
+                       <svg viewBox="0 0 100 100" className="w-full h-full text-slate-900 animate-spin-slow">
+                          <path id="curve" d="M 50, 50 m -37, 0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0" fill="transparent" />
+                          <text className="text-[10px] font-bold uppercase tracking-widest fill-current">
+                             <textPath href="#curve">Verified Certification • Virtusa Jatayu • </textPath>
+                          </text>
+                       </svg>
+                    </div>
+                </div>
+            </div>
+        )}
         </>
     );
 };

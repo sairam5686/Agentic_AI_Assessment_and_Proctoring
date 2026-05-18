@@ -1552,78 +1552,91 @@ const CandidateAnalytics = () => {
                         className="bg-white rounded-[2.5rem] shadow-2xl max-w-4xl w-full overflow-hidden relative border-[12px] border-white"
                     >
                         {/* Certificate Design */}
-                        <div ref={(el) => { if (el) (window as any).certificateRef = el; }} className="relative p-12 border-[3px] border-gray-100 rounded-[1.5rem] bg-gradient-to-br from-white via-slate-50/50 to-white overflow-hidden">
-                            {/* Decorative background elements */}
-                            <div className="absolute top-0 right-0 -mr-20 -mt-20 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl" />
-                            <div className="absolute bottom-0 left-0 -ml-20 -mb-20 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl" />
+                        <div 
+                            ref={(el) => { if (el) (window as any).certificateRef = el; }} 
+                            className="w-full max-w-[760px] aspect-[1.414/1] bg-white shadow-[0_20px_50px_rgba(0,0,0,0.1)] border-[1px] border-slate-200 p-12 flex flex-col items-center justify-between relative overflow-hidden mx-auto text-left"
+                            style={{ minHeight: '537px' }}
+                        >
+                            {/* Subtle Texture Background */}
+                            <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#1e293b 1px, transparent 0)', backgroundSize: '24px 24px' }} />
                             
-                            {/* Watermark Logo */}
-                            <div className="absolute inset-0 flex items-center justify-center opacity-[0.03] pointer-events-none grayscale">
-                                <ShieldCheck size={500} />
+                            {/* Elegant Border Frame */}
+                            <div className="absolute inset-4 border-[1px] border-slate-100" />
+                            <div className="absolute inset-8 border-[2px] border-slate-200" />
+                            
+                            {/* Header Section */}
+                            <div className="z-10 flex flex-col items-center mt-6 mb-4 w-full text-center">
+                              <div className="w-12 h-12 bg-blue-600 rounded-xl rotate-45 flex items-center justify-center shadow-lg shadow-blue-100 mb-6 border-2 border-white">
+                                <span className="text-xl font-black text-white -rotate-45">V</span>
+                              </div>
+                              <h4 className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-400 mb-1">Official Certification</h4>
+                              <h2 className="text-xl font-black uppercase tracking-[0.1em] text-slate-800 border-b-2 border-blue-600 pb-1 px-4">
+                                {ds.certConfig?.title || ds.certConfig?.certificateTitle || "Certificate of Achievement"}
+                              </h2>
                             </div>
 
-                            <div className="relative flex flex-col items-center text-center">
-                                {/* Logo & Header */}
-                                <div className="w-20 h-20 bg-indigo-600 rounded-[1.5rem] flex items-center justify-center text-white mb-6 shadow-xl shadow-indigo-200 ring-8 ring-indigo-50">
-                                    <ShieldCheck size={40} />
-                                </div>
-                                <h1 className="text-sm font-black text-indigo-600 uppercase tracking-[0.4em] mb-4">{ds.certConfig?.issuer || 'VIRTUSA - JATAYU SEASON 5'}</h1>
-                                <div className="h-1 w-16 bg-indigo-600 rounded-full mb-12" />
+                            {/* Recipient Section */}
+                            <div className="z-10 flex flex-col items-center text-center px-12 mb-4 w-full">
+                              <p className="text-[9px] text-slate-400 uppercase tracking-[0.3em] font-bold mb-2">This acknowledges that</p>
+                              <h3 className="text-3xl font-serif italic text-slate-900 mb-2">{candidate.name}</h3>
+                              <div className="w-32 h-px bg-slate-200 mb-3" />
+                              <p className="text-[9px] text-slate-400 uppercase tracking-[0.15em] font-bold leading-tight max-w-[440px]">
+                                has demonstrated exceptional proficiency and successfully met all requirements for the certification in
+                              </p>
+                            </div>
 
-                                <h2 className="text-4xl font-black text-slate-900 tracking-tight uppercase mb-2">
-                                    {ds.certConfig?.title || 'Certificate of Achievement'}
-                                </h2>
-                                <p className="text-gray-400 font-bold uppercase tracking-widest text-[10px] mb-12">This high-honour credential is proudly presented to</p>
+                            {/* Track Section */}
+                            <div className="z-10 mb-4 text-center w-full">
+                              <p className="text-[11px] font-bold text-slate-800 uppercase tracking-[0.2em]">
+                                {ds.certConfig?.track_name || 'Technical Specialization'}
+                              </p>
+                            </div>
 
-                                <h3 className="text-6xl font-serif italic text-slate-800 mb-8 tracking-tight">{candidate.name}</h3>
+                            {/* Dynamic Performance Metrics */}
+                            <div className="z-10 flex gap-8 mb-12 items-center justify-center w-full">
+                              <div className="flex flex-col items-center">
+                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Overall Score</span>
+                                <span className="text-sm font-black text-slate-800">{Math.round((ds.totalScore / ds.totalMax) * 100)}%</span>
+                              </div>
+                              <div className="w-px h-6 bg-slate-200" />
+                              <div className="flex flex-col items-center">
+                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Grade</span>
+                                <span className="text-sm font-black text-blue-600">
+                                  {Math.round((ds.totalScore / ds.totalMax) * 100) >= 90 ? 'DISTINCTION' : Math.round((ds.totalScore / ds.totalMax) * 100) >= 75 ? 'EXCELLENT' : 'PASS'}
+                                </span>
+                              </div>
+                              <div className="w-px h-6 bg-slate-200" />
+                              <div className="flex flex-col items-center">
+                                <span className="text-[8px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Verification ID</span>
+                                <span className="text-[8px] font-mono text-slate-500">{`CERT-${testId.slice(-6).toUpperCase()}-${candidate.reg_no || candidate.email.split('@')[0]}`}</span>
+                              </div>
+                            </div>
 
-                                <div className="max-w-xl mx-auto mb-12">
-                                    <p className="text-slate-500 font-medium leading-relaxed">
-                                        For successfully demonstrating industry-standard proficiency and clearing all assessment benchmarks for the professional track of
-                                    </p>
-                                    <p className="text-xl font-black text-slate-900 mt-2 uppercase tracking-wide">
-                                        {ds.certConfig?.track_name || 'Professional Certification'}
-                                    </p>
-                                </div>
+                            {/* Footer Section */}
+                            <div className="absolute bottom-10 left-0 right-0 px-16 flex justify-between items-end w-full">
+                              <div className="flex flex-col items-center">
+                                <div className="w-28 h-px bg-slate-300 mb-2" />
+                                <p className="text-[8px] font-black text-slate-800 uppercase tracking-widest">{ds.certConfig?.issuer || "Virtusa Authority"}</p>
+                                <p className="text-[7px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">Issuing Organization</p>
+                              </div>
+                              
+                              <div className="flex flex-col items-center">
+                                <div className="w-28 h-px bg-slate-300 mb-2" />
+                                <p className="text-[8px] font-black text-slate-800 uppercase tracking-widest">
+                                  {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </p>
+                                <p className="text-[7px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">Date of Issue</p>
+                              </div>
+                            </div>
 
-                                {/* Results Summary on Certificate */}
-                                <div className="flex gap-6 mb-16">
-                                    <div className="text-center px-8 py-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Overall Score</p>
-                                        <p className="text-2xl font-black text-slate-800">{Math.round((ds.totalScore / ds.totalMax) * 100)}%</p>
-                                    </div>
-                                    <div className="text-center px-8 py-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Grade</p>
-                                        <p className="text-2xl font-black text-indigo-600">DISTINCTION</p>
-                                    </div>
-                                    <div className="text-center px-8 py-4 bg-slate-50 rounded-2xl border border-slate-100">
-                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Issued Date</p>
-                                        <p className="text-sm font-black text-slate-800 uppercase mt-1.5">{new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
-                                    </div>
-                                </div>
-
-                                {/* Signatures */}
-                                <div className="w-full flex justify-between items-end px-12 mt-4">
-                                    <div className="text-center">
-                                        <div className="w-40 h-px bg-slate-300 mb-2" />
-                                        <p className="text-[10px] font-black text-slate-900 uppercase">Executive Director</p>
-                                        <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Virtusa Global Services</p>
-                                    </div>
-                                    <div className="relative">
-                                        <div className="w-24 h-24 absolute -top-12 -left-12 opacity-10">
-                                            <Fingerprint size={96} />
-                                        </div>
-                                        <div className="px-6 py-3 border-2 border-indigo-600/20 rounded-xl bg-white shadow-sm">
-                                            <p className="text-[8px] font-black text-indigo-600 uppercase tracking-tighter">Verified Credential</p>
-                                            <p className="text-[7px] text-slate-400 font-mono mt-0.5">{testId.substring(0,18).toUpperCase()}</p>
-                                        </div>
-                                    </div>
-                                    <div className="text-center">
-                                        <div className="w-40 h-px bg-slate-300 mb-2" />
-                                        <p className="text-[10px] font-black text-slate-900 uppercase">Lead Program Mentor</p>
-                                        <p className="text-[8px] text-slate-400 font-bold uppercase tracking-widest">Jatayu Season 5</p>
-                                    </div>
-                                </div>
+                            {/* Security Seal Decor */}
+                            <div className="absolute top-10 left-10 w-24 h-24 opacity-[0.08] pointer-events-none">
+                               <svg viewBox="0 0 100 100" className="w-full h-full text-slate-900 animate-spin-slow">
+                                  <path id="curve" d="M 50, 50 m -37, 0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0" fill="transparent" />
+                                  <text className="text-[10px] font-bold uppercase tracking-widest fill-current">
+                                     <textPath href="#curve">Verified Certification • Virtusa Jatayu • </textPath>
+                                  </text>
+                                </svg>
                             </div>
                         </div>
 
