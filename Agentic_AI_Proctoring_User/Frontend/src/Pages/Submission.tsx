@@ -49,23 +49,7 @@ const Submission: React.FC = () => {
     }
 
     useEffect(() => {
-        // Clear session markers so the flow can be restarted fresh if needed
-        sessionStorage.removeItem('system_check_passed');
-        localStorage.setItem('assessment_completed', 'true');
-        localStorage.removeItem('assessment_started');
-        // cleanup(); // MOVED TO BUTTON CLICK AS PER USER REQUIREMENT
-        localStorage.removeItem('gaming_completed');
-        localStorage.removeItem('mcq_completed');
-        localStorage.removeItem('coding_completed');
-        localStorage.removeItem('sql_completed');
-
-        // Signal mobile to cleanup
-        const socket = io(API_USER_URL);
-        const assessment_id = localStorage.getItem('assessment_id');
-        const email = localStorage.getItem('candidate_email');
-        if (assessment_id && email) {
-            socket.emit('test_ended', { assessment_id, email });
-        }
+        console.log("Submission: Candidate landed on submission page. Waiting for Finish Assessment confirmation...");
     }, []);
 
     const [enabledSections, setEnabledSections] = React.useState<any[]>([]);
@@ -140,7 +124,28 @@ const Submission: React.FC = () => {
 
                     <button
                         onClick={async () => {
-                            console.log("Submission: Exit button clicked. Prioritizing UI response...");
+                            console.log("Submission: Finish Assessment button clicked. Prioritizing UI response...");
+
+                            // Set completed flags ONLY on click
+                            localStorage.setItem('assessment_completed', 'true');
+                            localStorage.removeItem('assessment_started');
+                            localStorage.removeItem('gaming_completed');
+                            localStorage.removeItem('mcq_completed');
+                            localStorage.removeItem('coding_completed');
+                            localStorage.removeItem('sql_completed');
+                            sessionStorage.removeItem('system_check_passed');
+
+                            // Emit test ended via socket to log out of mobile immediately
+                            try {
+                                const socket = io(API_USER_URL);
+                                const assessment_id = localStorage.getItem('assessment_id');
+                                const email = localStorage.getItem('candidate_email');
+                                if (assessment_id && email) {
+                                    socket.emit('test_ended', { assessment_id, email });
+                                }
+                            } catch (e) {
+                                console.warn("Socket stop signal failed:", e);
+                            }
 
                             try {
                                 if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
@@ -193,9 +198,9 @@ const Submission: React.FC = () => {
                             await fetcher();
                             performCleanup();
                         }}
-                        className="w-full py-4 bg-gray-900 text-white text-sm font-bold rounded-2xl hover:bg-gray-800 transition-all active:scale-95 shadow-lg shadow-gray-200 cursor-pointer"
+                        className="w-full py-4 bg-[#E31B23] text-white text-sm font-bold rounded-2xl hover:bg-[#c4151c] transition-all active:scale-95 shadow-lg shadow-red-100 cursor-pointer uppercase tracking-wider"
                     >
-                        Exit Fullscreen
+                        Finish Assessment
                     </button>
                 </div>
             </div>

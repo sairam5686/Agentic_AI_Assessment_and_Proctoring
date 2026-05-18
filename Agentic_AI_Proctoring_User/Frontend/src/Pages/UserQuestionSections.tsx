@@ -129,6 +129,19 @@ const UserQuestionSections = () => {
   }, [sections]);
 
   const handleSectionClick = useCallback((sectionKey: string) => {
+    localStorage.setItem('assessment_started', 'true');
+
+    // Notify mobile backend to start proctoring AI detection now
+    const a_id = localStorage.getItem('assessment_id');
+    const email = localStorage.getItem('candidate_email');
+    if (a_id && email) {
+        fetch(`https://agenticaimobileproctoring-production.up.railway.app/start`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ assessment_id: a_id, email_id: email })
+        }).catch(err => console.warn("Failed to notify mobile proctoring start:", err));
+    }
+
     navigator(`/section/${sectionKey}`, {
       state: { ...QuestionsJson?.Assessment_Info, ...QuestionsJson }
     });

@@ -120,7 +120,7 @@ const FitbSection = () => {
     try {
       const email = localStorage.getItem("candidate_email") || "";
       const user_name = localStorage.getItem("candidate_name") || "";
-      const allQuestions = sections.flatMap((s: any) => s.questions)
+      const allQuestions = sections.flatMap((s: any) => s.questions || [])
 
       const fitb_results = allQuestions.map((q: any) => {
         const userAnswers = answers[q.question_id.toString()] || [];
@@ -223,7 +223,7 @@ const FitbSection = () => {
   };
 
   const activeSection = sections[activeSectionIdx]
-  const allQuestions = sections.flatMap((s: any) => s.questions)
+  const allQuestions = sections.flatMap((s: any) => s.questions || [])
   const timerColor = timeLeft < 60 ? 'text-red-500' : timeLeft < 300 ? 'text-amber-500' : 'text-gray-800'
 
   if (submitted) {
@@ -295,7 +295,7 @@ const FitbSection = () => {
           </div>
 
           <div className="space-y-8">
-            {activeSection?.questions.map((q: any, qIdx: number) => (
+            {(activeSection?.questions || []).map((q: any, qIdx: number) => (
               <div key={q.question_id} className="bg-white border border-gray-200 rounded-2xl p-8 hover:border-gray-300 transition-all duration-150 shadow-sm">
                 <div className="flex items-start gap-4 mb-4">
                   <span className="flex-shrink-0 w-7 h-7 rounded-lg bg-amber-50 text-amber-600 text-xs font-bold flex items-center justify-center">{qIdx + 1}</span>
@@ -323,7 +323,7 @@ const FitbSection = () => {
               <div key={sec.section_id} className="mb-5">
                 <p className="text-[10px] font-bold text-gray-400 uppercase mb-2">Section {sIdx + 1}</p>
                 <div className="flex flex-wrap gap-2">
-                  {sec.questions.map((q: any, qIdx: number) => {
+                  {(sec.questions || []).map((q: any, qIdx: number) => {
                     const isAnswered = (answers[q.question_id.toString()] || []).filter(v => v && v.trim()).length > 0;
                     return (
                       <div

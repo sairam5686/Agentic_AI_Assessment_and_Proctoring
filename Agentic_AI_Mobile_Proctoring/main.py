@@ -117,9 +117,17 @@ async def receive_frame(data: FrameRequest, background_tasks: BackgroundTasks):
                 return {"status": "error", "message": "Proctoring session not active"}
             print(f"[Mobile] Initializing new session for {session_key}")
             sessions[session_key] = ProctoringSession()
+            sessions[session_key].is_started = False
         
         session = sessions[session_key]
         session.last_activity = time.time()  # Update activity time
+
+        # Skip AI proctoring detection if assessment has not started yet
+        if not getattr(session, "is_started", False):
+            return {
+                "status": "waiting",
+                "message": "Assessment not started yet. Waiting for Start Assessment from web portal."
+            }
 
         # ── Frame-drop guard: skip if the previous frame is still being analysed
         if session.processing:
@@ -326,6 +334,28 @@ async def stop_proctoring(data: dict = None):
         import traceback
         traceback.print_exc()
         print(f"[MobileAgent] Error in /stop: {str(e)}")
+        return {"status": "error", "message": str(e)}
+
+
+@app.post("/start")
+async def start_proctoring(data: dict):
+    try:
+        a_id = str(data.get("assessment_id", "")).strip().lower()
+        email = str(data.get("email_id", "")).strip().lower()
+        session_key = f"{a_id}_{email}"
+        
+        print(f"[MobileAgent] Explicit start proctoring received for session: {session_key}")
+        if session_key not in sessions:
+            sessions[session_key] = ProctoringSession()
+        
+        session = sessions[session_key]
+        session.is_started = True
+        session.session_start = time.time()
+        session.last_activity = time.time()
+        
+        return {"status": "success", "message": "Proctoring started."}
+    except Exception as e:
+        print(f"[ERROR] Failed to start proctoring: {e}")
         return {"status": "error", "message": str(e)}
 
 
