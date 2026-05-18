@@ -1,3 +1,7 @@
+const isSEB = navigator.userAgent.includes("SEB") || import.meta.env.VITE_DISABLE_SEB_CHECK === "true";
+if (!isSEB && window.location.pathname !== "/seb-required") {
+  window.location.href = "/seb-required";
+}
 
 import { createRoot } from 'react-dom/client'
 import './index.css'
@@ -17,10 +21,12 @@ import AgoraProctoringLayout from './Components/AgoraProctoringLayout.tsx'
 import FITBSection from './Pages/FitbSection.tsx'
 import EssayPage from './Pages/EssayPage.tsx'
 import DiagramSection from './Pages/DiagramSection.tsx'
+import SebRequired from './Pages/SebRequired.tsx'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
 const routes = createBrowserRouter([
+  { path: "/seb-required", element: <SebRequired /> },
   { path: "/Login", element: <UserLogin /> },
   { path: "/", element: <UserLogin /> },
   
