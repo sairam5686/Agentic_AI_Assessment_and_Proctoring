@@ -100,6 +100,16 @@ const EssayPage = () => {
   const [lastSaved, setLastSaved] = useState<number>(Date.now())
   const [timeAgo, setTimeAgo] = useState("just now")
   
+  const [cooldownTimeLeft, setCooldownTimeLeft] = useState<number>(0)
+
+  useEffect(() => {
+    if (cooldownTimeLeft <= 0) return
+    const timer = setInterval(() => {
+      setCooldownTimeLeft(prev => prev - 1)
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [cooldownTimeLeft])
+
   const [timeLeft, setTimeLeft] = useState<number>(() => {
     const saved = localStorage.getItem(`essay_time_${examId}`)
     if (saved) return parseInt(saved)
@@ -168,7 +178,7 @@ const EssayPage = () => {
   }
 
   const handleSubmit = async () => {
-    if (!wordsMet || loading) return
+    if (!wordsMet || loading || cooldownTimeLeft > 0) return
 
     setLoading(true)
     try {
@@ -187,7 +197,8 @@ const EssayPage = () => {
       })
 
       if (res.status === 429) {
-        toast.error("Submission rate limit reached. Please wait a moment before trying again.", {
+        setCooldownTimeLeft(30);
+        toast.error("Submission rate limit reached. Please wait 30 seconds before trying again.", {
           position: "top-right",
           theme: "colored"
         });
@@ -274,7 +285,7 @@ const EssayPage = () => {
   // ──────────────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col overflow-hidden h-screen">
-      <ToastContainer />
+      <ToastContainer limit={1} autoClose={2000} newestOnTop={true} />
 
       {/* ── Top Nav (Standard Header) ── */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-50 flex-shrink-0">
@@ -440,14 +451,16 @@ const EssayPage = () => {
             <button
               id="essay-submit-btn-bottom"
               onClick={handleSubmit}
-              disabled={!wordsMet || loading}
-              className="flex items-center gap-3 px-8 py-3 bg-gray-900 text-white text-sm font-bold rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer hover:bg-gray-700 active:scale-[0.98] uppercase tracking-wide shadow-md"
+              disabled={!wordsMet || loading || cooldownTimeLeft > 0}
+              className={`flex items-center gap-3 px-8 py-3 text-white text-sm font-bold rounded-xl transition-all duration-200 disabled:opacity-40 disabled:cursor-not-allowed uppercase tracking-wide shadow-md ${cooldownTimeLeft > 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-gray-900 hover:bg-gray-700 cursor-pointer active:scale-[0.98]'}`}
             >
               {loading ? (
                 <>
                   <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                   <span>Submitting...</span>
                 </>
+              ) : cooldownTimeLeft > 0 ? (
+                <span>Please wait ({cooldownTimeLeft}s)</span>
               ) : (
                 <>
                   <span>Submit</span>

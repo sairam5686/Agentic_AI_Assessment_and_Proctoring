@@ -200,11 +200,9 @@ const UserQuestionSections = () => {
                 const isLocked = !isCompleted && !isPreviousCompleted;
 
                 return (
-                  <button
+                  <div
                     key={section.key}
-                    onClick={() => !isLocked && handleSectionClick(section.key)}
-                    disabled={isLocked}
-                    className={`group relative bg-white border border-gray-200 rounded-2xl p-7 flex items-center gap-6 transition-all duration-200 ${isLocked ? 'opacity-50 grayscale cursor-not-allowed' : 'hover:border-gray-400 cursor-pointer shadow-sm hover:shadow-md'}`}
+                    className={`group relative bg-white border border-gray-200 rounded-2xl p-7 flex items-center gap-6 transition-all duration-200 ${isLocked ? 'opacity-50 grayscale' : 'shadow-sm'}`}
                   >
                     {isCompleted && (
                       <div className="absolute top-4 right-4 w-6 h-6 bg-green-500 rounded-full flex items-center justify-center shadow-sm">
@@ -233,7 +231,7 @@ const UserQuestionSections = () => {
                         {section.tag}
                       </span>
                     </div>
-                  </button>
+                  </div>
                 )
               })}
 

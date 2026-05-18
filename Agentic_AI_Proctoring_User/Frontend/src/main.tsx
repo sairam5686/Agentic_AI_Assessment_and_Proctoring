@@ -46,8 +46,7 @@ const routes = createBrowserRouter([
 
 createRoot(document.getElementById('root')!).render(
   <>
-    <ToastContainer />
+    <ToastContainer limit={1} autoClose={2000} newestOnTop={true} />
     <RouterProvider router={routes} />
   </>
-
 )

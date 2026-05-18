@@ -178,6 +178,16 @@ const DiagramSection = () => {
   const [lastSaved, setLastSaved] = useState<number>(Date.now());
   const [timeAgo, setTimeAgo] = useState("just now");
 
+  const [cooldownTimeLeft, setCooldownTimeLeft] = useState<number>(0);
+
+  useEffect(() => {
+    if (cooldownTimeLeft <= 0) return;
+    const timer = setInterval(() => {
+      setCooldownTimeLeft(prev => prev - 1);
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [cooldownTimeLeft]);
+
   const assessment_id = assessmentState?.assessment_id || localStorage.getItem("assessment_id") || "default";
   const assessment = assessmentState.Diagram_Questions?.[0] || assessmentState;
   const totalDurationSeconds = parseInt(assessment?.diagram_duration || '0') * 60;
@@ -480,6 +490,7 @@ const DiagramSection = () => {
   // ── Submit ────────────────────────────────────────────────────────────────
 
   const handleSubmit = async (isFinal = false) => {
+    if (cooldownTimeLeft > 0) return;
     if (isSubmitting || isSubmitted) return;
     if (!reactFlowWrapper.current) return;
     setIsSubmitting(true);
@@ -506,7 +517,12 @@ const DiagramSection = () => {
       });
 
       if (response.status === 429) {
-        toast.error("Rate limit reached. Please wait.");
+        setCooldownTimeLeft(10);
+        toast.error("Submission rate limit reached. Please wait 10 seconds before trying again.", {
+          position: "top-right",
+          theme: "colored"
+        });
+        setIsSubmitting(false);
         return;
       }
 
@@ -767,14 +783,14 @@ const DiagramSection = () => {
               <div className="flex justify-end pb-8">
                 <button
                     onClick={() => {
-                        if (isSubmitting || isSubmitted) return;
+                        if (isSubmitting || isSubmitted || cooldownTimeLeft > 0) return;
                         handleSubmit(false);
                     }}
-                    disabled={isSubmitting || isSubmitted}
-                    className={`px-10 py-4 bg-gray-900 text-white text-sm font-bold rounded-2xl hover:bg-gray-800 transition-all active:scale-95 shadow-lg shadow-gray-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide flex items-center gap-3 ${isSubmitting || isSubmitted ? 'pointer-events-none' : ''}`}
+                    disabled={isSubmitting || isSubmitted || cooldownTimeLeft > 0}
+                    className={`px-10 py-4 text-white text-sm font-bold rounded-2xl transition-all active:scale-95 shadow-lg shadow-gray-200 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide flex items-center gap-3 ${isSubmitting || isSubmitted || cooldownTimeLeft > 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-gray-900 hover:bg-gray-800 cursor-pointer'}`}
                 >
                     {isSubmitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                    {isSubmitting ? 'Evaluating...' : isSubmitted ? 'Evaluated' : 'SUBMIT DIAGRAM'}
+                    {isSubmitting ? 'Evaluating...' : cooldownTimeLeft > 0 ? `Please wait (${cooldownTimeLeft}s)` : isSubmitted ? 'Evaluated' : 'SUBMIT DIAGRAM'}
                 </button>
               </div>
            </div>

@@ -408,12 +408,12 @@ async def pp_get_results() -> list[dict]:
 
 class FITBAnswer(BaseModel):
     blank_index: int
-    user_answer: str
+    user_answer: str | None = None
     is_correct: bool
 
 class FITBQuestionResult(BaseModel):
     question_id: int
-    user_answers: list[str]
+    user_answers: list[str | None]
     results: list[FITBAnswer]
     marks_earned: float
 

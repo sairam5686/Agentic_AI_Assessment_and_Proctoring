@@ -48,6 +48,16 @@ const McqSection = () => {
   const [showGlobalFinishConfirm, setShowGlobalFinishConfirm] = useState(false)
   const [showUserInfo, setShowUserInfo] = useState(false)
   
+  const [cooldownTimeLeft, setCooldownTimeLeft] = useState<number>(0)
+
+  useEffect(() => {
+    if (cooldownTimeLeft <= 0) return
+    const timer = setInterval(() => {
+      setCooldownTimeLeft(prev => prev - 1)
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [cooldownTimeLeft])
+
   const [timeLeft, setTimeLeft] = useState<number>(() => {
     const saved = localStorage.getItem(`mcq_time_${assessment_id}`)
     if (saved) return parseInt(saved)
@@ -125,6 +135,8 @@ const McqSection = () => {
   }
 
   const handleSubmit = async () => {
+    if (cooldownTimeLeft > 0) return;
+    
     try {
       const email = localStorage.getItem("candidate_email") || "";
       const user_name = localStorage.getItem("candidate_name") || "";
@@ -159,6 +171,12 @@ const McqSection = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+
+      if (response.status === 429) {
+        setCooldownTimeLeft(10);
+        alert("Submission rate limit reached. Please wait 10 seconds before trying again.");
+        return;
+      }
 
       if (!response.ok) {
         throw new Error("Failed to save MCQ results");
@@ -481,9 +499,10 @@ const McqSection = () => {
               </div>
               <button
                 onClick={handleSubmit}
-                className="w-full mt-5 py-2.5 bg-gray-900 text-white text-xs font-bold rounded-xl hover:bg-gray-700 active:scale-95 transition-all cursor-pointer uppercase tracking-wide"
+                disabled={cooldownTimeLeft > 0}
+                className={`w-full mt-5 py-2.5 text-white text-xs font-bold rounded-xl active:scale-95 transition-all uppercase tracking-wide ${cooldownTimeLeft > 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-gray-900 hover:bg-gray-700 cursor-pointer'}`}
               >
-                Submit
+                {cooldownTimeLeft > 0 ? `Please wait (${cooldownTimeLeft}s)` : 'Submit'}
               </button>
             </div>
           </div>
@@ -508,9 +527,10 @@ const McqSection = () => {
               </button>
               <button
                 onClick={handleFinishAssessment}
-                className="flex-1 py-3 bg-red-600 text-white text-sm font-bold rounded-xl hover:bg-red-700 active:scale-95 transition-all cursor-pointer uppercase tracking-wide shadow-md"
+                disabled={cooldownTimeLeft > 0}
+                className={`flex-1 py-3 text-white text-sm font-bold rounded-xl active:scale-95 transition-all uppercase tracking-wide shadow-md ${cooldownTimeLeft > 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 cursor-pointer'}`}
               >
-                Yes, Finish
+                {cooldownTimeLeft > 0 ? `Please wait (${cooldownTimeLeft}s)` : 'Yes, Finish'}
               </button>
             </div>
           </div>

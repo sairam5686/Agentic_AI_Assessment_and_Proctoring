@@ -93,6 +93,25 @@ const CodingSection = () => {
   const [showUserInfo, setShowUserInfo] = useState(false)
   const [submittedQuestions, setSubmittedQuestions] = useState<string[]>([])
 
+  const [runCooldown, setRunCooldown] = useState<number>(0)
+  const [submitCooldown, setSubmitCooldown] = useState<number>(0)
+
+  useEffect(() => {
+    if (runCooldown <= 0) return
+    const timer = setInterval(() => {
+      setRunCooldown(prev => prev - 1)
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [runCooldown])
+
+  useEffect(() => {
+    if (submitCooldown <= 0) return
+    const timer = setInterval(() => {
+      setSubmitCooldown(prev => prev - 1)
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [submitCooldown])
+
   const [timeLeft, setTimeLeft] = useState<number>(() => {
     const saved = localStorage.getItem(`coding_time_${assessment_id}`)
     if (saved) return parseInt(saved)
@@ -155,6 +174,7 @@ const CodingSection = () => {
   
   // ─── Code Execution Fetcher ────────────────────────────────────────────────
   const Fetcher = async () => {
+    if (runCooldown > 0) return;
     setIsRunning(true)
     setRunError(null)
     setActiveTab('testcases')
@@ -174,7 +194,8 @@ const CodingSection = () => {
       })
 
       if (response.status === 429) {
-        toast.error("You are running code too frequently. Please wait a few seconds.", {
+        setRunCooldown(30);
+        toast.error("You are running code too frequently. Please wait 30 seconds before trying again.", {
           position: "top-right",
           theme: "colored"
         });
@@ -291,6 +312,7 @@ const CodingSection = () => {
   }
 
   const handleCodingSubmit = async () => {
+    if (submitCooldown > 0) return;
     const email = localStorage.getItem("candidate_email") || "";
     const user_name = localStorage.getItem("candidate_name") || "";
 
@@ -349,7 +371,8 @@ const CodingSection = () => {
       });
 
       if (resp.status === 429) {
-        toast.error("Submission rate limit reached. Please try again in a moment.", {
+        setSubmitCooldown(10);
+        toast.error("Submission rate limit reached. Please wait 10 seconds before trying again.", {
           position: "top-right",
           theme: "colored"
         });
@@ -801,21 +824,22 @@ const CodingSection = () => {
               </button>
               <button
                 onClick={()=>{
-                  if (submittedQuestions.includes(qId)) return;
+                  if (submittedQuestions.includes(qId) || runCooldown > 0) return;
                   Code_Checker()
                   Fetcher() 
                 }}
-                disabled={isRunning || submittedQuestions.includes(qId)}
-                className="px-4 py-1.5 bg-indigo-50 text-indigo-700 border border-indigo-200 text-xs font-semibold rounded-lg hover:bg-indigo-100 disabled:opacity-50 transition-all cursor-pointer"
+                disabled={isRunning || submittedQuestions.includes(qId) || runCooldown > 0}
+                className={`px-4 py-1.5 border text-xs font-semibold rounded-lg disabled:opacity-50 transition-all ${runCooldown > 0 ? 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed' : 'bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 cursor-pointer'}`}
               >
-                {isRunning ? 'Running…' : '▶ Run'}
+                {isRunning ? 'Running…' : runCooldown > 0 ? `Wait (${runCooldown}s)` : '▶ Run'}
               </button>
               {!submittedQuestions.includes(qId) && (
                 <button
                   onClick={handleCodingSubmit}
-                  className="px-4 py-1.5 bg-gray-900 text-white text-xs font-bold rounded-lg hover:bg-gray-700 shadow-sm transition-all active:scale-95 uppercase tracking-wide cursor-pointer"
+                  disabled={submitCooldown > 0}
+                  className={`px-4 py-1.5 text-white text-xs font-bold rounded-lg shadow-sm transition-all uppercase tracking-wide disabled:opacity-50 ${submitCooldown > 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-gray-900 hover:bg-gray-700 active:scale-95 cursor-pointer'}`}
                 >
-                  Submit
+                  {submitCooldown > 0 ? `Wait (${submitCooldown}s)` : 'Submit'}
                 </button>
               )}
             </div>

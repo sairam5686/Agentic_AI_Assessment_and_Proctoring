@@ -64,7 +64,7 @@ const UserLogin = () => {
 
   return (
     <div className="min-h-screen bg-[#f8fafc] flex flex-col items-center justify-center p-6 font-['Inter']">
-      <ToastContainer />
+      <ToastContainer limit={1} autoClose={2000} newestOnTop={true} />
       {/* Logo */}
       <div className="mb-8">
         <img src="https://pbs.twimg.com/profile_images/1973372506271584256/Sb4wfgD0_400x400.jpg" alt="Virtusa" className="h-10 rounded-xl" />

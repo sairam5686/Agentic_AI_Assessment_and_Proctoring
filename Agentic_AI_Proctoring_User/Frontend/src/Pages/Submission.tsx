@@ -200,7 +200,7 @@ const Submission: React.FC = () => {
                         }}
                         className="w-full py-4 bg-[#E31B23] text-white text-sm font-bold rounded-2xl hover:bg-[#c4151c] transition-all active:scale-95 shadow-lg shadow-red-100 cursor-pointer uppercase tracking-wider"
                     >
-                        Finish Assessment
+                        Exit Fullscreen
                     </button>
                 </div>
             </div>

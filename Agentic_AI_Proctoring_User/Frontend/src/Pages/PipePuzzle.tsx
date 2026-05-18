@@ -712,6 +712,10 @@ export const PipePuzzle: React.FC = () => {
     const [timeAgo, setTimeAgo] = useState("just now");
 
     const assessment_id = assessmentData?.assessment_id || localStorage.getItem("assessment_id") || "default";
+    const testTitle =
+        assessmentData?.test_title ||
+        assessmentData?.Assessment_Info?.test_title ||
+        'Simulation Assessment';
     
     const [timeLeft, setTimeLeft] = useState<number>(() => {
         const saved = localStorage.getItem(`pipe_time_${assessment_id}`);
@@ -823,7 +827,7 @@ export const PipePuzzle: React.FC = () => {
                       <div className="flex items-center gap-6">
                         <div className="flex flex-col">
                           <h1 className="text-base font-bold text-gray-900 leading-tight">
-                            Simulation Assessment
+                            {testTitle}
                           </h1>
                           <p className="text-[12px] font-bold text-gray-500 uppercase tracking-widest">
                             {localStorage.getItem("candidate_name") || "Candidate"}
@@ -898,7 +902,7 @@ export const PipePuzzle: React.FC = () => {
                   <div className="flex items-center gap-6">
                     <div className="flex flex-col">
                       <h1 className="text-base font-bold text-gray-900 leading-tight">
-                        Simulation Assessment
+                        {testTitle}
                       </h1>
                       <p className="text-[12px] font-bold text-gray-500 uppercase tracking-widest">
                         {localStorage.getItem("candidate_name") || "Candidate"}
@@ -908,7 +912,7 @@ export const PipePuzzle: React.FC = () => {
                     <div className="flex items-center gap-2 px-4 py-1.5 bg-gray-50 rounded-full border border-gray-100">
                       <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
                       <span className="text-[11px] font-bold text-gray-500 italic uppercase tracking-wider">
-                        Live Simulation
+                        Saved {timeAgo}
                       </span>
                     </div>
                   </div>
@@ -920,7 +924,7 @@ export const PipePuzzle: React.FC = () => {
                     <p className={`text-lg font-bold tabular-nums tracking-tight ${timerColor}`}>
                       {formatTime(timeLeft)}
                     </p>
-                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest -mt-1">Session Time</p>
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest -mt-1">TEST TIME</p>
                   </div>
 
                   <div className="h-8 w-px bg-gray-200" />

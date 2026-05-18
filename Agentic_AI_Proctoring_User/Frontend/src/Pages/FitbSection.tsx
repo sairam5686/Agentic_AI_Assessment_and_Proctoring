@@ -44,6 +44,16 @@ const FitbSection = () => {
   const [showGlobalFinishConfirm, setShowGlobalFinishConfirm] = useState(false)
   const [showUserInfo, setShowUserInfo] = useState(false)
   
+  const [cooldownTimeLeft, setCooldownTimeLeft] = useState<number>(0)
+
+  useEffect(() => {
+    if (cooldownTimeLeft <= 0) return
+    const timer = setInterval(() => {
+      setCooldownTimeLeft(prev => prev - 1)
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [cooldownTimeLeft])
+
   const [timeLeft, setTimeLeft] = useState<number>(() => {
     const saved = localStorage.getItem(`fitb_time_${assessment_id}`)
     if (saved) return parseInt(saved)
@@ -117,20 +127,27 @@ const FitbSection = () => {
   }
 
   const handleSubmit = async () => {
+    if (cooldownTimeLeft > 0) return;
+
     try {
       const email = localStorage.getItem("candidate_email") || "";
       const user_name = localStorage.getItem("candidate_name") || "";
       const allQuestions = sections.flatMap((s: any) => s.questions || [])
 
       const fitb_results = allQuestions.map((q: any) => {
-        const userAnswers = answers[q.question_id.toString()] || [];
+        const blankCount = q.blank_count || 1;
+        const userAnswers = Array.from({ length: blankCount }, (_, idx) => {
+          const val = answers[q.question_id.toString()]?.[idx];
+          return typeof val === 'string' ? val.trim() : "";
+        });
+
         const correctBlanks = q.blanks || []; // list[list[str]]
         
         let marksEarned = 0;
         const resultsPerBlank = correctBlanks.map((acceptedList: string[], idx: number) => {
-          const userVal = (userAnswers[idx] || "").trim();
+          const userVal = userAnswers[idx] || "";
           const isCorrect = acceptedList.some(a => a.toLowerCase() === userVal.toLowerCase());
-          if (isCorrect) marksEarned += (q.marks / q.blank_count);
+          if (isCorrect) marksEarned += (q.marks / blankCount);
           return {
             blank_index: idx,
             user_answer: userVal,
@@ -165,6 +182,12 @@ const FitbSection = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
+
+      if (response.status === 429) {
+        setCooldownTimeLeft(10);
+        alert("Submission rate limit reached. Please wait 10 seconds before trying again.");
+        return;
+      }
 
       if (!response.ok) throw new Error("Failed to save FITB results");
 
@@ -337,7 +360,13 @@ const FitbSection = () => {
                 </div>
               </div>
             ))}
-            <button onClick={handleFinishAssessment} className="w-full mt-5 py-3 bg-gray-900 text-white text-[10px] font-bold rounded-xl hover:bg-gray-700 active:scale-95 transition-all cursor-pointer uppercase tracking-widest">Submit</button>
+            <button
+              onClick={handleFinishAssessment}
+              disabled={cooldownTimeLeft > 0}
+              className={`w-full mt-5 py-3 text-white text-[10px] font-bold rounded-xl active:scale-95 transition-all uppercase tracking-widest ${cooldownTimeLeft > 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-gray-900 hover:bg-gray-700 cursor-pointer'}`}
+            >
+              {cooldownTimeLeft > 0 ? `Please wait (${cooldownTimeLeft}s)` : 'Submit'}
+            </button>
           </div>
         </aside>
       </div>
@@ -349,7 +378,13 @@ const FitbSection = () => {
             <p className="text-sm text-gray-500 text-center mb-6">Are you sure you want to submit your Fill in the Blanks responses?</p>
             <div className="flex gap-3">
               <button onClick={() => setShowGlobalFinishConfirm(false)} className="flex-1 py-3 border border-gray-200 text-gray-700 text-sm font-bold rounded-xl hover:bg-gray-50 transition-all cursor-pointer">No, Continue</button>
-              <button onClick={handleFinishAssessment} className="flex-1 py-3 bg-red-600 text-white text-sm font-bold rounded-xl hover:bg-red-700 active:scale-95 transition-all cursor-pointer shadow-md">Yes, Finish</button>
+              <button
+                onClick={handleFinishAssessment}
+                disabled={cooldownTimeLeft > 0}
+                className={`flex-1 py-3 text-white text-sm font-bold rounded-xl active:scale-95 transition-all shadow-md ${cooldownTimeLeft > 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-red-600 hover:bg-red-700 cursor-pointer'}`}
+              >
+                {cooldownTimeLeft > 0 ? `Please wait (${cooldownTimeLeft}s)` : 'Yes, Finish'}
+              </button>
             </div>
           </div>
         </div>
