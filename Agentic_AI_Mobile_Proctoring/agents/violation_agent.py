@@ -6,6 +6,9 @@ from Connection.ViolationLogs import violation_logs_Mobile_collection
 from Connection.EvidenceImgLogs import cloudinary
 
 
+from typing import Optional
+
+
 class ViolationAgent:
 
     def __init__(self, cooldown: int = 5):
@@ -20,7 +23,7 @@ class ViolationAgent:
         assessment_id: str = "",
         email_id: str = "",
         extra: str = None,
-    ) -> dict | None:
+    ) -> Optional[dict]:
 
         now = time.time()
 

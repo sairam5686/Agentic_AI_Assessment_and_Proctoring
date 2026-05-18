@@ -61,13 +61,14 @@ class ProctoringSession:
 
         # ── Minimum consecutive detections required before a violation fires ─
         self._thresholds = {
-            "face_not_visible":   5,
-            "multiple_people":    3,
-            "illegal_objects":    3,
-            "suspicious_gesture": 5,
-            "phone_detected":     3,
-            "looking_away":       5,
-            "reaching_down":      4,  # gesture event active in supervisor
+            "face_not_visible":   2,
+            "multiple_people":    1,
+            "illegal_objects":    1,
+            "suspicious_gesture": 2,
+            "phone_detected":     1,
+            "looking_away":       2,
+            "reaching_down":      2,
+            "person_not_found":   2,
         }
 
         print("[MobileProctor] All agents initialised.")
@@ -154,7 +155,7 @@ def analyze_frame(
     session.frame_count += 1
 
     # ── Safe defaults (used on agent timeout / error) ─────────────────────────
-    _DEFAULT_VISION  = {"face_visible": True, "multiple_people": False, "illegal_objects": []}
+    _DEFAULT_VISION  = {"face_visible": True, "multiple_people": False, "illegal_objects": [], "people_count": 1}
     _DEFAULT_GESTURE = {"suspicious_gesture": False, "phone_detected": False,
                         "looking_away": False, "reaching_down": False}
 
@@ -196,12 +197,17 @@ def analyze_frame(
     # consecutive detections — without touching supervisor_agent.py at all.
     filtered_vision = {
         "face_visible":    vision_data.get("face_visible", True),
-        # multiple_people fires only after 3 consecutive detections
+        # multiple_people fires only after 1 consecutive detection
         "multiple_people": (
             vision_data.get("multiple_people", False)
             and session._should_fire("multiple_people", vision_data.get("multiple_people", False))
         ),
-        # illegal_objects fires only after 3 consecutive frames for each obj
+        # person_not_found fires only after 2 consecutive detections
+        "person_not_found": (
+            vision_data.get("people_count", 1) == 0
+            and session._should_fire("person_not_found", vision_data.get("people_count", 1) == 0)
+        ),
+        # illegal_objects fires only after 1 consecutive frame for each obj
         "illegal_objects": [
             obj for obj in vision_data.get("illegal_objects", [])
             if session._should_fire(f"illegal_obj:{obj}", True)

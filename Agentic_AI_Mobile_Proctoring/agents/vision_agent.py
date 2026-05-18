@@ -60,23 +60,24 @@ class VisionAgent:
 
                 # Additional guard: bounding-box must be tall enough to be a real person
                 height = y2 - y1
-                if label == "person" and (conf < 0.55 or height < 80):
-                    people += 1
+                if label == "person":
+                    if conf >= 0.50 and height >= 80:
+                        people += 1
                     continue
 
-                if label in self.always_illegal and conf > 0.50:
+                if label in self.always_illegal and conf >= 0.50:
                     illegal.append(label)
                     cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
                     cv2.putText(frame, f"ILLEGAL: {label}",
                                 (x1, y1 - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 0, 255), 2)
                     continue
 
-                if label in self.electronic_labels and conf > 0.55:
+                if label in self.electronic_labels and conf >= 0.50:
                     illegal.append(f"electronic device ({label})")
                     cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 0, 255), 2)
                     continue
 
-                if label == "book" and conf > 0.45:
+                if label == "book" and conf >= 0.50:
                     classification = GestureAgent.classify_rectangular_object(
                         x1, y1, x2, y2, frame
                     )

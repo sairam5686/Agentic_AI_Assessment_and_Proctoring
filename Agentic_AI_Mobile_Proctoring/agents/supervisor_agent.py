@@ -59,6 +59,14 @@ class SupervisorAgent:
             fired.append("multiple_people")
             print(f"[SUPERVISOR] ⚠  VIOLATION FIRED: multiple_people")
 
+        if vision_data.get("person_not_found", False):
+            self.violation_agent.log_violation(
+                "person_not_found", frame, assessment_id, email_id
+            )
+            self.risk_agent.update_risk("person_not_found")
+            fired.append("person_not_found")
+            print(f"[SUPERVISOR] ⚠  VIOLATION FIRED: person_not_found")
+
         for obj in vision_data["illegal_objects"]:
             self.violation_agent.log_violation(
                 "illegal_object", frame, assessment_id, email_id, extra=obj

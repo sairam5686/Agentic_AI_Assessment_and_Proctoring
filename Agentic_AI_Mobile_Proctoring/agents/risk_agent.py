@@ -17,6 +17,7 @@ WARNING_MESSAGES = {
     "reaching_down":    ("Reaching Down Detected",    "Please keep your hands on the desk."),
     "earbud_on_ear":    ("Earpiece Detected",         "Using audio devices during exam is not allowed."),
     "hand_to_face":     ("Hand to Face Detected",     "Covering mouth or ear is not permitted."),
+    "person_not_found": ("Person Not Found",          "Please ensure the candidate is in front of the camera."),
 }
 
 
@@ -32,6 +33,7 @@ class RiskAgent:
             "illegal_object":    7,
             "multiple_people":   8,
             "face_not_visible":  6,
+            "person_not_found":  6,
             "low_attention":     6,
             "drowsy":            5,
             "head_turned":       6,
