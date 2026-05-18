@@ -3,7 +3,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router';
 import { toast } from 'react-toastify';
 import * as XLSX from 'xlsx';
-import { toPng } from 'html-to-image';
 import {
     Download,
     Users2,
@@ -16,15 +15,7 @@ import {
     SlidersHorizontal,
     X,
     FileSpreadsheet,
-<<<<<<< HEAD
     Award
-=======
-    Award,
-    Send,
-    CheckCircle2,
-    XCircle,
-    Loader2
->>>>>>> 450208fa2f9593cffed1ac336179511a9f4c2617
 } from 'lucide-react';
 import NavBar from '../Components/NavBar';
 
@@ -58,21 +49,11 @@ const AssessmentDetails = () => {
     const [showDownloadModal, setShowDownloadModal] = useState(false);
     const [downloadFileName, setDownloadFileName] = useState('');
 
-<<<<<<< HEAD
     // ── Certificate deployment state ─────────────────────────────────────────
     const [deployingCerts, setDeployingCerts] = useState(false);
     const [showDeployModal, setShowDeployModal] = useState(false);
     const [bulkDeployCandidate, setBulkDeployCandidate] = useState<any | null>(null);
     const bulkCertRef = useRef<HTMLDivElement>(null);
-=======
-    // ── Certificate deployment state ──────────────────────────────────────────
-    const [showCertModal, setShowCertModal] = useState(false);
-    const [certPreviewCandidate, setCertPreviewCandidate] = useState<any>(null);
-    const [selectedCertCandidates, setSelectedCertCandidates] = useState<Set<string>>(new Set());
-    const [certSendStatus, setCertSendStatus] = useState<Record<string, 'idle' | 'sending' | 'sent' | 'error'>>({});
-    const [isSendingAll, setIsSendingAll] = useState(false);
-    const certPreviewRef = useRef<HTMLDivElement>(null);
->>>>>>> 450208fa2f9593cffed1ac336179511a9f4c2617
     const fetchProctors = async () => {
         try {
             const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/test/${testData.test_id}/proctor`);
@@ -167,7 +148,6 @@ const AssessmentDetails = () => {
         setFilterConfMax('');
     };
 
-<<<<<<< HEAD
     // ── Certification helpers ─────────────────────────────────────────────────
     const isCertificationTest = testData?.category === 'Certification' ||
         fullTestData?.category === 'Certification' ||
@@ -248,83 +228,6 @@ const AssessmentDetails = () => {
         }
     };
 
-=======
-    // ── Certification helpers ──────────────────────────────────────────────────
-    const isCertification = fullTestData?.metadata?.category === 'Certification';
-    const certConfig = fullTestData?.certification_config;
-    const passingThreshold = certConfig?.global_threshold ?? 70;
-
-    const maxTotalScore = useMemo(() => {
-        if (!fullTestData) return 0;
-        let max = 0;
-        if (fullTestData.MCQ?.total_questions) max += fullTestData.MCQ.total_questions;
-        if (fullTestData.Coding?.questions) max += (fullTestData.Coding.questions as any[]).reduce((a: number, q: any) => a + (q.marks || 0), 0);
-        if (fullTestData.SQL?.questions) max += (fullTestData.SQL.questions as any[]).reduce((a: number, q: any) => a + (q.marks || 0), 0);
-        if (fullTestData.FITB?.sections) max += (fullTestData.FITB.sections as any[]).reduce((a: number, s: any) =>
-            a + ((s.questions as any[])?.reduce((qa: number, q: any) => qa + (q.marks || 0), 0) || 0), 0);
-        if (fullTestData.Essay?.enabled) max += 50;
-        return max;
-    }, [fullTestData]);
-
-    const isEligible = (candidate: any) => {
-        if (!isCertification || maxTotalScore === 0) return false;
-        const score = candidate.total_score;
-        if (score === undefined || score === null) return false;
-        return (score / maxTotalScore) * 100 >= passingThreshold;
-    };
-
-    const eligibleCandidates = useMemo(() =>
-        candidates.filter((c: any) => c.status === 'Completed' && isEligible(c)),
-        [candidates, maxTotalScore, passingThreshold, isCertification]
-    );
-
-    const openCertModal = () => {
-        const initial = new Set<string>(eligibleCandidates.map((c: any) => c.email as string));
-        setSelectedCertCandidates(initial);
-        setCertPreviewCandidate(eligibleCandidates[0] || null);
-        setCertSendStatus({});
-        setShowCertModal(true);
-    };
-
-    const sendCertificateForCandidate = async (candidate: any) => {
-        setCertSendStatus(prev => ({ ...prev, [candidate.email]: 'sending' }));
-        try {
-            setCertPreviewCandidate(candidate);
-            await new Promise(r => setTimeout(r, 150));
-            let imageBase64: string | null = null;
-            if (certPreviewRef.current) {
-                imageBase64 = await toPng(certPreviewRef.current, { cacheBust: true, pixelRatio: 2 });
-            }
-            const scorePercent = maxTotalScore > 0
-                ? Math.round((candidate.total_score / maxTotalScore) * 100)
-                : (candidate.total_score ?? 0);
-            const certId = `CERT-${Date.now()}-${(candidate.email as string).split('@')[0].toUpperCase()}`;
-            const formData = new FormData();
-            formData.append('email', candidate.email);
-            formData.append('name', candidate.name || candidate.email);
-            formData.append('track_name', certConfig?.track_name || 'Skill Certification');
-            formData.append('certificate_id', certId);
-            formData.append('score', String(scorePercent));
-            formData.append('issuer', certConfig?.issuer || 'Assessment Authority');
-            if (imageBase64) formData.append('Certificate_Image', imageBase64);
-            const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/send-certificate`, { method: 'POST', body: formData });
-            setCertSendStatus(prev => ({ ...prev, [candidate.email]: res.ok ? 'sent' : 'error' }));
-        } catch {
-            setCertSendStatus(prev => ({ ...prev, [candidate.email]: 'error' }));
-        }
-    };
-
-    const handleSendAllCertificates = async () => {
-        setIsSendingAll(true);
-        const toSend = eligibleCandidates.filter((c: any) => selectedCertCandidates.has(c.email));
-        for (const candidate of toSend) {
-            await sendCertificateForCandidate(candidate);
-        }
-        setIsSendingAll(false);
-        toast.success(`Certificates sent to ${toSend.length} candidate(s).`);
-    };
-
->>>>>>> 450208fa2f9593cffed1ac336179511a9f4c2617
     // ── Excel export ──────────────────────────────────────────────────────────
     const handleExcelDownload = () => {
         const defaultName = `${testData?.test_title || 'Assessment'}_Candidates_${new Date().toISOString().slice(0,10)}`;
@@ -528,7 +431,7 @@ const AssessmentDetails = () => {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 text-slate-800">
                     {/* Sidebar */}
                     <div className="lg:col-span-2 space-y-6">
-                        <div className="bg-white rounded-xl p-5 shadow-sm border border-gray-100">
+                        <div className="bg-white rounded-xl p-8 shadow-sm border border-gray-100">
                             <h2 className="text-lg font-black text-gray-900 mb-6 uppercase tracking-wider">Test Details</h2>
 
                             {loading ? (
@@ -650,7 +553,6 @@ const AssessmentDetails = () => {
                                     {activeTab === 'invigilator' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#4F46E5]" />}
                                 </button>
                             </div>
-<<<<<<< HEAD
                             <div className="flex items-center gap-3 pb-4">
                                 {isCertificationTest && (
                                     <button
@@ -662,23 +564,11 @@ const AssessmentDetails = () => {
                                                 ? 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-md active:scale-95'
                                                 : 'bg-gray-100 text-gray-400 cursor-not-allowed'
                                         }`}
-=======
-                            <div className="flex items-center gap-4 pb-4">
-                                {isCertification && (
-                                    <button
-                                        onClick={openCertModal}
-                                        disabled={eligibleCandidates.length === 0}
-                                        className="flex items-center gap-2 px-4 py-2 bg-emerald-600 text-white text-[11px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-md active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
->>>>>>> 450208fa2f9593cffed1ac336179511a9f4c2617
                                     >
                                         <Award size={14} />
                                         Deploy Certificate
                                         {eligibleCandidates.length > 0 && (
-<<<<<<< HEAD
                                             <span className="bg-white/20 text-white text-[9px] font-black rounded-full w-4 h-4 flex items-center justify-center">
-=======
-                                            <span className="bg-white/20 text-white text-[9px] font-black px-1.5 py-0.5 rounded-full">
->>>>>>> 450208fa2f9593cffed1ac336179511a9f4c2617
                                                 {eligibleCandidates.length}
                                             </span>
                                         )}
@@ -807,33 +697,23 @@ const AssessmentDetails = () => {
                                 </AnimatePresence>
 
                                 <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden text-slate-800">
-                                    <div className="overflow-x-auto no-scrollbar">
+                                    <div className="overflow-x-auto">
                                          <table className="w-full text-left">
                                              <thead>
                                                  <tr className="bg-gray-50/50 border-b border-gray-100">
-<<<<<<< HEAD
-                                                     <th className="px-3 py-3.5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Candidate</th>
-                                                     <th className="px-3 py-3.5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Reg No</th>
-                                                     <th className="px-3 py-3.5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
-                                                     <th className="px-3 py-3.5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Score</th>
-                                                     <th className="px-3 py-3.5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Confidence</th>
-                                                     {isCertificationTest && <th className="px-3 py-3.5 text-[10px] font-black text-gray-400 uppercase tracking-widest">Eligibility</th>}
-                                                     <th className="px-3 py-3.5 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Action</th>
-=======
                                                      <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Candidate</th>
                                                      <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Registration Number</th>
                                                      <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Status</th>
                                                      <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Score</th>
                                                      <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Confidence</th>
-                                                      <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Eligibility</th>
+                                                     {isCertificationTest && <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest">Eligibility</th>}
                                                      <th className="px-4 py-4 text-[10px] font-black text-gray-400 uppercase tracking-widest text-right">Action</th>
->>>>>>> 450208fa2f9593cffed1ac336179511a9f4c2617
                                                  </tr>
                                              </thead>
                                              <tbody className="divide-y divide-gray-50">
                                                  {filteredCandidates.map((candidate, idx) => (
                                                      <tr key={idx} className="hover:bg-gray-50/30 transition-colors group">
-                                                         <td className="px-3 py-3.5">
+                                                         <td className="px-4 py-4">
                                                              <div className="flex items-center gap-4">
                                                                  <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600 font-black">
                                                                      {(candidate.name || '').charAt(0)}
@@ -844,28 +724,27 @@ const AssessmentDetails = () => {
                                                                  </div>
                                                              </div>
                                                          </td>
-                                                         <td className="px-3 py-3.5">
+                                                         <td className="px-4 py-4">
                                                              <span className="text-sm font-bold text-gray-600">{candidate.reg_no}</span>
                                                          </td>
-                                                         <td className="px-3 py-3.5">
+                                                         <td className="px-4 py-4">
                                                              <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border whitespace-nowrap ${candidate.status === 'Completed' ? 'bg-green-50 text-green-700 border-green-100' : 'bg-blue-50 text-blue-700 border-blue-100'
                                                                  }`}>
                                                                  {candidate.status.replace(/_/g, ' ')}
                                                              </span>
                                                          </td>
-                                                         <td className="px-3 py-3.5">
+                                                         <td className="px-4 py-4">
                                                              <span className="text-sm font-black text-gray-900">
                                                                  {candidate.total_score !== undefined ? candidate.total_score : '--'}
                                                              </span>
                                                          </td>
-                                                         <td className="px-3 py-3.5">
+                                                         <td className="px-4 py-4">
                                                              <span className={`text-sm font-black ${candidate.confidence_score !== undefined && candidate.confidence_score !== null ? (candidate.confidence_score >= 70 ? 'text-green-600' : candidate.confidence_score >= 40 ? 'text-yellow-600' : 'text-red-600') : 'text-gray-900'}`}>
                                                                  {candidate.confidence_score !== undefined && candidate.confidence_score !== null ? `${candidate.confidence_score}%` : '--'}
                                                              </span>
                                                          </td>
-<<<<<<< HEAD
                                                          {isCertificationTest && (
-                                                             <td className="px-3 py-3.5">
+                                                             <td className="px-4 py-4">
                                                                  {candidate.status === 'Completed' ? (
                                                                      (candidate.total_score ?? 0) >= globalThreshold ? (
                                                                          <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-black bg-emerald-50 text-emerald-700 border border-emerald-100">
@@ -881,25 +760,7 @@ const AssessmentDetails = () => {
                                                                  )}
                                                              </td>
                                                          )}
-                                                         <td className="px-3 py-3.5 text-right">
-=======
-                                                         <td className="px-4 py-4">
-                                                             {isCertification ? (
-                                                                 isEligible(candidate) ? (
-                                                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border bg-emerald-50 text-emerald-700 border-emerald-100 whitespace-nowrap">
-                                                                         <CheckCircle2 size={10} /> Eligible
-                                                                     </span>
-                                                                 ) : (
-                                                                     <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border bg-red-50 text-red-600 border-red-100 whitespace-nowrap">
-                                                                         <XCircle size={10} /> Below Threshold
-                                                                     </span>
-                                                                 )
-                                                             ) : (
-                                                                 <span className="text-gray-300 text-[10px] font-bold">--</span>
-                                                             )}
-                                                         </td>
                                                          <td className="px-4 py-4 text-right">
->>>>>>> 450208fa2f9593cffed1ac336179511a9f4c2617
                                                              <button
                                                                  onClick={() => navigate('/candidate-analytics', { state: { candidate, testId: testData?.test_id } })}
                                                                  className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-indigo-700 transition-all shadow-md active:scale-95 whitespace-nowrap"
@@ -1274,7 +1135,6 @@ const AssessmentDetails = () => {
             </motion.div>
         )}
         </AnimatePresence>
-<<<<<<< HEAD
         {/* Hidden Container for Bulk Certificate Generation */}
         {bulkDeployCandidate && (
             <div style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}>
@@ -1367,191 +1227,6 @@ const AssessmentDetails = () => {
                 </div>
             </div>
         )}
-=======
-
-        {/* ── Certificate Deployment Modal ── */}
-        <AnimatePresence>
-        {showCertModal && (
-            <motion.div
-                key="cert-modal"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 z-[300] bg-black/70 backdrop-blur-sm flex items-center justify-center px-4"
-                onClick={() => setShowCertModal(false)}
-            >
-                <motion.div
-                    initial={{ scale: 0.94, opacity: 0, y: 20 }}
-                    animate={{ scale: 1, opacity: 1, y: 0 }}
-                    exit={{ scale: 0.94, opacity: 0, y: 20 }}
-                    transition={{ duration: 0.24 }}
-                    className="bg-white rounded-3xl shadow-2xl border border-gray-100 w-full max-w-6xl max-h-[92vh] flex flex-col overflow-hidden"
-                    onClick={e => e.stopPropagation()}
-                >
-                    {/* Modal Header */}
-                    <div className="flex items-center justify-between px-8 py-5 border-b border-gray-100 bg-gray-50/60 shrink-0">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
-                                <Award size={20} />
-                            </div>
-                            <div>
-                                <h3 className="text-base font-black text-gray-900 uppercase tracking-tight">Deploy Certificates</h3>
-                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                    {selectedCertCandidates.size} of {eligibleCandidates.length} eligible candidates selected
-                                </p>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={handleSendAllCertificates}
-                                disabled={isSendingAll || selectedCertCandidates.size === 0}
-                                className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600 text-white text-[11px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all shadow-md active:scale-95 disabled:opacity-40 disabled:cursor-not-allowed"
-                            >
-                                {isSendingAll ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
-                                {isSendingAll ? 'Sending...' : 'Send Certificates'}
-                            </button>
-                            <button onClick={() => setShowCertModal(false)} className="p-2 text-gray-400 hover:text-gray-700 rounded-lg transition-colors">
-                                <X size={18} />
-                            </button>
-                        </div>
-                    </div>
-
-                    {/* Modal Body */}
-                    <div className="flex flex-1 overflow-hidden">
-                        {/* Left: Candidate List */}
-                        <div className="w-80 shrink-0 border-r border-gray-100 flex flex-col">
-                            <div className="px-5 py-3 border-b border-gray-100 bg-gray-50/40">
-                                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Eligible Candidates</p>
-                            </div>
-                            <div className="flex-1 overflow-y-auto divide-y divide-gray-50">
-                                {eligibleCandidates.map((c: any) => {
-                                    const status = certSendStatus[c.email] || 'idle';
-                                    const isSelected = selectedCertCandidates.has(c.email);
-                                    const scorePercent = maxTotalScore > 0 ? Math.round((c.total_score / maxTotalScore) * 100) : c.total_score;
-                                    return (
-                                        <div
-                                            key={c.email}
-                                            onClick={() => {
-                                                if (status === 'sent') return;
-                                                setCertPreviewCandidate(c);
-                                                setSelectedCertCandidates(prev => {
-                                                    const next = new Set(prev);
-                                                    if (next.has(c.email)) next.delete(c.email);
-                                                    else next.add(c.email);
-                                                    return next;
-                                                });
-                                            }}
-                                            className={`flex items-center gap-3 px-5 py-4 cursor-pointer transition-all ${certPreviewCandidate?.email === c.email ? 'bg-emerald-50' : 'hover:bg-gray-50/60'} ${status === 'sent' ? 'opacity-60' : ''}`}
-                                        >
-                                            <input
-                                                type="checkbox"
-                                                readOnly
-                                                checked={isSelected}
-                                                className="w-4 h-4 accent-emerald-600 rounded shrink-0"
-                                            />
-                                            <div className="w-8 h-8 bg-emerald-50 rounded-lg flex items-center justify-center text-emerald-700 font-black text-xs shrink-0">
-                                                {(c.name || '').charAt(0)}
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <p className="text-[11px] font-black text-gray-900 truncate">{c.name}</p>
-                                                <p className="text-[9px] font-bold text-gray-400 truncate">{c.email}</p>
-                                                <p className="text-[9px] font-black text-emerald-600">{scorePercent}% score</p>
-                                            </div>
-                                            <div className="shrink-0">
-                                                {status === 'sending' && <Loader2 size={14} className="text-amber-500 animate-spin" />}
-                                                {status === 'sent' && <CheckCircle2 size={14} className="text-emerald-600" />}
-                                                {status === 'error' && <XCircle size={14} className="text-red-500" />}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {/* Right: Certificate Preview */}
-                        <div className="flex-1 flex flex-col items-center justify-center bg-gray-100/60 overflow-auto py-8">
-                            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-6">Certificate Preview</p>
-                            {certPreviewCandidate ? (
-                                <div
-                                    ref={certPreviewRef}
-                                    className="w-[700px] aspect-[1.414/1] bg-white shadow-[0_20px_60px_rgba(0,0,0,0.12)] border border-slate-200 p-10 flex flex-col items-center justify-between relative overflow-hidden"
-                                    style={{ fontFamily: 'Georgia, serif' }}
-                                >
-                                    {/* Dot texture */}
-                                    <div className="absolute inset-0 opacity-[0.025] pointer-events-none" style={{ backgroundImage: 'radial-gradient(#1e293b 1px, transparent 0)', backgroundSize: '22px 22px' }} />
-                                    {/* Frames */}
-                                    <div className="absolute inset-3 border border-slate-100 pointer-events-none" />
-                                    <div className="absolute inset-6 border-2 border-slate-200 pointer-events-none" />
-
-                                    {/* Header */}
-                                    <div className="z-10 flex flex-col items-center mt-4 mb-3">
-                                        <div className="w-10 h-10 bg-blue-600 rounded-xl rotate-45 flex items-center justify-center shadow-lg shadow-blue-100 mb-5 border-2 border-white">
-                                            <span className="text-lg font-black text-white -rotate-45">V</span>
-                                        </div>
-                                        <p className="text-[8px] font-black uppercase tracking-[0.4em] text-slate-400 mb-1">Official Certification</p>
-                                        <h2 className="text-lg font-black uppercase tracking-[0.1em] text-slate-800 border-b-2 border-blue-600 pb-1 px-4" style={{ fontFamily: 'Arial, sans-serif' }}>
-                                            {certConfig?.title || 'Certificate of Achievement'}
-                                        </h2>
-                                    </div>
-
-                                    {/* Recipient */}
-                                    <div className="z-10 flex flex-col items-center text-center px-10 mb-3">
-                                        <p className="text-[8px] text-slate-400 uppercase tracking-[0.3em] font-bold mb-2">This acknowledges that</p>
-                                        <h3 className="text-[28px] italic text-slate-900 mb-2" style={{ fontFamily: 'Georgia, serif' }}>
-                                            {certPreviewCandidate.name || certPreviewCandidate.email}
-                                        </h3>
-                                        <div className="w-28 h-px bg-slate-200 mb-2" />
-                                        <p className="text-[8px] text-slate-400 uppercase tracking-[0.15em] font-bold leading-tight max-w-[400px]">
-                                            has demonstrated exceptional proficiency and successfully met all requirements for the certification in
-                                        </p>
-                                    </div>
-
-                                    {/* Track */}
-                                    <div className="z-10 mb-6">
-                                        <p className="text-[10px] font-black text-slate-800 uppercase tracking-[0.2em]">
-                                            {certConfig?.track_name || 'Technical Specialization'}
-                                        </p>
-                                    </div>
-
-                                    {/* Footer */}
-                                    <div className="absolute bottom-8 left-0 right-0 px-14 flex justify-between items-end">
-                                        <div className="flex flex-col items-center">
-                                            <div className="w-24 h-px bg-slate-300 mb-1.5" />
-                                            <p className="text-[7px] font-black text-slate-800 uppercase tracking-widest">{certConfig?.issuer || 'Issuing Authority'}</p>
-                                            <p className="text-[6px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">Issuing Organization</p>
-                                        </div>
-                                        <div className="flex flex-col items-center">
-                                            <div className="w-24 h-px bg-slate-300 mb-1.5" />
-                                            <p className="text-[7px] font-black text-slate-800 uppercase tracking-widest">
-                                                {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                                            </p>
-                                            <p className="text-[6px] font-bold text-slate-400 uppercase tracking-tighter mt-0.5">Date of Issue</p>
-                                        </div>
-                                    </div>
-
-                                    {/* Watermark seal */}
-                                    <div className="absolute top-8 left-8 w-20 h-20 opacity-[0.06] pointer-events-none">
-                                        <svg viewBox="0 0 100 100" className="w-full h-full text-slate-900">
-                                            <path id="cert-curve" d="M 50, 50 m -37, 0 a 37,37 0 1,1 74,0 a 37,37 0 1,1 -74,0" fill="transparent" />
-                                            <text className="text-[10px] font-bold uppercase tracking-widest fill-current">
-                                                <textPath href="#cert-curve">Verified Certification Virtusa Jatayu </textPath>
-                                            </text>
-                                        </svg>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="text-center text-gray-400">
-                                    <Award size={40} className="mx-auto mb-3 opacity-30" />
-                                    <p className="text-sm font-bold">Select a candidate to preview their certificate</p>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </motion.div>
-            </motion.div>
-        )}
-        </AnimatePresence>
->>>>>>> 450208fa2f9593cffed1ac336179511a9f4c2617
         </>
     );
 };
