@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router';
+import { toast } from 'react-toastify';
 import { 
     AlertTriangle, 
     Target, BarChart3, Fingerprint, Eye, BookOpen, 
@@ -1677,13 +1678,13 @@ const CandidateAnalytics = () => {
                                             });
 
                                             if (res.ok) {
-                                                alert('Certificate image sent successfully to ' + candidate.email);
+                                                toast.success('🎓 Certificate sent successfully to ' + candidate.email);
                                             } else {
-                                                alert('Failed to send certificate');
+                                                toast.error('❌ Failed to send certificate');
                                             }
                                         } catch (err) {
                                             console.error(err);
-                                            alert('Error generating or sending certificate');
+                                            toast.error('❌ Error generating or sending certificate');
                                         }
                                     }}
                                     className="px-8 py-4 bg-emerald-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-emerald-700 transition-all flex items-center gap-2 shadow-lg shadow-emerald-200 active:scale-95"

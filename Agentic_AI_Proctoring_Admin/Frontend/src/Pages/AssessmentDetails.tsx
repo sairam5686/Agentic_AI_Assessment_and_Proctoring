@@ -156,7 +156,7 @@ const AssessmentDetails = () => {
     const certConfig = fullTestData?.certification_config;
     const globalThreshold = certConfig?.global_threshold ?? 60;
 
-    const eligibleCandidates = filteredCandidates.filter(c => c.status === 'Completed');
+    const eligibleCandidates = filteredCandidates;
 
     const handleDeployCertificates = async () => {
         if (eligibleCandidates.length === 0) return;
