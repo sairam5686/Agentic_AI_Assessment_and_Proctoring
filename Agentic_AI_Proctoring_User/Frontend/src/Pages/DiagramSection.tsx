@@ -480,6 +480,7 @@ const DiagramSection = () => {
   // ── Submit ────────────────────────────────────────────────────────────────
 
   const handleSubmit = async (isFinal = false) => {
+    if (isSubmitting || isSubmitted) return;
     if (!reactFlowWrapper.current) return;
     setIsSubmitting(true);
     try {
@@ -511,9 +512,12 @@ const DiagramSection = () => {
 
       const result = await response.json();
       if (response.ok) {
-        // Remove toast and score display as per user request
         localStorage.setItem('diagram_completed', 'true');
         setIsSubmitted(true);
+        toast.success("Diagram submitted successfully!");
+        setTimeout(() => {
+          handleNextFlow();
+        }, 2000);
       } else {
         throw new Error(result.detail || 'Submission failed');
       }
@@ -759,23 +763,18 @@ const DiagramSection = () => {
               </div>
 
 
-              {/* ── Submit & Finish Action Bar ── */}
-              <div className="flex justify-end gap-3 pb-8">
+              {/* ── Submit Action Bar ── */}
+              <div className="flex justify-end pb-8">
                 <button
-                    onClick={() => handleSubmit(false)}
+                    onClick={() => {
+                        if (isSubmitting || isSubmitted) return;
+                        handleSubmit(false);
+                    }}
                     disabled={isSubmitting || isSubmitted}
-                    className="px-10 py-4 bg-gray-900 text-white text-sm font-bold rounded-2xl hover:bg-gray-800 transition-all active:scale-95 shadow-lg shadow-gray-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide flex items-center gap-3"
+                    className={`px-10 py-4 bg-gray-900 text-white text-sm font-bold rounded-2xl hover:bg-gray-800 transition-all active:scale-95 shadow-lg shadow-gray-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide flex items-center gap-3 ${isSubmitting || isSubmitted ? 'pointer-events-none' : ''}`}
                 >
                     {isSubmitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                    {isSubmitting ? 'Evaluating...' : isSubmitted ? 'Submitted' : 'SUBMIT DIAGRAM'}
-                </button>
-
-                <button
-                    onClick={() => handleNextFlow()}
-                    disabled={!isSubmitted}
-                    className="px-12 py-4 bg-slate-800 text-white text-sm font-bold rounded-2xl hover:bg-slate-700 transition-all active:scale-95 shadow-lg shadow-slate-200 cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed uppercase tracking-wide flex items-center gap-3"
-                >
-                    Finish
+                    {isSubmitting ? 'Evaluating...' : isSubmitted ? 'Evaluated' : 'SUBMIT DIAGRAM'}
                 </button>
               </div>
            </div>
