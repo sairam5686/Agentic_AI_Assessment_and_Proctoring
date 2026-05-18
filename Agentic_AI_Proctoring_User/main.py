@@ -295,7 +295,7 @@ async def proxy_mobile_frame(request: Request):
     async with httpx.AsyncClient() as client:
         try:
             # Forward the frame to the real mobile proctor backend
-            resp = await client.post(f"{mobile_proctor_url}/video/frame/mobile", json=body, timeout=3.0)
+            resp = await client.post(f"{mobile_proctor_url}/video/frame/mobile", json=body, timeout=10.0)
             return resp.json()
         except Exception as e:
             return {"status": "error", "message": str(e)}

@@ -461,7 +461,7 @@ class _ThirdEyeAppState extends State<ThirdEyeApp> with WidgetsBindingObserver {
 
   void _startSnapshotTimer() {
     _snapshotTimer?.cancel();
-    _snapshotTimer = Timer.periodic(const Duration(milliseconds: 100), (timer) async {
+    _snapshotTimer = Timer.periodic(const Duration(milliseconds: 1500), (timer) async {
       try {
         final tempDir = Directory.systemTemp;
         final filePath = "${tempDir.path}/side_snapshot.jpg";
@@ -495,7 +495,7 @@ class _ThirdEyeAppState extends State<ThirdEyeApp> with WidgetsBindingObserver {
           "email_id": email,
           "device_type": "mobile"
         }),
-      ).timeout(const Duration(milliseconds: 100));
+      ).timeout(const Duration(milliseconds: 1500));
     } catch (e) {
       // Background fails silently
     }
