@@ -1,32 +1,6 @@
 import React from 'react';
 
 const SebRequired: React.FC = () => {
-  const downloadSebConfig = () => {
-    const origin = window.location.origin;
-    const sebConfigContent = `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-	<key>startURL</key>
-	<string>${origin}</string>
-	<key>sendBrowserExamKey</key>
-	<false/>
-	<key>quitURL</key>
-	<string>${origin}/exit-seb</string>
-</dict>
-</plist>`;
-
-    const blob = new Blob([sebConfigContent], { type: 'application/octet-stream' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'assessment.seb';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-  };
-
   return (
     <div className="min-h-screen bg-[#0b0f19] flex flex-col items-center justify-center p-6 font-['Inter'] relative overflow-hidden">
       {/* Decorative background glows */}
@@ -70,8 +44,9 @@ const SebRequired: React.FC = () => {
             <span className="text-[10px] text-slate-500 mt-1">Get SEB for your OS</span>
           </a>
 
-          <button
-            onClick={downloadSebConfig}
+          <a
+            href="/TITANS_CANDIDATEPORTAL.seb"
+            download="TITANS_CANDIDATEPORTAL.seb"
             className="flex flex-col items-center justify-center p-5 bg-gradient-to-br from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl transition-all duration-300 active:scale-[0.98] shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 border border-blue-500/20 group"
           >
             <svg className="w-8 h-8 text-white mb-3 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
@@ -79,7 +54,7 @@ const SebRequired: React.FC = () => {
             </svg>
             <span className="text-sm font-bold">2. Download Config</span>
             <span className="text-[10px] text-blue-200 mt-1">Launch assessment in SEB</span>
-          </button>
+          </a>
         </div>
 
         {/* Steps Guide */}
@@ -96,7 +71,7 @@ const SebRequired: React.FC = () => {
             </li>
             <li className="flex items-start gap-2">
               <span className="w-5 h-5 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold shrink-0">3</span>
-              <span>Double-click the downloaded <code>assessment.seb</code> file to securely launch and take your test.</span>
+              <span>Double-click the downloaded <code>TITANS_CANDIDATEPORTAL.seb</code> file to securely launch and take your test.</span>
             </li>
           </ul>
         </div>
