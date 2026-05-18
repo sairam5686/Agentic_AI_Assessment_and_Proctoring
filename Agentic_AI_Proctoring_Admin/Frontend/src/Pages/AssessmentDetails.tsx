@@ -150,20 +150,25 @@ const AssessmentDetails = () => {
 
     const doExcelDownload = () => {
         const rows = filteredCandidates.map(c => ({
-            'Name':                 c.name || '--',
-            'Email':                c.email || '--',
-            'Registration No':      c.reg_no || '--',
-            'College':              c.college || '--',
-            'Status':               c.status || '--',
-            'Total Score':          c.total_score ?? '--',
-            'Confidence Score (%)': c.confidence_score ?? '--',
-            'Trust Score (%)':      c.trust_score ?? '--',
-            'Webcam Risk Score':    c.webcam_risk_score ?? '--',
-            'Mobile Violation Score': c.mobile_violation_score ?? '--',
-            'Violation Count':      c.violation_count ?? '--',
-            'Sections Completed':   c.sections_completed ?? '--',
-            'Start Time':           c.start_time ? new Date(c.start_time).toLocaleString('en-GB') : '--',
-            'End Time':             c.end_time   ? new Date(c.end_time).toLocaleString('en-GB')   : '--',
+            'Name':                       c.name || '--',
+            'Email':                      c.email || '--',
+            'Registration No':            c.reg_no || '--',
+            'College':                    c.college || '--',
+            'Status':                     c.status || '--',
+            'Total Score':                c.total_score ?? '--',
+            'Confidence Score (%)':       c.confidence_score ?? '--',
+            'Trust Score (%)':            c.trust_score ?? '--',
+            'Webcam Risk Score':          c.webcam_risk_score ?? '--',
+            'Webcam Violation Score':     c.webcam_violation_score ?? '--',
+            'Webcam Log Count':           c.webcam_log_count ?? 0,
+            'Mobile Suspicion Score':     c.mobile_suspicion_score ?? '--',
+            'Mobile Trust Score':         c.mobile_trust_score ?? '--',
+            'Mobile Violation Count':     c.mobile_violation_count ?? '--',
+            'Mobile Log Count':           c.mobile_log_count ?? 0,
+            'Total Violation Count':      c.total_violation_count ?? 0,
+            'Sections Completed':         c.sections_completed ?? '--',
+            'Start Time':                 c.start_time ? new Date(c.start_time).toLocaleString('en-GB') : '--',
+            'End Time':                   c.end_time   ? new Date(c.end_time).toLocaleString('en-GB')   : '--',
         }));
 
         const ws = XLSX.utils.json_to_sheet(rows);
@@ -529,17 +534,23 @@ const AssessmentDetails = () => {
                                             <div>
                                                 <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Status</label>
                                                 <div className="flex flex-wrap gap-2">
-                                                    {['all','Completed','In_Progress','Pending'].map(s => (
+                                                    {[
+                                                        { val: 'all', label: 'All' },
+                                                        { val: 'Completed', label: 'Completed' },
+                                                        { val: 'Joined', label: 'Joined' },
+                                                        { val: 'invitation sent to candidate', label: 'Invited' },
+                                                        { val: 'mail not sent', label: 'Mail Failed' },
+                                                    ].map(s => (
                                                         <button
-                                                            key={s}
-                                                            onClick={() => setFilterStatus(s)}
+                                                            key={s.val}
+                                                            onClick={() => setFilterStatus(s.val)}
                                                             className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border transition-all ${
-                                                                filterStatus === s
+                                                                filterStatus === s.val
                                                                     ? 'bg-indigo-600 text-white border-indigo-600'
                                                                     : 'bg-gray-50 text-gray-500 border-gray-100 hover:border-indigo-300'
                                                             }`}
                                                         >
-                                                            {s === 'all' ? 'All' : s.replace(/_/g,' ')}
+                                                            {s.label}
                                                         </button>
                                                     ))}
                                                 </div>
@@ -899,9 +910,9 @@ const AssessmentDetails = () => {
                     </div>
 
                     <div className="bg-gray-50 rounded-xl border border-gray-100 p-4 mb-6">
-                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Included Columns</p>
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Included Columns (20 fields)</p>
                         <div className="flex flex-wrap gap-1.5">
-                            {['Name','Email','Reg No','College','Status','Total Score','Confidence Score','Trust Score','Webcam Risk','Mobile Violations','Violation Count','Sections Completed','Start Time','End Time'].map(col => (
+                            {['Name','Email','Reg No','College','Status','Total Score','Confidence %','Trust Score','Webcam Risk','Webcam Violations','Webcam Logs','Mobile Suspicion','Mobile Trust','Mobile Violations','Mobile Logs','Total Violations','Sections Done','Start Time','End Time'].map(col => (
                                 <span key={col} className="px-2 py-1 bg-white border border-gray-100 rounded-lg text-[9px] font-black text-gray-500 uppercase tracking-wide">{col}</span>
                             ))}
                         </div>

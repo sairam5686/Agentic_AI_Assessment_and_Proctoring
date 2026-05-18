@@ -541,27 +541,56 @@ async def get_assessment_candidates(assessment_id: str):
     base_query = {"assessment_id": assessment_id}
     
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        f_mcq = executor.submit(lambda: list(MCQ_Results_DB.find(base_query)))
-        f_cod = executor.submit(lambda: list(Coding_results_DB.find(base_query)))
-        f_sql = executor.submit(lambda: list(SQL_Results_DB.find(base_query)))
-        f_fitb = executor.submit(lambda: list(FITB_Results_DB.find(base_query)))
+        f_mcq   = executor.submit(lambda: list(MCQ_Results_DB.find(base_query)))
+        f_cod   = executor.submit(lambda: list(Coding_results_DB.find(base_query)))
+        f_sql   = executor.submit(lambda: list(SQL_Results_DB.find(base_query)))
+        f_fitb  = executor.submit(lambda: list(FITB_Results_DB.find(base_query)))
+        f_pipe  = executor.submit(lambda: list(Piped_Puzzle_DB.find(base_query)))
+        f_diag  = executor.submit(lambda: list(Diagram_Results_DB.find(base_query)))
         
         def fetch_essay():
             if Essay_Results_DB is not None:
                 return list(Essay_Results_DB.find(base_query))
             return []
             
-        f_essay = executor.submit(fetch_essay)
-        f_risk = executor.submit(lambda: list(Risk_Score_DB.find(base_query)))
-        
-        all_mcq = f_mcq.result()
-        all_cod = f_cod.result()
-        all_sql = f_sql.result()
-        all_fitb = f_fitb.result()
-        all_essay = f_essay.result()
-        all_risk = f_risk.result()
-    
-    # 2. Map results by email for O(1) lookup
+        f_essay       = executor.submit(fetch_essay)
+        f_risk        = executor.submit(lambda: list(Risk_Score_DB.find(base_query)))
+        f_mobile_risk = executor.submit(lambda: list(Mobile_Risk_Score.find(base_query)))
+
+        def fetch_violation_counts():
+            if violation_logs_collection is not None:
+                pipeline = [
+                    {"$match": base_query},
+                    {"$group": {"_id": "$email", "count": {"$sum": 1}}}
+                ]
+                return {r["_id"]: r["count"] for r in violation_logs_collection.aggregate(pipeline)}
+            return {}
+
+        def fetch_mobile_violation_counts():
+            if Mobile_logs_collection is not None:
+                pipeline = [
+                    {"$match": base_query},
+                    {"$group": {"_id": "$email", "count": {"$sum": 1}}}
+                ]
+                return {r["_id"]: r["count"] for r in Mobile_logs_collection.aggregate(pipeline)}
+            return {}
+
+        f_webcam_viol  = executor.submit(fetch_violation_counts)
+        f_mobile_viol  = executor.submit(fetch_mobile_violation_counts)
+
+        all_mcq          = f_mcq.result()
+        all_cod          = f_cod.result()
+        all_sql          = f_sql.result()
+        all_fitb         = f_fitb.result()
+        all_pipe         = f_pipe.result()
+        all_diag         = f_diag.result()
+        all_essay        = f_essay.result()
+        all_risk         = f_risk.result()
+        all_mobile_risk  = f_mobile_risk.result()
+        webcam_viol_map  = f_webcam_viol.result()
+        mobile_viol_map  = f_mobile_viol.result()
+
+    # Map results by email for O(1) lookup
     def build_map(results_list):
         result_map = {}
         for r in results_list:
@@ -572,65 +601,120 @@ async def get_assessment_candidates(assessment_id: str):
                 result_map[email].append(r)
         return result_map
 
-    mcq_map = build_map(all_mcq)
-    cod_map = build_map(all_cod)
-    sql_map = build_map(all_sql)
-    fitb_map = build_map(all_fitb)
+    mcq_map   = build_map(all_mcq)
+    cod_map   = build_map(all_cod)
+    sql_map   = build_map(all_sql)
+    fitb_map  = build_map(all_fitb)
+    pipe_map  = build_map(all_pipe)
+    diag_map  = build_map(all_diag)
     
-    essay_map = {r.get("email"): r for r in all_essay if r.get("email")}
-    risk_map = {r.get("email"): r for r in all_risk if r.get("email")}
-    
-    # 3. Calculate scores in memory instantly
+    essay_map       = {r.get("email"): r for r in all_essay if r.get("email")}
+    risk_map        = {r.get("email"): r for r in all_risk if r.get("email")}
+    mobile_risk_map = {r.get("email"): r for r in all_mobile_risk if r.get("email")}
+
+    # Calculate scores in memory
     for cand in candidates:
         email = cand.get("email")
         if not email:
             continue
             
         total_score = 0
-        
+        sections_completed = 0
+
         # MCQ
         if email in mcq_map:
             best_mcq = max(mcq_map[email], key=lambda x: x.get("user_total_marks", 0))
             total_score += best_mcq.get("user_total_marks", 0)
+            sections_completed += 1
             
         # Coding
         if email in cod_map:
             best_cod = max(cod_map[email], key=lambda x: x.get("total_marks", 0))
             total_score += best_cod.get("total_marks", 0)
+            sections_completed += 1
             
         # SQL
         if email in sql_map:
             best_sql = max(sql_map[email], key=lambda x: x.get("total_marks", 0))
             total_score += best_sql.get("total_marks", 0)
+            sections_completed += 1
             
         # FITB
         if email in fitb_map:
             best_fitb = max(fitb_map[email], key=lambda x: x.get("user_total_marks", 0))
             total_score += best_fitb.get("user_total_marks", 0)
+            sections_completed += 1
+
+        # Gaming
+        if email in pipe_map:
+            sections_completed += 1
+
+        # Diagram
+        if email in diag_map:
+            sections_completed += 1
             
         # Essay
         if email in essay_map:
             essay_res = essay_map[email]
             ev = essay_res.get("result") or essay_res.get("evaluation") or {}
             total_score += float(ev.get("total_score") or ev.get("score") or 0)
-                
-        # Confidence/Trust Score
+            sections_completed += 1
+
+        # Webcam proctoring risk scores
         if email in risk_map:
             risk_doc = risk_map[email]
-            vid_raw = risk_doc.get("video_proctoring", {}).get("trust_score", 30)
-            code_raw = risk_doc.get("code_analysis", {}).get("trust_score", 20)
-            
-            # Normalize each score to a percentage scale (out of 100%)
-            vid_trust_pct = (vid_raw / 30.0) * 100.0 if vid_raw is not None else 100.0
-            code_trust_pct = (code_raw / 20.0) * 100.0 if code_raw is not None else 100.0
-            
-            cand["confidence_score"] = round((vid_trust_pct + code_trust_pct) / 2)
+            vid  = risk_doc.get("video_proctoring", {})
+            code = risk_doc.get("code_analysis", {})
+
+            vid_trust_raw  = vid.get("trust_score", 30)
+            code_trust_raw = code.get("trust_score", 20)
+            vid_trust_pct  = (vid_trust_raw  / 30.0) * 100.0 if vid_trust_raw  is not None else 100.0
+            code_trust_pct = (code_trust_raw / 20.0) * 100.0 if code_trust_raw is not None else 100.0
+
+            cand["confidence_score"]    = round((vid_trust_pct + code_trust_pct) / 2)
+            cand["trust_score"]         = round((vid_trust_pct + code_trust_pct) / 2)
+            cand["webcam_risk_score"]   = round((vid.get("risk_score", 0) + code.get("risk_score", 0)) / 2)
+            cand["webcam_violation_score"] = round((vid.get("violation_score", 0) + code.get("violation_score", 0)) / 2)
+
+        # Mobile proctoring risk scores
+        if email in mobile_risk_map:
+            mob = mobile_risk_map[email]
+            cand["mobile_suspicion_score"]  = mob.get("suspicion_score", 0)
+            cand["mobile_trust_score"]      = mob.get("trust_score", 0)
+            cand["mobile_violation_count"]  = mob.get("violation_count", 0)
+
+        # Violation log counts (webcam + mobile)
+        cand["webcam_log_count"]  = webcam_viol_map.get(email, 0)
+        cand["mobile_log_count"]  = mobile_viol_map.get(email, 0)
+        cand["total_violation_count"] = cand["webcam_log_count"] + cand["mobile_log_count"]
+
+        # Sections completed
+        cand["sections_completed"] = sections_completed
                 
-        # Attach to candidate if they have any score or if they've started
+        # Attach total score if they have any or have started
         if total_score > 0 or cand.get("status") in ["Joined", "Completed"]:
             cand["total_score"] = round(total_score, 2)
+
+        # Start/end time
+        all_results_for_candidate = (
+            mcq_map.get(email, []) + cod_map.get(email, []) +
+            sql_map.get(email, []) + fitb_map.get(email, [])
+        )
+        timestamps = [
+            r.get("submitted_at") or r.get("created_at") or r.get("timestamp")
+            for r in all_results_for_candidate
+            if r.get("submitted_at") or r.get("created_at") or r.get("timestamp")
+        ]
+        if timestamps:
+            try:
+                parsed = [t if isinstance(t, datetime) else datetime.fromisoformat(str(t)) for t in timestamps]
+                cand["start_time"] = min(parsed).isoformat()
+                cand["end_time"]   = max(parsed).isoformat()
+            except Exception:
+                pass
             
     return serialize_mongo(candidates)
+
 
 @app.get("/admin/test/{assessment_id}/candidate/{candidate_id}/analytics")
 async def get_candidate_analytics(assessment_id: str, candidate_id: str):
