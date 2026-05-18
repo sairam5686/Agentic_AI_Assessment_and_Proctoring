@@ -704,7 +704,8 @@ export const PipePuzzle: React.FC = () => {
     const [timeLeft, setTimeLeft] = useState<number>(() => {
         const saved = localStorage.getItem(`pipe_time_${assessment_id}`);
         if (saved) return parseInt(saved);
-        return 600; // Default 10 mins for game
+        const totalDurationMins = gamingConfig.games?.[0]?.total_duration;
+        return totalDurationMins ? parseInt(totalDurationMins) * 60 : 600; // Default 10 mins for game
     });
 
     useEffect(() => {

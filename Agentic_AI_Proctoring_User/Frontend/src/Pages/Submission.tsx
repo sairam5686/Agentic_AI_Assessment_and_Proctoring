@@ -53,6 +53,9 @@ const Submission: React.FC = () => {
     }, []);
 
     const [enabledSections, setEnabledSections] = React.useState<any[]>([]);
+    const [isMobileExited, setIsMobileExited] = useState(false);
+    const [isMobileExiting, setIsMobileExiting] = useState(false);
+    const [isAssessmentExiting, setIsAssessmentExiting] = useState(false);
 
     useEffect(() => {
         const saved = localStorage.getItem('enabled_sections');
@@ -67,6 +70,91 @@ const Submission: React.FC = () => {
         { label: 'Coding Challenges', color: '#3b82f6' },
         { label: 'SQL Database', color: '#10b981' },
     ];
+
+    const handleExitMobile = async () => {
+        setIsMobileExiting(true);
+        console.log("Submission: Exiting mobile app...");
+        
+        try {
+            const socket = io(API_USER_URL);
+            const assessment_id = localStorage.getItem('assessment_id');
+            const email = localStorage.getItem('candidate_email');
+            if (assessment_id && email) {
+                socket.emit('test_ended', { assessment_id, email });
+            }
+        } catch (e) {
+            console.warn("Socket stop signal failed:", e);
+        }
+
+        const a_id = localStorage.getItem("assessment_id")?.toString().trim().toLowerCase();
+        const email = localStorage.getItem("candidate_email")?.toString().trim().toLowerCase();
+
+        if (a_id && email) {
+            console.log("Submission: Signaling mobile to stop...");
+            await fetch(`https://agenticaimobileproctoring-production.up.railway.app/stop`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ assessment_id: a_id, email_id: email })
+            }).catch(err => console.warn("Mobile stop failed:", err));
+        }
+
+        await Mobile_Fetcher();
+        
+        setIsMobileExiting(false);
+        setIsMobileExited(true);
+    };
+
+    const handleExitAssessment = async () => {
+        setIsAssessmentExiting(true);
+        console.log("Submission: Finish Assessment button clicked. Prioritizing UI response...");
+
+        // Set completed flags ONLY on click
+        localStorage.setItem('assessment_completed', 'true');
+        localStorage.removeItem('assessment_started');
+        localStorage.removeItem('gaming_completed');
+        localStorage.removeItem('mcq_completed');
+        localStorage.removeItem('coding_completed');
+        localStorage.removeItem('sql_completed');
+        sessionStorage.removeItem('system_check_passed');
+
+        try {
+            if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
+                if (document.exitFullscreen) {
+                    await document.exitFullscreen();
+                } else if ((document as any).webkitExitFullscreen) {
+                    await (document as any).webkitExitFullscreen();
+                }
+            }
+        } catch (e) {
+            console.warn("Fast fullscreen exit failed, trying again later:", e);
+        }
+
+        const performCleanup = async () => {
+            try {
+                const a_id = localStorage.getItem("assessment_id")?.toString().trim().toLowerCase();
+                const email = localStorage.getItem("candidate_email")?.toString().trim().toLowerCase();
+
+                // Stop Laptop Monitoring (Agora Tracks)
+                console.log("Submission: Cleaning up laptop webcam...");
+                await cleanup();
+
+                if (a_id && email) {
+                    fetch(`${API_USER_URL}/stop`, { method: "POST" }).catch(() => {});
+                }
+               
+                setTimeout(() => {
+                    console.log("Submission: Final reload to ensure camera off");
+                    window.location.reload();
+                }, 1000);
+               
+            } catch (err) {
+                console.error("Background cleanup failed:", err);
+            }
+        };
+
+        await fetcher();
+        performCleanup();
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
@@ -122,86 +210,23 @@ const Submission: React.FC = () => {
                         All responses are encrypted and securely stored
                     </p>
 
-                    <button
-                        onClick={async () => {
-                            console.log("Submission: Finish Assessment button clicked. Prioritizing UI response...");
+                    <div className="flex flex-col gap-3">
+                        <button
+                            onClick={handleExitMobile}
+                            disabled={isMobileExited || isMobileExiting}
+                            className={`w-full py-4 text-white text-sm font-bold rounded-2xl transition-all uppercase tracking-wider ${isMobileExited ? 'bg-gray-400 cursor-not-allowed shadow-none' : isMobileExiting ? 'bg-indigo-400 cursor-not-allowed shadow-none' : 'bg-indigo-600 hover:bg-indigo-700 active:scale-95 shadow-lg shadow-indigo-100 cursor-pointer'}`}
+                        >
+                            {isMobileExiting ? 'Exiting Mobile App...' : isMobileExited ? 'Mobile App Exited' : 'Exit Mobile App'}
+                        </button>
 
-                            // Set completed flags ONLY on click
-                            localStorage.setItem('assessment_completed', 'true');
-                            localStorage.removeItem('assessment_started');
-                            localStorage.removeItem('gaming_completed');
-                            localStorage.removeItem('mcq_completed');
-                            localStorage.removeItem('coding_completed');
-                            localStorage.removeItem('sql_completed');
-                            sessionStorage.removeItem('system_check_passed');
-
-                            // Emit test ended via socket to log out of mobile immediately
-                            try {
-                                const socket = io(API_USER_URL);
-                                const assessment_id = localStorage.getItem('assessment_id');
-                                const email = localStorage.getItem('candidate_email');
-                                if (assessment_id && email) {
-                                    socket.emit('test_ended', { assessment_id, email });
-                                }
-                            } catch (e) {
-                                console.warn("Socket stop signal failed:", e);
-                            }
-
-                            try {
-                                if (document.fullscreenElement || (document as any).webkitFullscreenElement) {
-                                    if (document.exitFullscreen) {
-                                        await document.exitFullscreen();
-                                    } else if ((document as any).webkitExitFullscreen) {
-                                        await (document as any).webkitExitFullscreen();
-                                    }
-                                }
-                            } catch (e) {
-                                console.warn("Fast fullscreen exit failed, trying again later:", e);
-                            }
-
-                            const performCleanup = async () => {
-                                try {
-                                    console.log("Submission: Background cleanup starting (Mobile First)...");
-                                   
-                                    const a_id = localStorage.getItem("assessment_id")?.toString().trim().toLowerCase();
-                                    const email = localStorage.getItem("candidate_email")?.toString().trim().toLowerCase();
-
-                                    // 1. Stop Mobile Monitoring first
-                                    if (a_id && email) {
-                                        console.log("Submission: Signaling mobile to stop...");
-                                        await fetch(`https://agenticaimobileproctoring-production.up.railway.app/stop`, {
-                                            method: "POST",
-                                            headers: { "Content-Type": "application/json" },
-                                            body: JSON.stringify({ assessment_id: a_id, email_id: email })
-                                        }).catch(err => console.warn("Mobile stop failed:", err));
-                                    }
-
-                                    // 2. Stop Laptop Monitoring (Agora Tracks)
-                                    console.log("Submission: Cleaning up laptop webcam...");
-                                    await cleanup();
-
-                                    if (a_id && email) {
-                                        fetch(`${API_USER_URL}/stop`, { method: "POST" }).catch(() => {});
-                                    }
-                                   
-                                    setTimeout(() => {
-                                        console.log("Submission: Final reload to ensure camera off");
-                                        window.location.reload();
-                                    }, 1000);
-                                   
-                                } catch (err) {
-                                    console.error("Background cleanup failed:", err);
-                                }
-                            };
-
-                            await Mobile_Fetcher();
-                            await fetcher();
-                            performCleanup();
-                        }}
-                        className="w-full py-4 bg-[#E31B23] text-white text-sm font-bold rounded-2xl hover:bg-[#c4151c] transition-all active:scale-95 shadow-lg shadow-red-100 cursor-pointer uppercase tracking-wider"
-                    >
-                        Exit Fullscreen
-                    </button>
+                        <button
+                            onClick={handleExitAssessment}
+                            disabled={isAssessmentExiting}
+                            className={`w-full py-4 text-white text-sm font-bold rounded-2xl transition-all uppercase tracking-wider ${isAssessmentExiting ? 'bg-red-400 cursor-not-allowed shadow-none' : 'bg-[#E31B23] hover:bg-[#c4151c] active:scale-95 shadow-lg shadow-red-100 cursor-pointer'}`}
+                        >
+                            {isAssessmentExiting ? 'Exiting...' : 'Exit Assessment'}
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>

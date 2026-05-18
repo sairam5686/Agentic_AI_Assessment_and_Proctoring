@@ -530,10 +530,7 @@ const DiagramSection = () => {
       if (response.ok) {
         localStorage.setItem('diagram_completed', 'true');
         setIsSubmitted(true);
-        toast.success("Diagram submitted successfully!");
-        setTimeout(() => {
-          handleNextFlow();
-        }, 2000);
+        toast.success("Diagram submitted successfully! Click FINISH to proceed.");
       } else {
         throw new Error(result.detail || 'Submission failed');
       }
@@ -780,7 +777,7 @@ const DiagramSection = () => {
 
 
               {/* ── Submit Action Bar ── */}
-              <div className="flex justify-end pb-8">
+              <div className="flex justify-end gap-4 pb-8">
                 <button
                     onClick={() => {
                         if (isSubmitting || isSubmitted || cooldownTimeLeft > 0) return;
@@ -790,7 +787,16 @@ const DiagramSection = () => {
                     className={`px-10 py-4 text-white text-sm font-bold rounded-2xl transition-all active:scale-95 shadow-lg shadow-gray-200 disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide flex items-center gap-3 ${isSubmitting || isSubmitted || cooldownTimeLeft > 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-gray-900 hover:bg-gray-800 cursor-pointer'}`}
                 >
                     {isSubmitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                    {isSubmitting ? 'Evaluating...' : cooldownTimeLeft > 0 ? `Please wait (${cooldownTimeLeft}s)` : isSubmitted ? 'Evaluated' : 'SUBMIT DIAGRAM'}
+                    {isSubmitting ? 'Evaluating...' : cooldownTimeLeft > 0 ? `Please wait (${cooldownTimeLeft}s)` : isSubmitted ? 'SUBMITTED' : 'SUBMIT DIAGRAM'}
+                </button>
+                <button
+                    onClick={() => {
+                        if (isSubmitted) handleNextFlow();
+                    }}
+                    disabled={!isSubmitted}
+                    className={`px-10 py-4 text-white text-sm font-bold rounded-2xl transition-all active:scale-95 shadow-lg uppercase tracking-wide flex items-center gap-3 ${isSubmitted ? 'bg-[#E31B23] hover:bg-[#c4151c] cursor-pointer shadow-red-200' : 'bg-gray-300 text-gray-400 cursor-not-allowed shadow-none'}`}
+                >
+                    FINISH
                 </button>
               </div>
            </div>
