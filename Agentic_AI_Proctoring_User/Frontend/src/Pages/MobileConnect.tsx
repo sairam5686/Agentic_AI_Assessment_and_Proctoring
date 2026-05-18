@@ -74,7 +74,7 @@ const MobileConnect: React.FC = () => {
     useEffect(() => {
         // Fetch the actual server IP from backend so QR works even on localhost
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 45000); // 45 second timeout
 
         fetch(`${API_USER_URL}/api/get-server-ip`, { signal: controller.signal })
             .then(res => res.json())
