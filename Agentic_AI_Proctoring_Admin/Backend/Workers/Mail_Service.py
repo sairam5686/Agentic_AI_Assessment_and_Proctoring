@@ -169,25 +169,134 @@ def send_proctor_mail(to_email, proctor_name, assessment_title, assessment_id, p
     return send_mail_via_sendgrid(to_email, subject, body)
 
 def send_certification_mail(to_email, candidate_name, track_name, certificate_id, score, attachment_content=None, issuer="TEAM_TITANS"):
-    subject = f"Congratulations! Your Professional Certification for {track_name}"
-    body = f"""
-    Hi {candidate_name},
+    subject = f"Congratulations - Your {track_name} Certification"
+    html_body = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Certificate of Achievement</title>
+  <style>
+    * {{ margin: 0; padding: 0; box-sizing: border-box; }}
+    body {{ font-family: Helvetica Neue, Arial, sans-serif; background: #f4f6f9; color: #1e293b; }}
+    .wrapper {{ max-width: 640px; margin: 0 auto; background: #ffffff; }}
+    .header {{ background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 100%); padding: 40px 48px; text-align: center; }}
+    .header-label {{ font-size: 11px; font-weight: 700; letter-spacing: 0.3em; text-transform: uppercase; color: #94a3b8; margin-bottom: 10px; }}
+    .header-title {{ font-size: 22px; font-weight: 800; color: #ffffff; letter-spacing: 0.05em; text-transform: uppercase; }}
+    .header-line {{ width: 48px; height: 3px; background: #3b82f6; margin: 14px auto 0; border-radius: 2px; }}
+    .body {{ padding: 48px; }}
+    .salutation {{ font-size: 16px; font-weight: 700; color: #0f172a; margin-bottom: 20px; }}
+    .intro {{ font-size: 14px; line-height: 1.75; color: #475569; margin-bottom: 28px; }}
+    .cert-card {{ background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 28px 32px; margin-bottom: 28px; }}
+    .cert-card-label {{ font-size: 10px; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: #94a3b8; margin-bottom: 16px; }}
+    .cert-row {{ display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }}
+    .cert-row:last-child {{ margin-bottom: 0; }}
+    .cert-key {{ font-size: 12px; font-weight: 600; color: #64748b; }}
+    .cert-value {{ font-size: 13px; font-weight: 800; color: #0f172a; }}
+    .cert-id-badge {{ display: inline-block; background: #eff6ff; border: 1px solid #bfdbfe; color: #1d4ed8; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; padding: 6px 14px; border-radius: 6px; font-family: Courier New, monospace; }}
+    .score-badge {{ display: inline-block; background: #f0fdf4; border: 1px solid #bbf7d0; color: #15803d; font-size: 14px; font-weight: 900; padding: 4px 12px; border-radius: 6px; }}
+    .divider {{ border: none; border-top: 1px solid #e2e8f0; margin: 28px 0; }}
+    .attachment-note {{ font-size: 13px; color: #475569; line-height: 1.7; margin-bottom: 28px; }}
+    .closing {{ font-size: 14px; color: #475569; line-height: 1.7; }}
+    .closing-name {{ font-size: 15px; font-weight: 800; color: #0f172a; margin-top: 16px; }}
+    .closing-title {{ font-size: 11px; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.1em; }}
+    .footer {{ background: #f8fafc; border-top: 1px solid #e2e8f0; padding: 24px 48px; text-align: center; }}
+    .footer-text {{ font-size: 11px; color: #94a3b8; line-height: 1.6; }}
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <div class="header-label">Official Communication</div>
+      <div class="header-title">Certificate of Achievement</div>
+      <div class="header-line"></div>
+    </div>
+    <div class="body">
+      <p class="salutation">Dear {candidate_name},</p>
+      <p class="intro">
+        We are pleased to inform you that you have successfully completed all assessment requirements
+        and have been awarded a professional certification in <strong>{track_name}</strong>.
+        This certification reflects your demonstrated competency, discipline, and technical excellence.
+      </p>
+      <div class="cert-card">
+        <div class="cert-card-label">Certification Details</div>
+        <div class="cert-row">
+          <span class="cert-key">Certification Track</span>
+          <span class="cert-value">{track_name}</span>
+        </div>
+        <div class="cert-row">
+          <span class="cert-key">Candidate Name</span>
+          <span class="cert-value">{candidate_name}</span>
+        </div>
+        <div class="cert-row">
+          <span class="cert-key">Overall Score</span>
+          <span class="cert-value"><span class="score-badge">{score}%</span></span>
+        </div>
+        <div class="cert-row">
+          <span class="cert-key">Status</span>
+          <span class="cert-value" style="color: #15803d;">SUCCESSFUL</span>
+        </div>
+        <div class="cert-row">
+          <span class="cert-key">Issuing Authority</span>
+          <span class="cert-value">{issuer}</span>
+        </div>
+        <div class="cert-row">
+          <span class="cert-key">Certificate ID</span>
+          <span class="cert-id-badge">{certificate_id}</span>
+        </div>
+      </div>
+      <hr class="divider" />
+      <p class="attachment-note">
+        Your official certificate has been attached to this email. Please save it for your records.
+        This credential may be presented to prospective employers or academic institutions.
+      </p>
+      <p class="closing">We congratulate you on this achievement and wish you continued success.</p>
+      <p class="closing-name">{issuer}</p>
+      <p class="closing-title">Certification Authority</p>
+    </div>
+    <div class="footer">
+      <p class="footer-text">
+        This is an official communication from the assessment platform.<br />
+        Certificate ID: {certificate_id} &nbsp;|&nbsp; Do not reply to this email.
+      </p>
+    </div>
+  </div>
+</body>
+</html>"""
 
-    Congratulations! We are pleased to inform you that you have successfully cleared the assessment benchmarks for the professional track of:
-    {track_name}
+    if not SENDGRID_API_KEY or not SENDER_EMAIL:
+        print("SendGrid API Key or Sender Email missing.")
+        return False
 
-    Your Performance Summary:
-    - Overall Score: {score}%
-    - Status: SUCCESSFUL
-    - Grade: DISTINCTION
+    headers = {
+        "Authorization": f"Bearer {SENDGRID_API_KEY}",
+        "Content-Type": "application/json"
+    }
 
-    Your unique Verification Credential ID is: {certificate_id}
+    payload = {
+        "personalizations": [{"to": [{"email": to_email}]}],
+        "from": {"name": FROM_NAME, "email": SENDER_EMAIL},
+        "subject": subject,
+        "content": [{"type": "text/html", "value": html_body}]
+    }
 
-    Attached to this email, you will find your professional certificate as an image. This recognizes your industry-standard proficiency and technical excellence.
+    if attachment_content:
+        safe_name = f"Certificate_{track_name.replace(' ', '_')}_{candidate_name.replace(' ', '_')}.png"
+        payload["attachments"] = [{
+            "content": attachment_content,
+            "filename": safe_name,
+            "type": "image/png",
+            "disposition": "attachment"
+        }]
 
-    Well done on this significant achievement!
-
-    Best regards,
-    {issuer}
-    """
-    return send_mail_via_sendgrid(to_email, subject, body, attachment_content, "Certificate.png")
+    try:
+        with httpx.Client() as client:
+            response = client.post(SENDGRID_URL, headers=headers, json=payload)
+            if response.status_code in [200, 201, 202]:
+                return True
+            else:
+                print(f"SendGrid error: {response.status_code} - {response.text}")
+                return False
+    except Exception as e:
+        print(f"Failed to send certificate email to {to_email}: {e}")
+        return False

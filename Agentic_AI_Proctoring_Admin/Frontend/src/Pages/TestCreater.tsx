@@ -1350,6 +1350,31 @@ const TestCreator: React.FC = () => {
                       onChange={(e) => setCertificationData({ ...certificationData, certificateTitle: e.target.value })}
                     />
                   </div>
+
+                  <div className="bg-blue-50/60 p-6 rounded-2xl border border-blue-100">
+                    <label className="block text-[11px] font-black text-blue-500 uppercase tracking-widest mb-1 text-left">Passing Percentage</label>
+                    <p className="text-[10px] text-blue-400 font-medium mb-3">Only candidates who score at or above this threshold will be eligible for certificate deployment.</p>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="number"
+                        min={1}
+                        max={100}
+                        className="w-28 border-2 border-blue-200 rounded-xl px-4 py-3 text-lg font-black text-blue-700 focus:border-blue-500 outline-none transition-all bg-white shadow-sm text-center"
+                        value={certificationData.globalThreshold}
+                        onChange={(e) => {
+                          const val = Math.min(100, Math.max(1, parseInt(e.target.value) || 1));
+                          setCertificationData({ ...certificationData, globalThreshold: val });
+                        }}
+                      />
+                      <span className="text-2xl font-black text-blue-400">%</span>
+                      <div className="flex-1 bg-blue-100/60 rounded-xl h-3 overflow-hidden">
+                        <div
+                          className="h-full bg-blue-500 rounded-xl transition-all duration-300"
+                          style={{ width: `${certificationData.globalThreshold}%` }}
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
                   {/* The Certificate UI - Premium Redesign */}
