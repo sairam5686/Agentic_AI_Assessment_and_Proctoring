@@ -224,9 +224,6 @@ async def stop_proctoring(data: dict = None):
     Finalize all active sessions or a specific one, and generate reports.
     """
     try:
-        global accepting_new_sessions
-        accepting_new_sessions = False  # STOP accepting new frames for AI
-
         # If specific assessment/email provided, clean only that
         if data and "assessment_id" in data and "email_id" in data:
             a_id = str(data["assessment_id"]).strip().lower()
@@ -272,6 +269,9 @@ async def stop_proctoring(data: dict = None):
             else:
                 print(f"[DEBUG] Session {session_key} already closed or not found.")
         else:
+            global accepting_new_sessions
+            accepting_new_sessions = False  # STOP accepting new frames for AI globally
+            
             # Otherwise clean everything
             keys = list(sessions.keys())
             for key in keys:
