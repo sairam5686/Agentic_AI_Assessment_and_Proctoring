@@ -404,7 +404,8 @@ const CodingSection = () => {
       }
     } catch (error) {
       console.error("Error saving Coding results:", error);
-      alert("Error submitting results. Please try again.");
+      toast.dismiss();
+      toast.error("Error submitting results. Please try again.");
     }
   }
 
@@ -957,12 +958,14 @@ const CodingSection = () => {
                     if (!resp.ok) {
                       const errorData = await resp.json();
                       console.error("Failed to save Coding results:", errorData);
-                      alert("Failed to save coding results. Please check your connection.");
+                      toast.dismiss();
+                      toast.error("Failed to save coding results. Please check your connection.");
                       return;
                     }
                   } catch (error) {
                     console.error("Error saving Coding results:", error);
-                    alert("Network error while saving coding results. Please try again.");
+                    toast.dismiss();
+                    toast.error("Network error while saving coding results. Please try again.");
                     return;
                   }
 

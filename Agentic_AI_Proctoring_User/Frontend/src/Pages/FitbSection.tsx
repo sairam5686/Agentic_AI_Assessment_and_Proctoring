@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useLocalPersist } from '../hooks/useLocalPersist'
+import { toast } from 'react-toastify'
 import API_USER_URL from '../Config/apiConfig'
 
 const FitbSection = () => {
@@ -185,7 +186,8 @@ const FitbSection = () => {
 
       if (response.status === 429) {
         setCooldownTimeLeft(10);
-        alert("Submission rate limit reached. Please wait 10 seconds before trying again.");
+        toast.dismiss();
+        toast.error("Submission rate limit reached. Please wait 10 seconds before trying again.");
         return;
       }
 
@@ -198,7 +200,8 @@ const FitbSection = () => {
       setSubmitted(true);
     } catch (error) {
       console.error("Error submitting FITB results:", error);
-      alert("Error submitting results. Please try again.");
+      toast.dismiss();
+      toast.error("Error submitting results. Please try again.");
     }
   };
 

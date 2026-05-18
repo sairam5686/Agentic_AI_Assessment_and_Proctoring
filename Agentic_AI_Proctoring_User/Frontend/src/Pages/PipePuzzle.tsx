@@ -167,7 +167,7 @@ const CSS = `
 .pp-actionBtn:not(:disabled):hover { background: #2d2d4e; transform: translateY(-1px); }
 .pp-actionBtn:disabled { opacity: 0.4; cursor: not-allowed; }
 .pp-sectionLabel { font-size: 0.8rem; color: #2d2d4e; text-align: center; margin-top: 0.5rem; }
-.pp-gameContainer { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; min-height: 100vh; padding: 6rem 2rem 2rem; background: #fdfdfd; font-family: 'Inter', system-ui, sans-serif; }
+.pp-gameContainer { display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; min-height: calc(100vh - 65px); padding: 2rem; background: transparent; font-family: 'Inter', system-ui, sans-serif; }
 .pp-tutorialSection { width: 100%; display: flex; flex-direction: column; align-items: center; margin-bottom: 2rem; gap: 0.75rem; }
 
 
@@ -645,22 +645,6 @@ const PathfinderGame: React.FC<{ rows: number; cols: number; currentLevel: numbe
     return (
         <div className="pp-gameContainer">
             <style>{CSS}</style>
-
-            {/* Virtusa Header */}
-            <header style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                background: 'white',
-                borderBottom: '1px solid #e5e7eb',
-                padding: '12px 24px',
-                zIndex: 100,
-                display: 'flex',
-                alignItems: 'center'
-            }}>
-                <img src="/virtusa-logo.svg" alt="Virtusa" style={{ height: '28px' }} />
-            </header>
 
             <div className="pp-gameLayout flex flex-col items-center justify-center">
                 <GameGrid grid={gameState.grid} selectedTile={gameState.selectedTile} onTileClick={handleTileClick} start={gameState.start} end={gameState.end} animating={gameState.status === 'ANIMATING'} animationPath={animationPath} />
