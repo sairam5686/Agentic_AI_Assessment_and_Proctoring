@@ -8,7 +8,7 @@ tested admin essay
 </p>
 
 how to run everything 
-x
+
 admin backend
 cd Agentic_AI_Proctoring_Admin
 python3.12 -m uvicorn  main:app --reload
