@@ -171,6 +171,22 @@ async def receive_frame(data: FrameRequest, background_tasks: BackgroundTasks):
                 session.report_agent.generate_reports, duration_snap, include_pdf=False
             )
 
+        # ── Real-time MongoDB Score Upsert ──────────────────────────────────────
+        if Risk_Score_Mobile_collection is not None:
+            try:
+                Risk_Score_Mobile_collection.update_one(
+                    {"assessment_id": a_id, "email": email},
+                    {"$set": {
+                        "suspicion_score": session.risk_agent.suspicion_score,
+                        "trust_score":      session.risk_agent.get_trust_score(),
+                        "violation_count": len(session.violation_agent.violations),
+                        "timestamp":       time.time()
+                    }},
+                    upsert=True
+                )
+            except Exception as db_err:
+                print(f"[Mobile DB Sync] Error: {db_err}")
+
         return {
             "status": "success",
             "analysis": result
@@ -213,7 +229,16 @@ async def get_score(request: Request):
         
         print("Score : ", scores)
         if Risk_Score_Mobile_collection is not None:
-            Risk_Score_Mobile_collection.insert_one(scores)
+            Risk_Score_Mobile_collection.update_one(
+                {"assessment_id": a_id, "email": email},
+                {"$set": {
+                    "suspicion_score": scores["suspicion_score"],
+                    "trust_score":      scores["trust_score"],
+                    "violation_count": scores["violation_count"],
+                    "timestamp":       scores["timestamp"]
+                }},
+                upsert=True
+            )
             return {"Status": True}
         else:
             print("[ERROR] MongoDB collection not initialized")

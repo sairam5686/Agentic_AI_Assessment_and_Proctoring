@@ -307,6 +307,22 @@ async def code_checker(request: Request):
         session.code_trust_score     = 20 - session.code_risk_score
         session.code_violation_score = sum(summary.get("violations", {}).values())
         session.save_state()
+        
+        # Real-time MongoDB Score Upsert for Code Analysis
+        if Risk_Score_DB is not None:
+            try:
+                Risk_Score_DB.update_one(
+                    {"assessment_id": assessment_id, "email": email},
+                    {"$set": {
+                        "code_analysis.risk_score":      session.code_risk_score,
+                        "code_analysis.trust_score":     session.code_trust_score,
+                        "code_analysis.violation_score": session.code_violation_score,
+                        "timestamp":                    time.strftime("%Y-%m-%d %H:%M:%S")
+                    }},
+                    upsert=True
+                )
+            except Exception as db_err:
+                print(f"[Code Checker DB Sync] Error: {db_err}")
 
     val = {
         "code": code, "language": language, "email": email,
@@ -364,8 +380,23 @@ async def store_scores(request: Request):
     }
 
     try:
-        res = Risk_Score_DB.insert_one(data)
-        return {"Status": True, "id": str(res.inserted_id)}
+        if Risk_Score_DB is not None:
+            Risk_Score_DB.update_one(
+                {"assessment_id": assessment_id, "email": email},
+                {"$set": {
+                    "video_proctoring.risk_score":      video_risk,
+                    "video_proctoring.trust_score":     video_trust,
+                    "video_proctoring.violation_score": video_viol,
+                    "code_analysis.risk_score":         code_risk,
+                    "code_analysis.trust_score":        code_trust,
+                    "code_analysis.violation_score":    code_viol,
+                    "timestamp":                        time.strftime("%Y-%m-%d %H:%M:%S")
+                }},
+                upsert=True
+            )
+            return {"Status": True}
+        else:
+            return JSONResponse({"Status": False, "error": "Database not initialized"}, status_code=500)
     except Exception as e:
         return JSONResponse({"Status": False, "error": str(e)}, status_code=500)
 

@@ -69,6 +69,9 @@ class ProctoringSession:
             "looking_away":       2,
             "reaching_down":      2,
             "person_not_found":   2,
+            "phone_in_hand":      1,
+            "earbud_on_ear":      1,
+            "hand_to_face":       1,
         }
 
         print("[MobileProctor] All agents initialised.")
@@ -89,7 +92,12 @@ class ProctoringSession:
             True  → violation is genuine; pass it through to supervisor
             False → not enough consecutive detections yet; suppress this frame
         """
-        n   = self._thresholds.get(violation, 5)
+        # Map dynamic illegal object keys to the main "illegal_objects" threshold
+        threshold_key = violation
+        if violation.startswith("illegal_obj:"):
+            threshold_key = "illegal_objects"
+
+        n   = self._thresholds.get(threshold_key, 5)
         buf = self._buffers[violation]
         buf.append(detected)
         # Keep only the last N entries to bound memory
@@ -195,31 +203,43 @@ def analyze_frame(
     # ── N-frame debounce: pre-filter vision_data before supervisor sees it ────
     # We build a filtered copy so the supervisor fires only on genuine,
     # consecutive detections — without touching supervisor_agent.py at all.
+
+    # 1. Update multiple people and person not found buffers on every frame
+    multiple_people_detected = bool(vision_data.get("multiple_people", False))
+    multiple_people_fired = session._should_fire("multiple_people", multiple_people_detected)
+
+    person_not_found_detected = vision_data.get("people_count", 1) == 0
+    person_not_found_fired = session._should_fire("person_not_found", person_not_found_detected)
+
+    # 2. Update dynamic illegal objects buffers
+    current_illegal_objects = vision_data.get("illegal_objects", [])
+    
+    # Run _should_fire on all illegal objects currently detected
+    for obj in current_illegal_objects:
+        session._should_fire(f"illegal_obj:{obj}", True)
+        
+    # For any illegal objects previously seen but NOT detected this frame, feed False to reset buffer
+    for key in list(session._buffers.keys()):
+        if key.startswith("illegal_obj:"):
+            obj_name = key.split("illegal_obj:", 1)[1]
+            if obj_name not in current_illegal_objects:
+                session._should_fire(key, False)
+
     filtered_vision = {
         "face_visible":    vision_data.get("face_visible", True),
-        # multiple_people fires only after 1 consecutive detection
-        "multiple_people": (
-            vision_data.get("multiple_people", False)
-            and session._should_fire("multiple_people", vision_data.get("multiple_people", False))
-        ),
-        # person_not_found fires only after 2 consecutive detections
-        "person_not_found": (
-            vision_data.get("people_count", 1) == 0
-            and session._should_fire("person_not_found", vision_data.get("people_count", 1) == 0)
-        ),
-        # illegal_objects fires only after 1 consecutive frame for each obj
+        "multiple_people": multiple_people_fired,
+        "person_not_found": person_not_found_fired,
         "illegal_objects": [
-            obj for obj in vision_data.get("illegal_objects", [])
-            if session._should_fire(f"illegal_obj:{obj}", True)
+            obj for obj in current_illegal_objects
+            if session._buffers[f"illegal_obj:{obj}"] and all(session._buffers[f"illegal_obj:{obj}"])
         ],
     }
 
-    filtered_gesture = {
-        k: (
-            v and session._should_fire(k, bool(v))
-        )
-        for k, v in gesture_data.items()
-    }
+    # 3. Update gesture buffers on every frame (prevent short-circuiting)
+    filtered_gesture = {}
+    for k in ["phone_in_hand", "reaching_down", "earbud_on_ear", "hand_to_face"]:
+        is_detected = bool(gesture_data.get(k, False))
+        filtered_gesture[k] = session._should_fire(k, is_detected)
 
     violations_this_frame = session.supervisor.supervise(
         vision_data   = filtered_vision,
@@ -228,13 +248,6 @@ def analyze_frame(
         assessment_id = assessment_id,
         email_id      = email_id,
     )
-
-    # ── Reset _should_fire buffers for any violation NOT detected this frame ──
-    # This ensures the N-consecutive counter resets on clean frames.
-    for viol_key in list(session._buffers.keys()):
-        # If the buffer's last entry was False, clear it to avoid stale counts
-        if session._buffers[viol_key] and not session._buffers[viol_key][-1]:
-            session._buffers[viol_key].clear()
 
     result = {
         "suspicion_score":       session.risk_agent.suspicion_score,

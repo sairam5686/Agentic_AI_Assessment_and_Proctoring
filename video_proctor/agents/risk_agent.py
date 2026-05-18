@@ -32,24 +32,24 @@ WARNING_MESSAGES = {
 class RiskAgent:
 
     # Maximum suspicion score for video proctoring violations
-    MAX_SCORE = 50
+    MAX_SCORE = 30
 
     def __init__(self):
         self.suspicion_score = 0
         self.timeline        = []
 
-        # All violations carry a flat 5-point penalty
+        # All violations carry a flat 2-point penalty
         self.weights = {
-            "illegal_object":   5,
-            "multiple_people":  5,
-            "low_attention":    0,
-            "drowsy":           0,
-            "face_not_visible": 5,
-            "head_turned":      5,
-            "talking":          5,
-            "loud_noise":       5,
-            "spoofing_attempt": 5,
-            "mouth_open":       5,
+            "illegal_object":   2,
+            "multiple_people":  2,
+            "low_attention":    2,
+            "drowsy":           2,
+            "face_not_visible": 2,
+            "head_turned":      2,
+            "talking":          2,
+            "loud_noise":       2,
+            "spoofing_attempt": 2,
+            "mouth_open":       2,
         }
 
         self.violation_counts       = defaultdict(int)
@@ -132,11 +132,11 @@ class RiskAgent:
         self.tab_switch_count += 1
 
         if self.tab_switch_count == 1:
-            self.suspicion_score = min(self.MAX_SCORE, self.suspicion_score + 50)
+            self.suspicion_score = min(self.MAX_SCORE, self.suspicion_score + 30)
             self.active_warning = {
                 "title": "🖥️ Tab Switch Detected",
                 "message": "One more tab switch will TERMINATE your test.",
-                "event": "tab_switched", "repeat": 1, "penalty": 50, "time": time.strftime("%H:%M:%S"),
+                "event": "tab_switched", "repeat": 1, "penalty": 30, "time": time.strftime("%H:%M:%S"),
             }
             self.warning_history.append(self.active_warning)
         elif self.tab_switch_count >= 2:
@@ -144,12 +144,7 @@ class RiskAgent:
             self.suspicion_score = self.MAX_SCORE
 
     def _check_burst(self, now: float, event: str) -> None:
-        self.recent_events.append((now, event))
-        self.recent_events = [(t, e) for t, e in self.recent_events if now - t <= self.burst_window]
-        distinct = len(set(e for _, e in self.recent_events))
-        if distinct >= self.burst_threshold and not self.burst_bonus_applied:
-            self.burst_bonus_applied = True
-            self.suspicion_score = min(self.MAX_SCORE, self.suspicion_score + 5)
+        pass
 
     def _check_trust_cutoff(self) -> None:
         trust = self.get_trust_score()
@@ -163,16 +158,16 @@ class RiskAgent:
             self.alert_active = False
 
     def get_trust_score(self) -> int:
-        return max(0, 50 - self.suspicion_score)
+        return max(0, 30 - self.suspicion_score)
 
     def is_flagged(self) -> bool:
         return self.suspicion_score >= self.MAX_SCORE or self.test_terminated
 
     def get_risk_level(self) -> str:
         if self.suspicion_score == 0:  return "NO RISK"
-        if self.suspicion_score > 40: return "HIGH RISK"
-        if self.suspicion_score > 25: return "MEDIUM RISK"
-        if self.suspicion_score > 12: return "LOW RISK"
+        if self.suspicion_score > 24: return "HIGH RISK"
+        if self.suspicion_score > 15: return "MEDIUM RISK"
+        if self.suspicion_score > 7:  return "LOW RISK"
         return "NO RISK"
 
     def get_pattern_summary(self) -> dict:

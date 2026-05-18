@@ -1,7 +1,7 @@
 import time
 from collections import defaultdict
 
-TRUST_CUTOFF = 25
+TRUST_CUTOFF = 15
 
 WARNING_MESSAGES = {
     "illegal_object":   ("Illegal Object Detected",   "Please remove all prohibited items from view."),
@@ -27,27 +27,27 @@ class RiskAgent:
         self.suspicion_score = 0
         self.timeline        = []
 
-        # ── Rescaled weights (min-max linear, range 5–10) ────────
+        # ── All weights standardized to a flat 2 ─────────
         self.weights = {
             # ── Vision ───────────────────────────────────────────
-            "illegal_object":    7,
-            "multiple_people":   8,
-            "face_not_visible":  6,
-            "person_not_found":  6,
-            "low_attention":     6,
-            "drowsy":            5,
-            "head_turned":       6,
-            "looking_down":      6,
-            "mouth_open":        6,
-            "spoofing_attempt": 10,
+            "illegal_object":    2,
+            "multiple_people":   2,
+            "face_not_visible":  2,
+            "person_not_found":  2,
+            "low_attention":     2,
+            "drowsy":            2,
+            "head_turned":       2,
+            "looking_down":      2,
+            "mouth_open":        2,
+            "spoofing_attempt":  2,
             # ── Gestures ─────────────────────────────────────────
-            "phone_in_hand":     8,
-            "reaching_down":     6,
-            "earbud_on_ear":     8,
-            "hand_to_face":      6,
+            "phone_in_hand":     2,
+            "reaching_down":     2,
+            "earbud_on_ear":     2,
+            "hand_to_face":      2,
         }
 
-        self.escalation_multipliers = [1.0, 1.5, 2.0, 2.5]
+        self.escalation_multipliers = [1.0, 1.0, 1.0, 1.0]
         self.violation_counts       = defaultdict(int)
         self.last_risk_time         = {}
         self.risk_cooldown          = 5
@@ -79,9 +79,7 @@ class RiskAgent:
 
         self.violation_counts[event] += 1
         repeat     = self.violation_counts[event]
-        mult_idx   = min(repeat - 1, len(self.escalation_multipliers) - 1)
-        multiplier = self.escalation_multipliers[mult_idx]
-        penalty    = int(self.weights[event] * multiplier)
+        penalty    = 2
 
         old = self.suspicion_score
         self.suspicion_score = min(30, self.suspicion_score + penalty)
@@ -92,7 +90,7 @@ class RiskAgent:
             "time":       time.strftime("%H:%M:%S"),
             "repeat":     repeat,
             "penalty":    penalty,
-            "multiplier": multiplier,
+            "multiplier": 1.0,
         })
         # print(f"[RISK] {event} ×{repeat} → +{penalty} → suspicion: {old} → {self.suspicion_score}")
 
@@ -118,16 +116,7 @@ class RiskAgent:
         self.warning_history.append(warning)
 
     def _check_burst(self, now, event):
-        self.recent_events.append((now, event))
-        self.recent_events = [(t, e) for t, e in self.recent_events if now - t <= self.burst_window]
-        distinct = len(set(e for _, e in self.recent_events))
-        # Reset the flag when the burst window clears so future bursts can trigger
-        if not self.recent_events:
-            self.burst_bonus_applied = False
-        if distinct >= self.burst_threshold and not self.burst_bonus_applied:
-            self.burst_bonus_applied = True
-            self.suspicion_score = min(50, self.suspicion_score + 10)
-            print(f"[RISK] Burst bonus applied — {distinct} distinct violations in {self.burst_window}s window → +10")
+        pass
 
     def _check_trust_cutoff(self):
         trust = self.get_trust_score()
@@ -154,7 +143,7 @@ class RiskAgent:
 
     def get_pattern_summary(self) -> dict:
         return {
-            e: {"count": c, "multiplier": self.escalation_multipliers[min(c - 1, 3)]}
+            e: {"count": c, "multiplier": 1.0}
             for e, c in self.violation_counts.items()
         }
 

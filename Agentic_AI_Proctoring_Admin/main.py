@@ -617,9 +617,14 @@ async def get_assessment_candidates(assessment_id: str):
         # Confidence/Trust Score
         if email in risk_map:
             risk_doc = risk_map[email]
-            vid_trust = risk_doc.get("video_proctoring", {}).get("trust_score", 0)
-            code_trust = risk_doc.get("code_analysis", {}).get("trust_score", 0)
-            cand["confidence_score"] = round((vid_trust + code_trust) / 2)
+            vid_raw = risk_doc.get("video_proctoring", {}).get("trust_score", 30)
+            code_raw = risk_doc.get("code_analysis", {}).get("trust_score", 20)
+            
+            # Normalize each score to a percentage scale (out of 100%)
+            vid_trust_pct = (vid_raw / 30.0) * 100.0 if vid_raw is not None else 100.0
+            code_trust_pct = (code_raw / 20.0) * 100.0 if code_raw is not None else 100.0
+            
+            cand["confidence_score"] = round((vid_trust_pct + code_trust_pct) / 2)
                 
         # Attach to candidate if they have any score or if they've started
         if total_score > 0 or cand.get("status") in ["Joined", "Completed"]:

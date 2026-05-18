@@ -77,10 +77,10 @@ class SupervisorAgent:
 
         # ── Gesture checks ────────────────────────────────────────
         gesture_events = [
-            # "phone_in_hand",
+            "phone_in_hand",
             "reaching_down",
-            # "earbud_on_ear",
-            # "hand_to_face",
+            "earbud_on_ear",
+            "hand_to_face",
         ]
         for event in gesture_events:
             if gesture_data.get(event, False):

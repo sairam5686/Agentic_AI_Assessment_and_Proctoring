@@ -35,6 +35,7 @@ from agents.report_agent     import ReportAgent
 from agents.risk_agent       import RiskAgent
 from agents.audio_agent      import AudioAgent
 from agents.spoofing_agent   import SpoofingAgent
+from Connections.ViolationLogsDB import Risk_Score_DB
 
 
 # ─────────────────────────────────────────────────────────────
@@ -177,6 +178,22 @@ def run_proctoring(session):
                     elapsed = time.time() - start
                     report_agent.generate_reports(elapsed, avg_attention)
                     print(f"[FRONT] Periodic report updated for {session.email_id} (Frame {session.frame_count})")
+                    
+                    # ── Real-time MongoDB Score Upsert ──────────────────────────────────
+                    if Risk_Score_DB is not None:
+                        try:
+                            Risk_Score_DB.update_one(
+                                {"assessment_id": session.assessment_id, "email": session.email_id},
+                                {"$set": {
+                                    "video_proctoring.risk_score":      session.risk_agent.suspicion_score,
+                                    "video_proctoring.trust_score":     session.risk_agent.get_trust_score(),
+                                    "video_proctoring.violation_score": sum(session.risk_agent.violation_counts.values()),
+                                    "timestamp":                       time.strftime("%Y-%m-%d %H:%M:%S")
+                                }},
+                                upsert=True
+                            )
+                        except Exception as db_err:
+                            print(f"[Video DB Sync] Error: {db_err}")
 
                 session.latest_frame = frame_snapshot
 
