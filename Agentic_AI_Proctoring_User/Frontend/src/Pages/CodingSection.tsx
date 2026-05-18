@@ -78,6 +78,10 @@ const CodingSection = () => {
   const totalDurationSeconds = parseInt(assessment?.coding_duration || '0') * 60
 
   const [activeQIdx, setActiveQIdx] = useState(0)
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  }, [activeQIdx]);
   const [selectedLang, setSelectedLang, clearLang] = useLocalPersist<Record<string, string>>(`coding_lang_${assessment_id}`, {})
   const [code, setCode, clearCode] = useLocalPersist<Record<string, string>>(`coding_code_${assessment_id}`, {})
   const [activeTab, setActiveTab] = useState<'problem' | 'testcases'>('problem')
@@ -393,7 +397,11 @@ const CodingSection = () => {
 
         <div className="flex-1 flex items-center justify-center px-6">
           <div className="w-full max-w-md bg-white border border-gray-200 rounded-2xl p-10 text-center shadow-sm">
-            <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-6 text-4xl shadow-sm border border-green-100" />
+            <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-6 shadow-sm border border-green-100 animate-in fade-in zoom-in duration-300">
+              <svg className="w-10 h-10 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+            </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">Section Completed!</h2>
             <p className="text-sm text-gray-500 mb-8">Your code has been recorded successfully.</p>
             

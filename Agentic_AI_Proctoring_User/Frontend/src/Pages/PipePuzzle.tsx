@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { useLocation, useNavigate } from 'react-router';
+import API_USER_URL from '../Config/apiConfig';
 
 // ─── Types & Constants ───
 
@@ -79,7 +80,7 @@ export const DEFAULT_LEVELS: readonly { rows: number; cols: number; label: strin
 
 // ─── API Client ───
 
-const API_BASE = '/api/pipe-puzzle';
+const API_BASE = `${API_USER_URL}/api/pipe-puzzle`;
 
 async function request<T>(path: string, options: RequestInit = {}): Promise<T> {
     const res = await fetch(`${API_BASE}${path}`, {
@@ -851,11 +852,11 @@ export const PipePuzzle: React.FC = () => {
                         boxShadow: '0 4px 24px rgba(0,0,0,0.07)',
                         textAlign: 'center',
                     }}>
-                        <div style={{ 
-                            width: '40px', height: '40px', background: '#f0fdf4', 
-                            border: '1px solid #bbf7d0', borderRadius: '50%', 
-                            margin: '0 auto 1.25rem' 
-                        }} />
+                        <div className="w-20 h-20 rounded-full bg-green-50 flex items-center justify-center mx-auto mb-6 shadow-sm border border-green-100 animate-in fade-in zoom-in duration-300">
+                            <svg className="w-10 h-10 text-black" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                        </div>
                         {/* ✅ Emoji Removed */}
 
                         <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827', margin: '0 0 0.5rem' }}>

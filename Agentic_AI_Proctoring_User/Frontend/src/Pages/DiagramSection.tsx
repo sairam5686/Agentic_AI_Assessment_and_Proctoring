@@ -767,7 +767,7 @@ const DiagramSection = () => {
                     className="px-10 py-4 bg-gray-900 text-white text-sm font-bold rounded-2xl hover:bg-gray-800 transition-all active:scale-95 shadow-lg shadow-gray-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed uppercase tracking-wide flex items-center gap-3"
                 >
                     {isSubmitting && <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />}
-                    {isSubmitting ? 'Evaluating Diagram...' : isSubmitted ? 'Submitted' : 'Submit Diagram'}
+                    {isSubmitting ? 'Evaluating...' : isSubmitted ? 'Submitted' : 'SUBMIT DIAGRAM'}
                 </button>
 
                 <button

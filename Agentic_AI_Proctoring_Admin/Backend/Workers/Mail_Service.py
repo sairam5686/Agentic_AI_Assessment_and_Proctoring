@@ -12,6 +12,7 @@ FROM_NAME = os.getenv("FROM_NAME", "TEAM_TITANS")
 # Support portal and Mobile App links
 CANDIDATE_SUPPORT_URL = os.getenv("SUPPORT_PORTAL_URL")
 MOBILE_APP_URL = os.getenv("MOBILE_APP_URL")
+PROCTOR_DASHBOARD_URL = os.getenv("PROCTOR_DASHBOARD_URL", "https://proctor-interface.vercel.app")
 
 SENDGRID_URL = "https://api.sendgrid.com/v3/mail/send"
 
@@ -159,7 +160,8 @@ def send_proctor_mail(to_email, proctor_name, assessment_title, assessment_id, p
         - Assessment ID: {assessment_id}
         - Passkey: {passkey}
 
-    Please login to the Proctor Dashboard using these credentials to begin monitoring candidates.
+    Please login to the Proctor Dashboard using these credentials to begin monitoring candidates:
+    {PROCTOR_DASHBOARD_URL}
 
     Best regards,
     {FROM_NAME} Team
