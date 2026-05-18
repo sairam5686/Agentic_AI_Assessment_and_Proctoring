@@ -1,6 +1,16 @@
 import React from 'react';
 
 const SebRequired: React.FC = () => {
+  const launchInSeb = () => {
+    const origin = window.location.origin;
+    // Convert current web origin to safe exam browser protocols: https -> sebs, http -> seb
+    const sebUrl = origin
+      .replace(/^https:\/\//i, 'sebs://')
+      .replace(/^http:\/\//i, 'seb://');
+    
+    window.location.href = sebUrl;
+  };
+
   return (
     <div className="min-h-screen bg-[#0b0f19] flex flex-col items-center justify-center p-6 font-['Inter'] relative overflow-hidden">
       {/* Decorative background glows */}
@@ -30,31 +40,45 @@ const SebRequired: React.FC = () => {
         </div>
 
         {/* Buttons Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-md mx-auto mb-8">
-          <a
-            href="https://safeexambrowser.org/download_en.html"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex flex-col items-center justify-center p-5 bg-slate-800/40 hover:bg-slate-800/80 border border-slate-700 hover:border-slate-500 text-white rounded-2xl transition-all duration-300 active:scale-[0.98] group"
-          >
-            <svg className="w-8 h-8 text-blue-400 mb-3 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-            </svg>
-            <span className="text-sm font-bold">1. Download SEB</span>
-            <span className="text-[10px] text-slate-500 mt-1">Get SEB for your OS</span>
-          </a>
+        <div className="flex flex-col gap-4 max-w-md mx-auto mb-8">
+          {/* Setup Actions Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <a
+              href="https://safeexambrowser.org/download_en.html"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex flex-col items-center justify-center p-5 bg-slate-800/40 hover:bg-slate-800/80 border border-slate-700 hover:border-slate-500 text-white rounded-2xl transition-all duration-300 active:scale-[0.98] group"
+            >
+              <svg className="w-8 h-8 text-blue-400 mb-3 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+              </svg>
+              <span className="text-sm font-bold">1. Download SEB</span>
+              <span className="text-[10px] text-slate-500 mt-1">Get SEB for your OS</span>
+            </a>
 
-          <a
-            href="/TITANS_CANDIDATEPORTAL.seb"
-            download="TITANS_CANDIDATEPORTAL.seb"
-            className="flex flex-col items-center justify-center p-5 bg-gradient-to-br from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl transition-all duration-300 active:scale-[0.98] shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 border border-blue-500/20 group"
+            <a
+              href="/TITANS_CANDIDATEPORTAL.seb"
+              download="TITANS_CANDIDATEPORTAL.seb"
+              className="flex flex-col items-center justify-center p-5 bg-slate-800/40 hover:bg-slate-800/80 border border-slate-700 hover:border-slate-500 text-white rounded-2xl transition-all duration-300 active:scale-[0.98] group"
+            >
+              <svg className="w-8 h-8 text-indigo-400 mb-3 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <span className="text-sm font-bold">2. Download Config</span>
+              <span className="text-[10px] text-slate-500 mt-1">Get assessment.seb file</span>
+            </a>
+          </div>
+
+          {/* Launch Action */}
+          <button
+            onClick={launchInSeb}
+            className="w-full flex items-center justify-center gap-3 p-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl font-bold transition-all duration-300 active:scale-[0.98] shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 border border-blue-500/20 cursor-pointer group"
           >
-            <svg className="w-8 h-8 text-white mb-3 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            <svg className="w-6 h-6 text-white group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
             </svg>
-            <span className="text-sm font-bold">2. Download Config</span>
-            <span className="text-[10px] text-blue-200 mt-1">Launch assessment in SEB</span>
-          </a>
+            <span>Already Setup? Launch Exam in SEB</span>
+          </button>
         </div>
 
         {/* Steps Guide */}
@@ -71,7 +95,7 @@ const SebRequired: React.FC = () => {
             </li>
             <li className="flex items-start gap-2">
               <span className="w-5 h-5 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold shrink-0">3</span>
-              <span>Double-click the downloaded <code>TITANS_CANDIDATEPORTAL.seb</code> file to securely launch and take your test.</span>
+              <span>Click the <strong>Already Setup? Launch Exam in SEB</strong> button or double-click the downloaded <code>TITANS_CANDIDATEPORTAL.seb</code> file to securely launch.</span>
             </li>
           </ul>
         </div>

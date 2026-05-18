@@ -60,20 +60,34 @@ def send_assessment_mail(to_email, candidate_name, assessment_title, assessment_
 
     You have been invited to participate in the assessment: {assessment_title}.
 
-    Your Login Credentials:
+    --------------------------------------------------
+    🔐 SAFE EXAM BROWSER (SEB) SETUP (MANDATORY)
+    --------------------------------------------------
+    To ensure assessment security, fairness, and integrity, this assessment can ONLY be accessed inside the Safe Exam Browser (SEB). Standard browsers (such as Chrome, Edge, Safari) will block access.
+
+    Please complete these setup steps BEFORE your exam:
+    
+    1. Open Portal: Click the assessment link to access the SEB setup portal:
+       {assessment_link}
+       
+    2. Download SEB Client: Click the "Download SEB" button to download and install the Safe Exam Browser application for your operating system.
+    
+    3. Download Config: Click the "Download Config" button to download the "TITANS_CANDIDATEPORTAL.seb" configuration file.
+    
+    4. Launch Secure Exam: Once both are downloaded, double-click the "TITANS_CANDIDATEPORTAL.seb" file (or click the "Already Setup? Launch Exam in SEB" button on the setup screen) to automatically boot up the secure testing environment.
+    --------------------------------------------------
+
+    --------------------------------------------------
+    🔑 YOUR LOGIN CREDENTIALS
+    --------------------------------------------------
         - Registered Email: {to_email}
         - Assessment ID / Password: {assessment_id}
 
+    📅 SCHEDULED ELIGIBILITY WINDOW:
+    The assessment is scheduled and accessible ONLY from {valid_from} to {valid_to}.
 
-    Please click the link below to access the assessment portal and use both your registered email and the assessment ID provided above to login:
-    {assessment_link}
-
-
-    Eligibility Window:
-    The assessment will be accessible from {valid_from} and must be completed by {valid_to}. 
-    Please ensure you start your test within this professional window.
-
-    Important: Please use the same device and browser for the entire assessment. In case of a system crash or restart, you can only resume your progress on the same device.
+    CRITICAL NOTE: You can set up Safe Exam Browser and download the config file at any time before the assessment to ensure your environment is ready. However, your login credentials will strictly ONLY be valid and active during the scheduled window above. You will NOT be able to log in or enter the exam before the scheduled starting time.
+    --------------------------------------------------
     
     --------------------------------------------------
     📲 MOBILE PROCTORING SETUP (MANDATORY)
@@ -108,20 +122,35 @@ def send_university_assessment_mail(to_email, candidate_name, registration_numbe
 
     You have been invited to participate in the University Exam: {assessment_title}.
 
-    Your Login Credentials:
+    --------------------------------------------------
+    🔐 SAFE EXAM BROWSER (SEB) SETUP (MANDATORY)
+    --------------------------------------------------
+    To ensure exam security, fairness, and academic integrity, this exam can ONLY be accessed inside the Safe Exam Browser (SEB). Standard browsers (such as Chrome, Edge, Safari) will block access.
+
+    Please complete these setup steps BEFORE your exam:
+    
+    1. Open Portal: Click the exam link to access the SEB setup portal:
+       {assessment_link}
+       
+    2. Download SEB Client: Click the "Download SEB" button to download and install the Safe Exam Browser application for your operating system.
+    
+    3. Download Config: Click the "Download Config" button to download the "TITANS_CANDIDATEPORTAL.seb" configuration file.
+    
+    4. Launch Secure Exam: Once both are downloaded, double-click the "TITANS_CANDIDATEPORTAL.seb" file (or click the "Already Setup? Launch Exam in SEB" button on the setup screen) to automatically boot up the secure testing environment.
+    --------------------------------------------------
+
+    --------------------------------------------------
+    🔑 YOUR EXAM LOGIN CREDENTIALS
+    --------------------------------------------------
         - Registered Email: {to_email}
+        - Registration Number: {registration_number}
         - Assessment ID / Password: {assessment_id}
 
+    📅 SCHEDULED ELIGIBILITY WINDOW:
+    The exam is scheduled and accessible ONLY from {valid_from} to {valid_to}.
 
-    Please click the link below to access the assessment portal and use both your registered email and the assessment ID provided above to login:
-    {assessment_link}
-
-
-    Eligibility Window:
-    The assessment will be accessible from {valid_from} and must be completed by {valid_to}. 
-    Please ensure you start your test within this professional window.
-
-    Important: Please use the same device and browser for the entire assessment. In case of a system crash or restart, you can only resume your progress on the same device.
+    CRITICAL NOTE: You can set up Safe Exam Browser and download the config file at any time before the exam to ensure your environment is ready. However, your login credentials will strictly ONLY be valid and active during the scheduled window above. You will NOT be able to log in or enter the exam before the scheduled starting time.
+    --------------------------------------------------
     
     --------------------------------------------------
     📲 MOBILE PROCTORING SETUP (MANDATORY)
