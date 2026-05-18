@@ -29,11 +29,11 @@ const IDVerification: React.FC = () => {
 
     const startCamera = async () => {
         try {
-            // Request 1080p resolution for sharper text OCR
+            // Request 720p resolution for faster text OCR processing
             const stream = await navigator.mediaDevices.getUserMedia({ 
                 video: { 
-                    width: { ideal: 1920 },
-                    height: { ideal: 1080 },
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 },
                     facingMode: 'user'
                 } 
             });

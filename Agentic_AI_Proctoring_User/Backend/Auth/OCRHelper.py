@@ -23,7 +23,7 @@ def preprocess_for_ocr(image: np.ndarray, attempt: int = 0) -> np.ndarray:
     h, w = image.shape[:2]
     
     # Standardize size
-    target_width = 1200
+    target_width = 800
     if w != target_width:
         scale = target_width / w
         image = cv2.resize(image, None, fx=scale, fy=scale, interpolation=cv2.INTER_LANCZOS4)
