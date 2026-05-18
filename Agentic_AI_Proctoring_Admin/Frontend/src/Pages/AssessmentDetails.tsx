@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useMemo } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useLocation, useNavigate } from 'react-router';
 import { toast } from 'react-toastify';
+import * as XLSX from 'xlsx';
 import {
     Download,
     Users2,
@@ -10,7 +11,10 @@ import {
     UserPlus,
     ShieldCheck,
     Mail,
-    Trash2
+    Trash2,
+    SlidersHorizontal,
+    X,
+    FileSpreadsheet
 } from 'lucide-react';
 import NavBar from '../Components/NavBar';
 
@@ -31,6 +35,18 @@ const AssessmentDetails = () => {
         candidateCount: '' as string | number
     });
     const navigate = useNavigate();
+
+    // ── Filter state ──────────────────────────────────────────────────────────
+    const [showFilterPanel, setShowFilterPanel] = useState(false);
+    const [filterStatus, setFilterStatus] = useState<string>('all');
+    const [filterScoreMin, setFilterScoreMin] = useState<string>('');
+    const [filterScoreMax, setFilterScoreMax] = useState<string>('');
+    const [filterConfMin, setFilterConfMin] = useState<string>('');
+    const [filterConfMax, setFilterConfMax] = useState<string>('');
+
+    // ── Download modal state ──────────────────────────────────────────────────
+    const [showDownloadModal, setShowDownloadModal] = useState(false);
+    const [downloadFileName, setDownloadFileName] = useState('');
     const fetchProctors = async () => {
         try {
             const res = await fetch(`${import.meta.env.VITE_API_URL}/admin/test/${testData.test_id}/proctor`);
@@ -91,6 +107,74 @@ const AssessmentDetails = () => {
         } catch (e) {
             return 'N/A';
         }
+    };
+
+    // ── Filtered candidates (memoized) ────────────────────────────────────────
+    const filteredCandidates = useMemo(() => {
+        return candidates.filter(c => {
+            const nameMatch = c.name?.toLowerCase().includes(searchTerm.toLowerCase());
+            const emailMatch = c.email?.toLowerCase().includes(searchTerm.toLowerCase());
+            const regMatch = c.reg_no?.toLowerCase().includes(searchTerm.toLowerCase());
+            if (!nameMatch && !emailMatch && !regMatch) return false;
+
+            if (filterStatus !== 'all' && c.status !== filterStatus) return false;
+
+            const score = c.total_score ?? null;
+            if (filterScoreMin !== '' && (score === null || score < parseFloat(filterScoreMin))) return false;
+            if (filterScoreMax !== '' && (score === null || score > parseFloat(filterScoreMax))) return false;
+
+            const conf = c.confidence_score ?? null;
+            if (filterConfMin !== '' && (conf === null || conf < parseFloat(filterConfMin))) return false;
+            if (filterConfMax !== '' && (conf === null || conf > parseFloat(filterConfMax))) return false;
+
+            return true;
+        });
+    }, [candidates, searchTerm, filterStatus, filterScoreMin, filterScoreMax, filterConfMin, filterConfMax]);
+
+    const activeFilterCount = [filterStatus !== 'all', filterScoreMin, filterScoreMax, filterConfMin, filterConfMax].filter(Boolean).length;
+
+    const resetFilters = () => {
+        setFilterStatus('all');
+        setFilterScoreMin('');
+        setFilterScoreMax('');
+        setFilterConfMin('');
+        setFilterConfMax('');
+    };
+
+    // ── Excel export ──────────────────────────────────────────────────────────
+    const handleExcelDownload = () => {
+        const defaultName = `${testData?.test_title || 'Assessment'}_Candidates_${new Date().toISOString().slice(0,10)}`;
+        setDownloadFileName(defaultName);
+        setShowDownloadModal(true);
+    };
+
+    const doExcelDownload = () => {
+        const rows = filteredCandidates.map(c => ({
+            'Name':                 c.name || '--',
+            'Email':                c.email || '--',
+            'Registration No':      c.reg_no || '--',
+            'College':              c.college || '--',
+            'Status':               c.status || '--',
+            'Total Score':          c.total_score ?? '--',
+            'Confidence Score (%)': c.confidence_score ?? '--',
+            'Trust Score (%)':      c.trust_score ?? '--',
+            'Webcam Risk Score':    c.webcam_risk_score ?? '--',
+            'Mobile Violation Score': c.mobile_violation_score ?? '--',
+            'Violation Count':      c.violation_count ?? '--',
+            'Sections Completed':   c.sections_completed ?? '--',
+            'Start Time':           c.start_time ? new Date(c.start_time).toLocaleString('en-GB') : '--',
+            'End Time':             c.end_time   ? new Date(c.end_time).toLocaleString('en-GB')   : '--',
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(rows);
+        const colWidths = Object.keys(rows[0] || {}).map(k => ({ wch: Math.max(k.length + 4, 20) }));
+        ws['!cols'] = colWidths;
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, 'Candidates');
+        XLSX.writeFile(wb, `${downloadFileName || 'candidates'}.xlsx`);
+        setShowDownloadModal(false);
+        toast.success('Excel file downloaded successfully!');
     };
 
     const calculateSectionInfo = () => {
@@ -240,6 +324,7 @@ const AssessmentDetails = () => {
     };
 
     return (
+        <>
         <div className="min-h-screen bg-[#F0F2F5] font-sans pb-12">
             <NavBar />
 
@@ -376,28 +461,120 @@ const AssessmentDetails = () => {
                                     {activeTab === 'invigilator' && <motion.div layoutId="tab-underline" className="absolute bottom-0 left-0 right-0 h-0.5 bg-[#4F46E5]" />}
                                 </button>
                             </div>
-                            <button className="flex items-center gap-2 text-indigo-600 text-[11px] font-black uppercase tracking-widest pb-4 hover:opacity-70 transition-opacity">
-                                <Download size={14} />
-                                Download
+                            <button
+                                onClick={handleExcelDownload}
+                                className="flex items-center gap-2 text-indigo-600 text-[11px] font-black uppercase tracking-widest pb-4 hover:opacity-70 transition-opacity"
+                            >
+                                <FileSpreadsheet size={14} />
+                                Export Excel
                             </button>
                         </div>
 
                         {/* Candidates Tab Content */}
                         {activeTab === 'candidates' && (
                             <div className="space-y-6">
-                                <div className="flex items-center justify-between">
-                                    <h3 className="text-[20px] font-black text-[#1e293b] uppercase tracking-tight">Enrolled Candidates</h3>
-                                    <div className="relative w-72">
-                                        <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
-                                        <input
-                                            type="text"
-                                            placeholder="Search candidates..."
-                                            value={searchTerm}
-                                            onChange={(e) => setSearchTerm(e.target.value)}
-                                            className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm shadow-sm"
-                                        />
+                                <div className="flex items-center justify-between gap-4">
+                                    <h3 className="text-[20px] font-black text-[#1e293b] uppercase tracking-tight shrink-0">Enrolled Candidates</h3>
+                                    <div className="flex items-center gap-3 ml-auto">
+                                        <div className="relative w-64">
+                                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                                            <input
+                                                type="text"
+                                                placeholder="Search candidates..."
+                                                value={searchTerm}
+                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                className="w-full pl-10 pr-4 py-2 bg-white border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm shadow-sm"
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={() => setShowFilterPanel(v => !v)}
+                                            className={`relative flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-bold transition-all shadow-sm ${
+                                                showFilterPanel || activeFilterCount > 0
+                                                    ? 'bg-indigo-600 text-white border-indigo-600'
+                                                    : 'bg-white text-gray-600 border-gray-200 hover:border-indigo-400'
+                                            }`}
+                                        >
+                                            <SlidersHorizontal size={15} />
+                                            Filters
+                                            {activeFilterCount > 0 && (
+                                                <span className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-red-500 text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                                                    {activeFilterCount}
+                                                </span>
+                                            )}
+                                        </button>
                                     </div>
                                 </div>
+
+                                {/* ── Filter Panel ── */}
+                                <AnimatePresence>
+                                {showFilterPanel && (
+                                    <motion.div
+                                        key="filter-panel"
+                                        initial={{ opacity: 0, y: -8 }}
+                                        animate={{ opacity: 1, y: 0 }}
+                                        exit={{ opacity: 0, y: -8 }}
+                                        transition={{ duration: 0.18 }}
+                                        className="bg-white border border-gray-100 rounded-2xl shadow-md p-6"
+                                    >
+                                        <div className="flex items-center justify-between mb-5">
+                                            <p className="text-[11px] font-black text-gray-400 uppercase tracking-[0.18em]">Filter Candidates</p>
+                                            {activeFilterCount > 0 && (
+                                                <button onClick={resetFilters} className="text-[10px] font-black text-red-500 hover:text-red-700 uppercase tracking-wider flex items-center gap-1">
+                                                    <X size={12} /> Clear All
+                                                </button>
+                                            )}
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                            {/* Status filter */}
+                                            <div>
+                                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Status</label>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {['all','Completed','In_Progress','Pending'].map(s => (
+                                                        <button
+                                                            key={s}
+                                                            onClick={() => setFilterStatus(s)}
+                                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-wider border transition-all ${
+                                                                filterStatus === s
+                                                                    ? 'bg-indigo-600 text-white border-indigo-600'
+                                                                    : 'bg-gray-50 text-gray-500 border-gray-100 hover:border-indigo-300'
+                                                            }`}
+                                                        >
+                                                            {s === 'all' ? 'All' : s.replace(/_/g,' ')}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            {/* Score range */}
+                                            <div>
+                                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Score Range</label>
+                                                <div className="flex items-center gap-2">
+                                                    <input type="number" placeholder="Min" value={filterScoreMin} onChange={e => setFilterScoreMin(e.target.value)}
+                                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400" />
+                                                    <span className="text-gray-300 font-bold">–</span>
+                                                    <input type="number" placeholder="Max" value={filterScoreMax} onChange={e => setFilterScoreMax(e.target.value)}
+                                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400" />
+                                                </div>
+                                            </div>
+                                            {/* Confidence range */}
+                                            <div>
+                                                <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">Confidence Score (%)</label>
+                                                <div className="flex items-center gap-2">
+                                                    <input type="number" placeholder="Min" value={filterConfMin} onChange={e => setFilterConfMin(e.target.value)}
+                                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400" />
+                                                    <span className="text-gray-300 font-bold">–</span>
+                                                    <input type="number" placeholder="Max" value={filterConfMax} onChange={e => setFilterConfMax(e.target.value)}
+                                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-100 rounded-xl text-sm font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-400" />
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="mt-4 pt-4 border-t border-gray-50 flex items-center gap-2">
+                                            <span className="text-[10px] font-bold text-gray-400 uppercase">
+                                                Showing <span className="text-indigo-600 font-black">{filteredCandidates.length}</span> of <span className="text-gray-700 font-black">{candidates.length}</span> candidates
+                                            </span>
+                                        </div>
+                                    </motion.div>
+                                )}
+                                </AnimatePresence>
 
                                 <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden text-slate-800">
                                     <div className="overflow-x-auto">
@@ -413,11 +590,7 @@ const AssessmentDetails = () => {
                                                  </tr>
                                              </thead>
                                              <tbody className="divide-y divide-gray-50">
-                                                 {candidates.filter(c =>
-                                                     c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                                     c.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                                                     c.reg_no.toLowerCase().includes(searchTerm.toLowerCase())
-                                                 ).map((candidate, idx) => (
+                                                 {filteredCandidates.map((candidate, idx) => (
                                                      <tr key={idx} className="hover:bg-gray-50/30 transition-colors group">
                                                          <td className="px-4 py-4">
                                                              <div className="flex items-center gap-4">
@@ -676,6 +849,82 @@ const AssessmentDetails = () => {
                 </div>
             </div>
         </div>
+
+        {/* ── Excel Download Modal ── */}
+        <AnimatePresence>
+        {showDownloadModal && (
+            <motion.div
+                key="download-modal"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 z-[200] bg-black/50 backdrop-blur-sm flex items-center justify-center px-4"
+                onClick={() => setShowDownloadModal(false)}
+            >
+                <motion.div
+                    initial={{ scale: 0.93, opacity: 0, y: 16 }}
+                    animate={{ scale: 1, opacity: 1, y: 0 }}
+                    exit={{ scale: 0.93, opacity: 0, y: 16 }}
+                    transition={{ duration: 0.22 }}
+                    className="bg-white rounded-2xl shadow-2xl border border-gray-100 p-8 w-full max-w-md"
+                    onClick={e => e.stopPropagation()}
+                >
+                    <div className="flex items-center gap-3 mb-6">
+                        <div className="w-11 h-11 bg-emerald-50 rounded-xl flex items-center justify-center text-emerald-600">
+                            <FileSpreadsheet size={22} />
+                        </div>
+                        <div>
+                            <h3 className="text-base font-black text-gray-900 uppercase tracking-tight">Export to Excel</h3>
+                            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                {filteredCandidates.length} candidates · .xlsx format
+                            </p>
+                        </div>
+                        <button onClick={() => setShowDownloadModal(false)} className="ml-auto p-1.5 text-gray-300 hover:text-gray-600 transition-colors">
+                            <X size={18} />
+                        </button>
+                    </div>
+
+                    <div className="mb-6">
+                        <label className="block text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2">File Name</label>
+                        <div className="relative">
+                            <input
+                                type="text"
+                                value={downloadFileName}
+                                onChange={e => setDownloadFileName(e.target.value)}
+                                className="w-full px-4 py-3 pr-16 bg-gray-50 border border-gray-200 rounded-xl text-sm font-bold text-gray-900 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all"
+                                placeholder="Enter file name..."
+                            />
+                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-black text-gray-300 uppercase">.xlsx</span>
+                        </div>
+                    </div>
+
+                    <div className="bg-gray-50 rounded-xl border border-gray-100 p-4 mb-6">
+                        <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Included Columns</p>
+                        <div className="flex flex-wrap gap-1.5">
+                            {['Name','Email','Reg No','College','Status','Total Score','Confidence Score','Trust Score','Webcam Risk','Mobile Violations','Violation Count','Sections Completed','Start Time','End Time'].map(col => (
+                                <span key={col} className="px-2 py-1 bg-white border border-gray-100 rounded-lg text-[9px] font-black text-gray-500 uppercase tracking-wide">{col}</span>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                        <button onClick={() => setShowDownloadModal(false)}
+                            className="flex-1 py-3 border border-gray-200 text-gray-600 text-sm font-bold rounded-xl hover:bg-gray-50 transition-all">
+                            Cancel
+                        </button>
+                        <button
+                            onClick={doExcelDownload}
+                            disabled={!downloadFileName.trim()}
+                            className="flex-1 py-3 bg-emerald-600 text-white text-sm font-black rounded-xl hover:bg-emerald-700 active:scale-95 transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-40"
+                        >
+                            <Download size={16} /> Download
+                        </button>
+                    </div>
+                </motion.div>
+            </motion.div>
+        )}
+        </AnimatePresence>
+        </>
     );
 };
 
