@@ -155,7 +155,7 @@ const SebRequired: React.FC = () => {
           </div>
 
           <div className="mt-8 text-center text-slate-400 text-[10px] font-medium">
-            © Team Titans. All rights reserved.
+            © Team Titans.
           </div>
 
         </div>
