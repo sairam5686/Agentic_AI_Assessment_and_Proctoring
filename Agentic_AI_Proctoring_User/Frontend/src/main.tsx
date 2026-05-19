@@ -22,6 +22,7 @@ import FITBSection from './Pages/FitbSection.tsx'
 import EssayPage from './Pages/EssayPage.tsx'
 import DiagramSection from './Pages/DiagramSection.tsx'
 import SebRequired from './Pages/SebRequired.tsx'
+import FinalAssessmentPage from './Pages/FinalAssessmentPage.tsx'
 import { ToastContainer } from 'react-toastify'
 import 'react-toastify/dist/ReactToastify.css'
 
@@ -29,6 +30,7 @@ const routes = createBrowserRouter([
   { path: "/seb-required", element: <SebRequired /> },
   { path: "/Login", element: <UserLogin /> },
   { path: "/", element: <SebRequired />},
+  { path: "/final-feedback", element: <FinalAssessmentPage /> },
 
   {
     element: <AgoraProctoringLayout />,

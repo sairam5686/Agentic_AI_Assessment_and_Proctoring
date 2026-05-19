@@ -143,8 +143,8 @@ const Submission: React.FC = () => {
                 }
                
                 setTimeout(() => {
-                    console.log("Submission: Final reload to ensure camera off");
-                    window.location.reload();
+                    console.log("Submission: Final reload to ensure camera off and redirecting to feedback page");
+                    window.location.href = '/final-feedback';
                 }, 1000);
                
             } catch (err) {
