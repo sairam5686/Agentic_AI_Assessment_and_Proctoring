@@ -1,9 +1,37 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 const SebRequired: React.FC = () => {
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  const slides = [
+    {
+      title: "Install Safe Exam Browser",
+      description: "Download and install SEB for Windows or macOS. It creates a locked, secure browsing environment for your exam session.",
+      image: (
+        <img src="/seb_install_dark.png" alt="Install SEB" className="w-80 h-56 object-contain mb-8 rounded-xl shadow-none" />
+      )
+    },
+    {
+      title: "Download Configuration",
+      description: "Get the assessment configuration file (.seb). This file contains the specific settings required for your exam.",
+      image: (
+        <img src="/seb_config_dark.png" alt="Download Config" className="w-80 h-56 object-contain mb-8 rounded-xl shadow-none" />
+      )
+    },
+    {
+      title: "Launch Assessment",
+      description: "Once installed, click the launch button or open the configuration file to securely start your assessment.",
+      image: (
+         <img src="/seb_launch_dark.png" alt="Launch Assessment" className="w-80 h-56 object-contain mb-8 rounded-xl shadow-none" />
+      )
+    }
+  ];
+
+  const nextSlide = () => setCurrentSlide((prev) => (prev + 1) % slides.length);
+  const prevSlide = () => setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
+
   const launchInSeb = () => {
     const origin = window.location.origin;
-    // Convert current web origin to safe exam browser protocols: https -> sebs, http -> seb
     const sebUrl = origin
       .replace(/^https:\/\//i, 'sebs://')
       .replace(/^http:\/\//i, 'seb://');
@@ -12,97 +40,126 @@ const SebRequired: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] flex flex-col items-center justify-center p-6 font-['Inter'] relative overflow-hidden">
-      {/* Decorative background glows */}
-      <div className="absolute top-[-20%] left-[-10%] w-[50%] h-[50%] bg-[#3b82f6]/10 rounded-full blur-[120px] pointer-events-none" />
-      <div className="absolute bottom-[-20%] right-[-10%] w-[50%] h-[50%] bg-[#818cf8]/10 rounded-full blur-[120px] pointer-events-none" />
-
-      {/* Lock Card */}
-      <div className="w-full max-w-xl bg-slate-900/50 backdrop-blur-xl rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.3)] border border-slate-800 p-10 text-center z-10">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 md:p-12 font-['Outfit']">
+      <div className="max-w-[1400px] w-full bg-white rounded-3xl shadow-[0_20px_50px_rgb(0,0,0,0.05)] border border-slate-100 overflow-hidden flex flex-col md:flex-row">
         
-        {/* Glow Shield Icon */}
-        <div className="w-24 h-24 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto mb-8 shadow-[0_0_50px_rgba(239,68,68,0.15)] animate-pulse">
-          <svg className="w-12 h-12 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
-          </svg>
+        {/* Left Side - Slider (Instruction) */}
+        <div className="w-full md:w-1/2 p-12 lg:p-16 flex flex-col items-center justify-center border-b md:border-b-0 border-slate-700 bg-slate-800 relative overflow-hidden">
+           
+           {/* Decorative background glows */}
+           <div className="absolute top-[-20%] left-[-10%] w-[60%] h-[60%] bg-[#3b82f6]/15 rounded-full blur-[100px] pointer-events-none" />
+           <div className="absolute bottom-[-20%] right-[-10%] w-[60%] h-[60%] bg-[#818cf8]/15 rounded-full blur-[100px] pointer-events-none" />
+
+           <div className="w-full max-w-lg bg-[#1e293b] rounded-3xl p-10 shadow-[0_12px_40px_rgb(0,0,0,0.3)] border border-slate-700 flex flex-col items-center text-center transition-all duration-500 z-10">
+              {slides[currentSlide].image}
+              <h3 className="text-3xl font-bold text-white mb-4">{slides[currentSlide].title}</h3>
+              <p className="text-lg text-slate-300 leading-relaxed min-h-[80px]">
+                {slides[currentSlide].description}
+              </p>
+           </div>
+
+           {/* Slider Controls */}
+           <div className="flex items-center gap-4 mt-8 z-10">
+              <button onClick={prevSlide} className="w-10 h-10 rounded-full border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white hover:border-slate-500 transition-colors bg-slate-800/50 shadow-sm backdrop-blur-md">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              
+              <div className="flex gap-2">
+                {slides.map((_, idx) => (
+                  <button 
+                    key={idx}
+                    onClick={() => setCurrentSlide(idx)}
+                    className={`h-2 rounded-full transition-all duration-300 ${currentSlide === idx ? 'w-6 bg-blue-500 shadow-[0_0_10px_rgba(59,130,246,0.6)]' : 'w-2 bg-slate-700'}`}
+                  />
+                ))}
+              </div>
+
+              <button onClick={nextSlide} className="w-10 h-10 rounded-full border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white hover:border-slate-500 transition-colors bg-slate-800/50 shadow-sm backdrop-blur-md">
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+           </div>
+
         </div>
 
-        <div className="text-center mb-8">
-          <div className="inline-block px-3 py-1 bg-red-500/10 text-red-400 text-[10px] font-extrabold uppercase tracking-widest rounded-full mb-4 border border-red-500/20">
+        {/* Right Side - Action / Download */}
+        <div className="w-full md:w-1/2 p-12 lg:p-16 flex flex-col justify-center bg-white relative">
+          
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-slate-100 text-slate-600 text-[11px] font-bold uppercase tracking-wider rounded-full mb-6 border border-slate-200 self-start">
+            <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+            </svg>
             Secure Environment Required
           </div>
-          <h1 className="text-3xl font-extrabold text-white tracking-tight mb-4">
-            Safe Exam Browser Required
-          </h1>
-          <p className="text-slate-400 text-sm leading-relaxed max-w-md mx-auto">
-            To ensure assessment security, fairness, and integrity, this assessment can only be accessed using the <strong>Safe Exam Browser (SEB)</strong>.
-          </p>
-        </div>
 
-        {/* Buttons Grid */}
-        <div className="flex flex-col gap-4 max-w-md mx-auto mb-8">
-          {/* Setup Actions Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <h1 className="text-5xl font-extrabold text-slate-900 tracking-tight mb-6">
+            Safe Exam Browser <br/> Required
+          </h1>
+          
+          <p className="text-slate-500 text-lg leading-relaxed mb-12">
+            This assessment must be accessed through Safe Exam Browser to ensure fairness, security, and integrity.
+          </p>
+
+          <div className="flex flex-col gap-6">
+            
             <a
               href="https://safeexambrowser.org/download_en.html"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex flex-col items-center justify-center p-5 bg-slate-800/40 hover:bg-slate-800/80 border border-slate-700 hover:border-slate-500 text-white rounded-2xl transition-all duration-300 active:scale-[0.98] group"
+              className="flex items-center p-6 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-2xl transition-all shadow-sm group"
             >
-              <svg className="w-8 h-8 text-blue-400 mb-3 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
-              </svg>
-              <span className="text-sm font-bold">1. Download SEB</span>
-              <span className="text-[10px] text-slate-500 mt-1">Get SEB for your OS</span>
+              <div className="w-16 h-16 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center mr-6 group-hover:scale-105 transition-transform">
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h4 className="text-slate-800 font-bold text-lg">Download SEB</h4>
+                <p className="text-slate-500 text-base mt-1">Get the browser for your OS</p>
+              </div>
+              <div className="px-4 py-2 bg-indigo-50 text-indigo-600 text-sm font-bold rounded-xl border border-indigo-100">
+                Step 1
+              </div>
             </a>
 
             <a
               href="/TITANS_CANDIDATEPORTAL.seb"
               download="TITANS_CANDIDATEPORTAL.seb"
-              className="flex flex-col items-center justify-center p-5 bg-slate-800/40 hover:bg-slate-800/80 border border-slate-700 hover:border-slate-500 text-white rounded-2xl transition-all duration-300 active:scale-[0.98] group"
+              className="flex items-center p-6 bg-white hover:bg-slate-50 border border-slate-200 hover:border-slate-300 rounded-2xl transition-all shadow-sm group"
             >
-              <svg className="w-8 h-8 text-indigo-400 mb-3 group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="1.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <span className="text-sm font-bold">2. Download Config</span>
-              <span className="text-[10px] text-slate-500 mt-1">Get assessment.seb file</span>
+              <div className="w-16 h-16 bg-emerald-50 text-emerald-600 rounded-2xl flex items-center justify-center mr-6 group-hover:scale-105 transition-transform">
+                <svg className="w-8 h-8" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
+              <div className="flex-1">
+                <h4 className="text-slate-800 font-bold text-lg">Download config file</h4>
+                <p className="text-slate-500 text-base mt-1">TITANS_CANDIDATEPORTAL.seb</p>
+              </div>
+              <div className="px-4 py-2 bg-emerald-50 text-emerald-600 text-sm font-bold rounded-xl border border-emerald-100">
+                Step 2
+              </div>
             </a>
+
+            <button
+              onClick={launchInSeb}
+              className="mt-6 w-full flex items-center justify-center gap-3 p-6 bg-slate-900 hover:bg-slate-800 text-white rounded-2xl font-bold transition-all active:scale-[0.98] shadow-lg shadow-slate-900/10 group text-xl"
+            >
+            
+              <span>Already set up? Launch exam in SEB</span>
+            </button>
+
           </div>
 
-          {/* Launch Action */}
-          <button
-            onClick={launchInSeb}
-            className="w-full flex items-center justify-center gap-3 p-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white rounded-2xl font-bold transition-all duration-300 active:scale-[0.98] shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 border border-blue-500/20 cursor-pointer group"
-          >
-            <svg className="w-6 h-6 text-white group-hover:scale-110 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            <span>Already Setup? Launch Exam in SEB</span>
-          </button>
+          <div className="mt-8 text-center text-slate-400 text-[10px] font-medium">
+            © Team Titans. All rights reserved.
+          </div>
+
         </div>
 
-        {/* Steps Guide */}
-        <div className="bg-slate-950/40 rounded-2xl p-6 text-left border border-slate-800/80 max-w-md mx-auto">
-          <h3 className="text-xs font-extrabold uppercase tracking-wider text-slate-500 mb-3">Quick Setup Guide</h3>
-          <ul className="space-y-3 text-xs text-slate-400">
-            <li className="flex items-start gap-2">
-              <span className="w-5 h-5 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold shrink-0">1</span>
-              <span>Install Safe Exam Browser using the <strong>Download SEB</strong> button.</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="w-5 h-5 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold shrink-0">2</span>
-              <span>Download the configuration file via the <strong>Download Config</strong> button.</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="w-5 h-5 rounded-full bg-blue-500/10 border border-blue-500/30 flex items-center justify-center text-blue-400 font-bold shrink-0">3</span>
-              <span>Click the <strong>Already Setup? Launch Exam in SEB</strong> button or double-click the downloaded <code>TITANS_CANDIDATEPORTAL.seb</code> file to securely launch.</span>
-            </li>
-          </ul>
-        </div>
-      </div>
-
-      <div className="mt-8 text-center text-slate-600 text-xs">
-        © Team Titans. All rights reserved.
       </div>
     </div>
   );

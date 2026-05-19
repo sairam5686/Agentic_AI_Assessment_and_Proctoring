@@ -28,8 +28,8 @@ import 'react-toastify/dist/ReactToastify.css'
 const routes = createBrowserRouter([
   { path: "/seb-required", element: <SebRequired /> },
   { path: "/Login", element: <UserLogin /> },
-  { path: "/", element: <UserLogin /> },
-  
+  { path: "/", element: <SebRequired />},
+
   {
     element: <AgoraProctoringLayout />,
     children: [
