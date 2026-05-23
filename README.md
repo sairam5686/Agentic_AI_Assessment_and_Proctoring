@@ -20,14 +20,49 @@
 
 ---
 ##  Deployed Link for the Websites
-|  Portal |  Access Link |  Description |
+|  Portal |  Access Link |  Description / User Guide |
 |:--|:--|:--|
-|  Admin Portal | [agentic-admin-portal.vercel.app](https://agentic-admin-portal.vercel.app) | Manage assessments, candidates, proctors, and analytics |
+|  Admin Portal | [agentic-admin-portal.vercel.app](https://agentic-admin-portal.vercel.app) | [Admin User Guide Document](https://docs.google.com/document/d/1n0YKajtrSzg1b_-ooEzWOr3dX1_sh8viPOByrNlz5d4/edit?usp=sharing) |
 |  Candidate Exam Portal | [agentic-candidate-portal.vercel.app/seb-required](https://agentic-candidate-portal.vercel.app/seb-required) | Secure examination environment for candidates using SEB |
 |  Human Proctor Portal | [proctor-interface.vercel.app/login](https://proctor-interface.vercel.app/login) | AI-Assisted Human Proctor Interface  |
 |  Candidate Support Portal | [ai-candidate-support-portal.vercel.app](https://ai-candidate-support-portal.vercel.app) | AI-powered candidate assistance and support services |
 
+---
+## 📘 Deployment, Cost Analysis & Revenue Model
 
+<p align="center">
+  <a href="https://drive.google.com/file/d/1cQEWPV9yReUDfPyo9bLEl1ySuFotDXyo/view">
+    <img 
+      src="https://img.shields.io/badge/View-PDF-red?style=for-the-badge&logo=adobeacrobatreader&logoColor=white" 
+      alt="View PDF"
+    />
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://drive.google.com/file/d/1cQEWPV9yReUDfPyo9bLEl1ySuFotDXyo/view">
+    <img 
+      src="https://drive.google.com/thumbnail?id=1cQEWPV9yReUDfPyo9bLEl1ySuFotDXyo&sz=w1000" 
+      alt="Deployment Cost Analysis PDF Preview"
+      width="800"
+    />
+  </a>
+</p>
+
+<p align="center">
+  Click the preview above to open the complete PDF document.
+</p>
+
+---
+
+## Excel File Templates to Download (For Admin)
+| Document Type | Document | Use |
+|:--|:--|:--|
+| MCQ Questions |[Link](https://docs.google.com/spreadsheets/d/1y3x8sf6EY-zxMULVe7JghzxH6hqnNSty/edit?gid=1334738027#gid=1334738027)|Template to batch-upload multiple choice questions, options, correct answers, and specific negative markings.|
+| Coding Questions |[Link](https://docs.google.com/spreadsheets/d/1MBRdLf8YVLUSxe7NNt0eBq7EANhnzPHq/edit?gid=2124335971#gid=2124335971)|Template to batch-upload coding challenges, language parameters, execution timeouts, and functional test cases.|
+| SQL Questions |[Link](https://docs.google.com/spreadsheets/d/1W1nOX1iIy0dFDrWc9W8QymT0vpi2ruxb/edit?gid=1613271869#gid=1613271869)|Template to batch-upload database queries, custom table schemas, seed datasets, and SQL verification scripts.|
+| FITB(Fill in the Blanks) |[Link](https://docs.google.com/spreadsheets/d/1Y99KnzfHAbaWRlNu_ndbou7oPnSGDl-N/edit?gid=1208189947#gid=1208189947)|Template to batch-upload text-based fill-in-the-blank questions along with multiple valid variations of correct answers.|
+|Candidate List |[Link](https://docs.google.com/spreadsheets/d/18URbRZ_ORCS5OmP3abyfPsRG45YcaIVS/edit?gid=813615534#gid=813615534)|Template to batch-register candidate profiles, unique identifier codes, allowed test permissions, and notification emails.|
 ---
 ##  About the Project
 **Agentic AI Assessment and Proctoring** is an autonomous, multi-agent proctoring system designed to solve the critical "blind spot" problem in remote examinations. By pairing a candidate's mobile phone as a secondary lateral camera, our system achieves total environment visibility. A central **Supervisor Agent** cross-references signals from specialized Vision, Gesture, and Audio agents.
