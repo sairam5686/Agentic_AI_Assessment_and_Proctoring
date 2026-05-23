@@ -19,6 +19,31 @@
 > **Rajalakshmi Institute of Technology, Chennai**
 
 ---
+##  Project Demo Video
+
+<p align="center">
+  <a href="https://drive.google.com/file/d/1LJk_-72sShu06RT-yb8A9R-GaumY1gOa/view">
+    <img 
+      src="https://img.shields.io/badge/Watch-Demo_Video-red?style=for-the-badge&logo=youtube&logoColor=white" 
+      alt="Watch Demo Video"
+    />
+  </a>
+</p>
+
+<p align="center">
+  <a href="https://drive.google.com/file/d/1LJk_-72sShu06RT-yb8A9R-GaumY1gOa/view">
+    <img 
+      src="https://drive.google.com/thumbnail?id=1LJk_-72sShu06RT-yb8A9R-GaumY1gOa&sz=w1000" 
+      alt="Demo Video Preview"
+      width="800"
+    />
+  </a>
+</p>
+
+<p align="center">
+   Click the preview above to watch the complete demo video.
+</p>
+
 ##  Deployed Link for the Websites
 |  Portal |  Access Link |  Description / User Guide |
 |:--|:--|:--|
