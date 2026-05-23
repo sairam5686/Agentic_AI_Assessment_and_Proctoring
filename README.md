@@ -1,21 +1,11 @@
 # Agentic AI Assessment and Proctoring
 
 
-DEPLOYMENT IS READY!!
 tested admin essay
 <p align="center">
   <img src="./Images/Banner_Titans_gitHub.png"  alt="Team Titans Banner" width="100%">
 </p>
-x
-how to run everything 
 
-admin backend
-cd Agentic_AI_Proctoring_Admin
-python3.12 -m uvicorn  main:app --reload
-frontend
-cd Agentic_AI_Proctoring_Admin
-cd Frontend
-npm run dev
 
 > [!IMPORTANT]
 > **TEAM NAME: TITANS**
