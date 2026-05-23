@@ -28,7 +28,7 @@
 |  Candidate Support Portal | [ai-candidate-support-portal.vercel.app](https://ai-candidate-support-portal.vercel.app) | AI-powered candidate assistance and support services |
 
 ---
-## 📘 Deployment, Cost Analysis & Revenue Model
+##  Deployment, Cost Analysis & Revenue Model
 
 <p align="center">
   <a href="https://drive.google.com/file/d/1cQEWPV9yReUDfPyo9bLEl1ySuFotDXyo/view">
@@ -66,6 +66,26 @@
 ---
 ##  About the Project
 **Agentic AI Assessment and Proctoring** is an autonomous, multi-agent proctoring system designed to solve the critical "blind spot" problem in remote examinations. By pairing a candidate's mobile phone as a secondary lateral camera, our system achieves total environment visibility. A central **Supervisor Agent** cross-references signals from specialized Vision, Gesture, and Audio agents.
+
+---
+##  Business Selling Points (USPs)
+
+*   **Zero-Blindspot Proctoring:** Pairs laptop webcams with mobile lateral cameras to eliminate typical cheating blind spots, making online exams fully secure.
+*   **Strict Privacy Compliance:** Processes facial tracking coordinates strictly in-memory and stores zero biometric data in the database, protecting institutions from GDPR and BIPA legal liabilities.
+*   **Infinite Scalability:** Offloads student coding and SQL queries to secure, isolated cloud sandboxes, preventing server overload and keeping hosting costs near zero.
+*   **AST Plagiarism Defense:** Uses advanced, compiler-level code syntax analysis to block sophisticated plagiarism, protecting the value of issued certifications and degrees.
+*   **High-Margin SaaS Monetization:** Supports internal organizational use while doubling as a highly profitable B2B SaaS product that can be licensed to external colleges and testing boards.
+
+---
+
+##  Core Features
+
+*   **7-in-1 Assessment Suite:** Combines coding terminals, live SQL consoles, visual diagramming canvases, essays, logical puzzles, fill-in-the-blanks, and standard MCQs in a single portal.
+*   **Dynamic Admin Dashboard:** Allows test creators to upload exam questions, grading rubrics, and test cases via spreadsheets with zero system downtime.
+*   **Real-Time Proctor Alerts:** Relays live video feeds and instant backend warnings to a unified dashboard, enabling proctors to manage large batches with ease.
+*   **Automated Integrity Reports:** Automatically compiles visual student audit PDFs, complete with infraction timelines and secure evidence screenshots.
+*   **AI-Powered Support Desk:** Integrates a conversational AI assistant (Google Gemini) to guide candidates through onboarding and resolve technical queries.
+
 
 ---
 
@@ -315,13 +335,5 @@ Create folders `./assets/admin`, `./assets/user`, `./assets/proctor` to store sc
 
 </div>
 
-
----
-
-##  Features
-*   **360° Surveillance:** Lateral "Third-Eye" mobile camera synchronization.
-*   **Agentic Orchestration:** Specialized agents monitored by a central Supervisor Core.
-*   **Dynamic Risk Score:** Real-time behavioral analysis with escalation multipliers.
-*   **Auto-Audit:** Instant PDF integrity report generation via ReportLab.
 
 ---
