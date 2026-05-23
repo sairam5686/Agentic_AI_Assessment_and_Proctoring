@@ -1,7 +1,7 @@
 # Agentic AI Assessment and Proctoring
 
 
-tested admin essay
+
 <p align="center">
   <img src="./Images/Banner_Titans_gitHub.png"  alt="Team Titans Banner" width="100%">
 </p>
@@ -19,7 +19,16 @@ tested admin essay
 > **Rajalakshmi Institute of Technology, Chennai**
 
 ---
+##  Deployed Link for the Websites
+|  Portal |  Access Link |  Description |
+|:--|:--|:--|
+|  Admin Portal | [agentic-admin-portal.vercel.app](https://agentic-admin-portal.vercel.app) | Manage assessments, candidates, proctors, and analytics |
+|  Candidate Exam Portal | [agentic-candidate-portal.vercel.app/seb-required](https://agentic-candidate-portal.vercel.app/seb-required) | Secure examination environment for candidates using SEB |
+|  Human Proctor Portal | [proctor-interface.vercel.app/login](https://proctor-interface.vercel.app/login) | AI-Assisted Human Proctor Interface  |
+|  Candidate Support Portal | [ai-candidate-support-portal.vercel.app](https://ai-candidate-support-portal.vercel.app) | AI-powered candidate assistance and support services |
 
+
+---
 ##  About the Project
 **Agentic AI Assessment and Proctoring** is an autonomous, multi-agent proctoring system designed to solve the critical "blind spot" problem in remote examinations. By pairing a candidate's mobile phone as a secondary lateral camera, our system achieves total environment visibility. A central **Supervisor Agent** cross-references signals from specialized Vision, Gesture, and Audio agents.
 
