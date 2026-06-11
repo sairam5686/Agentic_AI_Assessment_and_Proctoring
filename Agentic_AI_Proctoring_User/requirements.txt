@@ -7,7 +7,6 @@ agora-token-builder
 python-socketio
 requests
 pymongo
-easyocr
 opencv-python-headless
 numpy
 google-genai
