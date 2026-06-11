@@ -31,7 +31,9 @@ interface EssayEvaluation {
 
 // Use a dynamic API_BASE to handle different network environments (localhost vs IP)
 const API_BASE = API_USER_URL;
-const MIN_WORDS = 200
+const MIN_WORDS = 20
+
+
 
 // ─── Helper utilities ─────────────────────────────────────────────────────────
 
